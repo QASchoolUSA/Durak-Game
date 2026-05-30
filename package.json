@@ -1,0 +1,14 @@
+{
+  "name": "durak-game",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Durak (Podkidnoy) mobile card game - monorepo root",
+  "scripts": {
+    "test": "pnpm --filter @durak/game-core test",
+    "mobile": "pnpm --filter @durak/mobile start"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  },
+  "packageManager": "pnpm@11.4.0"
+}

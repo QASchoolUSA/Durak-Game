@@ -1,0 +1,27 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+
+# React Native / Expo Metro bundler cannot follow pnpm's default isolated,
+# symlinked node_modules. A hoisted (flat) layout is required.
+nodeLinker: hoisted
+shamefullyHoist: true
+
+# Disable the "minimum release age" supply-chain gate for this project; the
+# latest Expo SDK 56 packages are intentionally recent.
+minimumReleaseAge: 0
+
+# These optional native build scripts are not needed (vitest's esbuild resolves
+# its prebuilt platform binary without the script; msgpackr-extract is an
+# optional Metro cache accelerator). Don't fail the install over them.
+strictDepBuilds: false
+ignoredBuiltDependencies:
+  - esbuild
+  - msgpackr-extract
+
+# Don't re-run install (which can prompt on supply-chain policies) before scripts.
+verifyDepsBeforeRun: false
+
+allowBuilds:
+  esbuild: set this to true or false
+  msgpackr-extract: set this to true or false
