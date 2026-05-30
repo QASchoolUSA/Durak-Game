@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeIn,
@@ -8,10 +8,14 @@ import Animated, {
 } from "react-native-reanimated";
 import { type TablePair } from "@durak/game-core";
 import { Card } from "./Card";
-import { type DropZoneKind, type ScreenRect } from "../game/dropZones";
+import {
+  TRANSFER_CHOICE_LAYOUT,
+  pairLayoutWidth,
+  transferHitHeight,
+  transferHitWidth,
+  type ScreenRect,
+} from "../game/dropZones";
 import { cardSize, colors, radius, spacing } from "../theme";
-
-const TRANSFER_SLOT_W = 44;
 
 /**
  * Round-clear sweep: when the table empties, each pair slides off toward the
@@ -47,33 +51,43 @@ function makeSweepOut(delay: number) {
 export interface TableAreaProps {
   table: TablePair[];
   trumpSuit: string;
-  /** Undefended attacks the human can beat with some card in hand. */
-  defendTargets?: number[];
-  /** Attacks the currently dragged card can beat — stronger highlight. */
-  defendDragTargets?: number[];
-  /** Table indices that show a perevodnoy transfer slot beside the attack. */
   transferTargets?: number[];
-  /** Highlight transfer slots while the defender drags a transferable card. */
-  transferHighlight?: boolean;
-  onDropZoneLayout?: (kind: DropZoneKind, tableIndex: number, rect: ScreenRect) => void;
+  hoverDefendIndex?: number | null;
+  hoverTransferIndex?: number | null;
+  remeasureKey?: number;
+  /** Single window-space anchor per pair — used to derive both drop zones. */
+  onPairAnchorLayout?: (tableIndex: number, anchor: ScreenRect, showTransfer: boolean) => void;
 }
 
-interface MeasuredSlotProps {
-  kind: DropZoneKind;
+interface MeasuredPairProps {
   tableIndex: number;
-  onLayout?: TableAreaProps["onDropZoneLayout"];
+  showTransfer: boolean;
+  remeasureKey?: number;
+  onAnchorLayout?: TableAreaProps["onPairAnchorLayout"];
   style?: object;
   children?: React.ReactNode;
 }
 
-function MeasuredSlot({ kind, tableIndex, onLayout, style, children }: MeasuredSlotProps) {
+function MeasuredPair({
+  tableIndex,
+  showTransfer,
+  remeasureKey,
+  onAnchorLayout,
+  style,
+  children,
+}: MeasuredPairProps) {
   const ref = useRef<View>(null);
 
   const report = useCallback(() => {
     ref.current?.measureInWindow((x, y, width, height) => {
-      onLayout?.(kind, tableIndex, { x, y, width, height });
+      onAnchorLayout?.(tableIndex, { x, y, width, height }, showTransfer);
     });
-  }, [kind, tableIndex, onLayout]);
+  }, [tableIndex, showTransfer, onAnchorLayout]);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(report);
+    return () => cancelAnimationFrame(id);
+  }, [report, remeasureKey]);
 
   return (
     <View ref={ref} onLayout={report} style={style} collapsable={false}>
@@ -82,96 +96,120 @@ function MeasuredSlot({ kind, tableIndex, onLayout, style, children }: MeasuredS
   );
 }
 
+interface TransferSlotProps {
+  width: number;
+  height: number;
+  active: boolean;
+  dimmed: boolean;
+}
+
+function TransferSlot({ width, height, active, dimmed }: TransferSlotProps) {
+  const iconSize = Math.round(width * 0.42);
+
+  return (
+    <View style={[styles.transferWrap, { width, height }, dimmed && styles.slotDimmed]}>
+      <Card faceDown width={width} height={height} dimmed={dimmed && !active} highlighted={active} />
+      <View
+        pointerEvents="none"
+        style={[styles.transferOverlay, active && styles.transferOverlayActive]}
+      >
+        <Text
+          style={[
+            styles.transferIcon,
+            { fontSize: iconSize, lineHeight: iconSize },
+            active && styles.transferIconActive,
+          ]}
+        >
+          {"\u21AA"}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 function TableAreaComponent({
   table,
   trumpSuit,
-  defendTargets = [],
-  defendDragTargets = [],
   transferTargets = [],
-  transferHighlight = false,
-  onDropZoneLayout,
+  hoverDefendIndex = null,
+  hoverTransferIndex = null,
+  remeasureKey = 0,
+  onPairAnchorLayout,
 }: TableAreaProps) {
   const { w, h } = cardSize.table;
-  const defendSet = new Set(defendTargets);
-  const defendDragSet = new Set(defendDragTargets);
   const transferSet = new Set(transferTargets);
+  const hitW = transferHitWidth();
+  const hitH = transferHitHeight();
 
   return (
     <View style={styles.container}>
       {table.map((pair, i) => {
         const showTransfer = transferSet.has(i) && !pair.defense;
-        const showDefendHint = defendSet.has(i) && !pair.defense;
-        const defendDragActive = defendDragSet.has(i);
-        const pairW = showTransfer ? w + TRANSFER_SLOT_W + 10 : w + 16;
-        const pairH = h + 22 + (showDefendHint ? 10 : 0);
+        const beatHover = hoverDefendIndex === i;
+        const transferHover = hoverTransferIndex === i;
+        const beatDimmed = showTransfer && transferHover;
+        const transferDimmed = showTransfer && beatHover;
+        const pairW = pairLayoutWidth(showTransfer);
+        const pairH = showTransfer ? Math.max(h, hitH) + 8 : h + 16;
 
         return (
           <Animated.View
             key={pair.attack.id}
             entering={FadeIn.duration(180)}
             exiting={makeSweepOut(i * 55)}
-            style={[styles.pair, { width: pairW, height: pairH }]}
           >
-            <MeasuredSlot
-              kind="defend"
+            <MeasuredPair
               tableIndex={i}
-              onLayout={onDropZoneLayout}
-              style={[
-                styles.attackSlot,
-                { width: w, height: h },
-                showDefendHint && styles.attackDefendable,
-                defendDragActive && styles.attackDefendActive,
-              ]}
+              showTransfer={showTransfer}
+              remeasureKey={remeasureKey}
+              onAnchorLayout={onPairAnchorLayout}
+              style={[styles.pair, { width: pairW, height: pairH }]}
             >
-              <Card
-                card={pair.attack}
-                width={w}
-                height={h}
-                trump={pair.attack.suit === trumpSuit}
-              />
-              {showDefendHint && (
-                <View
-                  pointerEvents="none"
-                  style={[styles.defendHint, defendDragActive && styles.defendHintActive]}
-                >
-                  <Text style={[styles.defendIcon, defendDragActive && styles.defendIconActive]}>
-                    {"\u2191"}
-                  </Text>
-                  <Text style={[styles.defendLabel, defendDragActive && styles.defendLabelActive]}>
-                    Beat
-                  </Text>
-                </View>
-              )}
-            </MeasuredSlot>
-
-            {showTransfer && (
-              <MeasuredSlot
-                kind="transfer"
-                tableIndex={i}
-                onLayout={onDropZoneLayout}
+              <View
                 style={[
-                  styles.transferSlot,
-                  { width: TRANSFER_SLOT_W, height: h },
-                  transferHighlight && styles.transferSlotActive,
+                  styles.attackSlot,
+                  { width: w, height: h },
+                  beatHover && styles.attackHover,
+                  beatDimmed && styles.slotDimmed,
                 ]}
               >
-                <Text style={[styles.transferIcon, transferHighlight && styles.transferIconActive]}>
-                  {"\u21AA"}
-                </Text>
-                <Text style={styles.transferLabel}>Pass</Text>
-              </MeasuredSlot>
-            )}
-
-            {pair.defense && (
-              <Animated.View entering={ZoomIn.duration(200)} style={styles.defense}>
                 <Card
-                  card={pair.defense}
+                  card={pair.attack}
                   width={w}
                   height={h}
-                  trump={pair.defense.suit === trumpSuit}
+                  trump={pair.attack.suit === trumpSuit}
+                  highlighted={beatHover}
                 />
-              </Animated.View>
-            )}
+              </View>
+
+              {showTransfer && (
+                <View
+                  style={[
+                    styles.transferHitArea,
+                    {
+                      left: w + TRANSFER_CHOICE_LAYOUT.gap,
+                      width: hitW,
+                      height: hitH,
+                    },
+                    transferHover && styles.transferHitActive,
+                    transferDimmed && styles.slotDimmed,
+                  ]}
+                >
+                  <TransferSlot width={w} height={h} active={transferHover} dimmed={transferDimmed} />
+                </View>
+              )}
+
+              {pair.defense && (
+                <Animated.View entering={ZoomIn.duration(200)} style={styles.defense}>
+                  <Card
+                    card={pair.defense}
+                    width={w}
+                    height={h}
+                    trump={pair.defense.suit === trumpSuit}
+                  />
+                </Animated.View>
+              )}
+            </MeasuredPair>
           </Animated.View>
         );
       })}
@@ -194,69 +232,57 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     borderRadius: radius.card,
-    overflow: "visible",
+    overflow: "hidden",
   },
-  attackDefendable: {
-    borderWidth: 2,
-    borderStyle: "dashed",
-    borderColor: colors.success,
-  },
-  attackDefendActive: {
-    borderStyle: "solid",
-    borderColor: colors.gold,
-    backgroundColor: colors.feltEdge,
-    shadowColor: colors.gold,
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
+  attackHover: {
+    shadowColor: colors.success,
+    shadowOpacity: 0.55,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 0 },
-    elevation: 6,
+    elevation: 10,
   },
-  defendHint: {
-    position: "absolute",
-    bottom: -10,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 2,
-    backgroundColor: colors.panel,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.success,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    alignSelf: "center",
+  slotDimmed: {
+    opacity: 0.38,
   },
-  defendHintActive: {
-    borderColor: colors.gold,
-    backgroundColor: colors.feltEdge,
-  },
-  defendIcon: { fontSize: 11, color: colors.success, fontWeight: "800" },
-  defendIconActive: { color: colors.gold },
-  defendLabel: { fontSize: 9, color: colors.textMuted, fontWeight: "800" },
-  defendLabelActive: { color: colors.textLight },
   defense: { position: "absolute", top: 16, left: 14 },
-  transferSlot: {
+  transferHitArea: {
     position: "absolute",
     top: 0,
-    right: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.card,
+  },
+  transferHitActive: {
+    backgroundColor: "rgba(231, 192, 103, 0.08)",
+    borderRadius: radius.card,
+  },
+  transferWrap: {
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: radius.card,
+  },
+  transferOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(7, 42, 32, 0.55)",
     borderRadius: radius.card,
     borderWidth: 2,
     borderStyle: "dashed",
     borderColor: colors.goldDim,
-    backgroundColor: colors.panel,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
   },
-  transferSlotActive: {
+  transferOverlayActive: {
+    borderStyle: "solid",
     borderColor: colors.gold,
-    backgroundColor: colors.feltEdge,
+    backgroundColor: "rgba(15, 53, 40, 0.72)",
   },
-  transferIcon: { fontSize: 22, color: colors.goldDim, fontWeight: "700" },
+  transferIcon: {
+    color: colors.goldDim,
+    fontWeight: "700",
+    textAlign: "center",
+    includeFontPadding: false,
+  },
   transferIconActive: { color: colors.gold },
-  transferLabel: { fontSize: 9, color: colors.textMuted, fontWeight: "700" },
 });
 
 export const TableArea = React.memo(TableAreaComponent);

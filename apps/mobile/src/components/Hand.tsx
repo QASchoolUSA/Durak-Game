@@ -15,6 +15,7 @@ import { type Card as CardModel, type Suit } from "@durak/game-core";
 import { Card } from "./Card";
 import { sortHandForDisplay } from "../game/handSort";
 import { computeHandLayout } from "../game/handLayout";
+import { type DragCardBounds } from "../game/dropZones";
 import { cardSize } from "../theme";
 
 const PLAY_THRESHOLD = 48;
@@ -22,6 +23,8 @@ const FLICK_VELOCITY = -800;
 const SPRING = { damping: 18, stiffness: 220, mass: 0.7 };
 const DEAL_SPRING = { damping: 20, stiffness: 260, mass: 0.65 };
 const TOUCH_PAD_BOTTOM = 8;
+/** Matches HandCard scale while dragging. */
+const DRAG_SCALE = 1.12;
 
 // Deck sits upper-right — new cards fly from there into their exact fan slot.
 const DEAL_FROM_X = 130;
@@ -84,6 +87,25 @@ function pickCardAt(
     }
   }
   return best;
+}
+
+/** Dragged card bounds in hand-layer coordinates. */
+function cardBoundsInLayer(
+  slot: number,
+  layout: LayoutSnapshot,
+  cardW: number,
+  cardH: number,
+  translationX: number,
+  translationY: number,
+  pressLift: number,
+): { centerX: number; centerY: number; halfW: number; halfH: number } {
+  "worklet";
+  const mid = (layout.total - 1) / 2;
+  const centerX = layout.width / 2 + (slot - mid) * layout.spacing + translationX;
+  const centerY = layout.handH - TOUCH_PAD_BOTTOM - cardH / 2 + translationY - pressLift;
+  const halfW = (cardW * DRAG_SCALE) / 2;
+  const halfH = (cardH * DRAG_SCALE) / 2;
+  return { centerX, centerY, halfW, halfH };
 }
 
 interface HandCardProps {
@@ -204,7 +226,11 @@ export interface HandProps {
   /** Tap or flick-up play (attack / defend on card — not transfer). */
   onPlay: (card: CardModel) => void;
   /** Drag released at screen coordinates — used for transfer / precise defend drops. */
-  onDropAt?: (card: CardModel, screenX: number, screenY: number) => void;
+  onDropAt?: (card: CardModel, bounds: DragCardBounds) => void;
+  /** Card bounds while dragging — used to preview the active drop target. */
+  onDragMove?: (bounds: DragCardBounds | null) => void;
+  /** Fired when a drag starts so the table can refresh drop-zone measurements. */
+  onDragBegin?: () => void;
   onDragActive?: (cardId: string | null) => void;
 }
 
@@ -215,10 +241,14 @@ function HandComponent({
   trumpSuit,
   onPlay,
   onDropAt,
+  onDragMove,
+  onDragBegin,
   onDragActive,
 }: HandProps) {
   const { width } = useWindowDimensions();
   const { w, h } = cardSize.hand;
+  const touchLayerRef = useRef<View>(null);
+  const layerOriginRef = useRef<{ x: number; y: number } | null>(null);
 
   const sortedCards = useMemo(
     () => sortHandForDisplay(cards, trumpSuit as Suit),
@@ -271,25 +301,72 @@ function HandComponent({
     if (card) tryPlayCard(card);
   };
 
-  const tryDropAt = (slot: number, screenX: number, screenY: number) => {
-    const card = sortedCards[slot];
-    if (!card || !interactive || !playableIds.has(card.id)) return;
-    if (onDropAt) {
-      onDropAt(card, screenX, screenY);
-      return;
-    }
-    tryPlayCard(card);
-  };
-
   const setDragActive = (cardId: string | null) => {
     onDragActive?.(cardId);
+  };
+
+  const notifyDragMove = (bounds: DragCardBounds | null) => {
+    onDragMove?.(bounds);
+  };
+
+  const aimToScreen = (layerBounds: {
+    centerX: number;
+    centerY: number;
+    halfW: number;
+    halfH: number;
+  }) => {
+    const origin = layerOriginRef.current;
+    if (!origin) return;
+    notifyDragMove({
+      centerX: origin.x + layerBounds.centerX,
+      centerY: origin.y + layerBounds.centerY,
+      halfW: layerBounds.halfW,
+      halfH: layerBounds.halfH,
+    });
+  };
+
+  const clearDragAim = () => {
+    layerOriginRef.current = null;
+    notifyDragMove(null);
+  };
+
+  const cacheLayerOrigin = (cb: () => void) => {
+    touchLayerRef.current?.measureInWindow((x, y) => {
+      layerOriginRef.current = { x, y };
+      cb();
+    });
   };
 
   const notifyDragBegin = (slot: number) => {
     const card = sortedCards[slot];
     if (card && interactive && playableIds.has(card.id)) {
       onDragActive?.(card.id);
+      onDragBegin?.();
     }
+  };
+
+  const tryDropAtScreen = (
+    slot: number,
+    layerBounds: { centerX: number; centerY: number; halfW: number; halfH: number },
+  ) => {
+    const card = sortedCards[slot];
+    if (!card || !interactive || !playableIds.has(card.id)) return;
+    const origin = layerOriginRef.current;
+    if (!origin) return;
+    if (onDropAt) {
+      onDropAt(card, {
+        centerX: origin.x + layerBounds.centerX,
+        centerY: origin.y + layerBounds.centerY,
+        halfW: layerBounds.halfW,
+        halfH: layerBounds.halfH,
+      });
+      return;
+    }
+    tryPlayCard(card);
+  };
+
+  const beginDragSlot = (slot: number) => {
+    cacheLayerOrigin(() => notifyDragBegin(slot));
   };
 
   const touchW = w + 24;
@@ -303,12 +380,26 @@ function HandComponent({
       dragX.value = 0;
       dragY.value = 0;
       press.value = withSpring(1, SPRING);
-      if (idx >= 0) runOnJS(notifyDragBegin)(idx);
+      if (idx >= 0) {
+        runOnJS(beginDragSlot)(idx);
+      }
     })
     .onUpdate((e) => {
       if (activeSlot.value < 0) return;
       dragX.value = e.translationX;
       dragY.value = e.translationY;
+      const idx = activeSlot.value;
+      const lift = press.value * 5;
+      const bounds = cardBoundsInLayer(
+        idx,
+        layoutSV.value,
+        w,
+        h,
+        e.translationX,
+        e.translationY,
+        lift,
+      );
+      runOnJS(aimToScreen)(bounds);
     })
     .onEnd((e) => {
       const idx = activeSlot.value;
@@ -316,7 +407,17 @@ function HandComponent({
       const tapLike = Math.abs(e.translationX) < 18 && Math.abs(e.translationY) < 18;
       const dragged = !tapLike;
       if (dragged) {
-        runOnJS(tryDropAt)(idx, e.absoluteX, e.absoluteY);
+        const lift = press.value * 5;
+        const bounds = cardBoundsInLayer(
+          idx,
+          layoutSV.value,
+          w,
+          h,
+          e.translationX,
+          e.translationY,
+          lift,
+        );
+        runOnJS(tryDropAtScreen)(idx, bounds);
       } else if (
         e.translationY < -PLAY_THRESHOLD ||
         e.velocityY < FLICK_VELOCITY ||
@@ -333,12 +434,13 @@ function HandComponent({
       dragX.value = 0;
       dragY.value = 0;
       runOnJS(setDragActive)(null);
+      runOnJS(clearDragAim)();
     });
 
   return (
     <View style={[styles.container, { height: handHeight }]}>
       <GestureDetector gesture={pan}>
-        <View style={[styles.touchLayer, { height: handHeight }]}>
+        <View ref={touchLayerRef} style={[styles.touchLayer, { height: handHeight }]}>
           <View style={[styles.center, { height: handHeight }]}>
             {sortedCards.map((card, slotIndex) => (
               <HandCard

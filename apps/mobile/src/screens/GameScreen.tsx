@@ -18,7 +18,14 @@ import { TableArea } from "../components/TableArea";
 import { TurnTimer } from "../components/TurnTimer";
 import { useGameStore } from "../game/store";
 import { getHumanView, formatRulesLabel, opponentOrder } from "../game/selectors";
-import { type DropZone, type DropZoneKind, type ScreenRect, findDropZone } from "../game/dropZones";
+import {
+  type DragCardBounds,
+  type DropZone,
+  type DropZoneKind,
+  type ScreenRect,
+  resolveDropFromBounds,
+  zonesFromPairAnchor,
+} from "../game/dropZones";
 import { colors, radius, spacing, timing } from "../theme";
 
 function activePlayer(game: GameState): PlayerId {
@@ -44,11 +51,19 @@ export function GameScreen() {
   const goHome = useGameStore((s) => s.goHome);
 
   const view = useMemo(() => (game ? getHumanView(game, humanId) : null), [game, humanId]);
+  const isPerevodnoy = game?.rules.variant === "perevodnoy";
+  /** Beat / pass drop zones only when perevodnoy offers a transfer choice. */
+  const showTransferChoice = isPerevodnoy && Boolean(view?.canTransfer);
 
   const [remaining, setRemaining] = useState(timing.turnSeconds);
   const [takeConfirmOpen, setTakeConfirmOpen] = useState(false);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
+  const [dragBounds, setDragBounds] = useState<DragCardBounds | null>(null);
+  const [hoverDrop, setHoverDrop] = useState<DropZone | null>(null);
+  const [zoneRemeasureKey, setZoneRemeasureKey] = useState(0);
   const dropZonesRef = useRef<DropZone[]>([]);
+  const lockedDropRef = useRef<DropZone | null>(null);
+  const draggingCardIdRef = useRef<string | null>(null);
   const firedRef = useRef(false);
 
   // Stable across the timer's frequent re-renders so the hand never re-springs.
@@ -62,45 +77,107 @@ export function GameScreen() {
     [view],
   );
 
-  const defendTargets = useMemo(() => {
-    const indices = new Set<number>();
-    for (const targets of Object.values(view?.defendable ?? {})) {
-      for (const t of targets) indices.add(t);
-    }
-    return [...indices];
-  }, [view?.defendable]);
+  const cardById = useCallback(
+    (cardId: string): CardModel | undefined =>
+      (game?.hands[humanId] ?? []).find((c) => c.id === cardId),
+    [game, humanId],
+  );
 
-  const defendDragTargets = useMemo(() => {
-    if (!draggingCardId) return [];
-    return view?.defendable[draggingCardId] ?? [];
-  }, [draggingCardId, view?.defendable]);
+  const dropOptionsForCard = useCallback(
+    (card: CardModel): { kinds: DropZoneKind[]; tableIndices: number[] } | null => {
+      if (!view) return null;
+      const beat = view.defendable[card.id] ?? [];
+      const transfer = view.transferable[card.id] ?? [];
+      const kinds: DropZoneKind[] = [];
+      if (beat.length) kinds.push("defend");
+      if (transfer.length) kinds.push("transfer");
+      const tableIndices = [...new Set([...beat, ...transfer])];
+      if (!kinds.length) return null;
+      return { kinds, tableIndices };
+    },
+    [view],
+  );
+
+  const resolveZoneForCard = useCallback(
+    (card: CardModel, bounds: DragCardBounds): DropZone | null => {
+      const options = dropOptionsForCard(card);
+      if (!options) return null;
+      const result = resolveDropFromBounds(
+        bounds,
+        dropZonesRef.current,
+        options,
+        lockedDropRef.current,
+      );
+      lockedDropRef.current = result.locked;
+      return result.zone;
+    },
+    [dropOptionsForCard],
+  );
+
+  const updateDragAim = useCallback(
+    (bounds: DragCardBounds | null) => {
+      setDragBounds(bounds);
+      const cardId = draggingCardIdRef.current;
+      if (!bounds || !cardId) {
+        lockedDropRef.current = null;
+        setHoverDrop(null);
+        return;
+      }
+      const card = cardById(cardId);
+      setHoverDrop(card ? resolveZoneForCard(card, bounds) : null);
+    },
+    [cardById, resolveZoneForCard],
+  );
+
+  const handleDragActive = useCallback((cardId: string | null) => {
+    draggingCardIdRef.current = cardId;
+    setDraggingCardId(cardId);
+    if (!cardId) {
+      lockedDropRef.current = null;
+      setHoverDrop(null);
+    }
+  }, []);
+
+  const handleDragBegin = useCallback(() => {
+    lockedDropRef.current = null;
+    setHoverDrop(null);
+    setZoneRemeasureKey((k) => k + 1);
+  }, []);
 
   const transferTargets = useMemo(() => {
-    if (!view?.canTransfer) return [];
+    if (!showTransferChoice) return [];
     const indices = new Set<number>();
-    for (const targets of Object.values(view.transferable)) {
+    for (const targets of Object.values(view?.transferable ?? {})) {
       for (const t of targets) indices.add(t);
     }
     return [...indices];
-  }, [view?.canTransfer, view?.transferable]);
+  }, [showTransferChoice, view?.transferable]);
 
   const turnLabel = useMemo(() => {
     if (!view) return "Your move";
     if (view.isDefender) {
-      if (defendTargets.length > 0) return "Drop on attack to beat";
-      if (view.canTransfer) return "Pass or take";
+      if (showTransferChoice) return "Drag to highlighted target";
       return "Defend";
     }
     if (view.mustOpen) return "Attack";
     return "Your move";
-  }, [view, defendTargets.length]);
+  }, [view, showTransferChoice]);
 
-  const onDropZoneLayout = useCallback(
-    (kind: DropZoneKind, tableIndex: number, rect: ScreenRect) => {
-      const rest = dropZonesRef.current.filter(
-        (z) => !(z.kind === kind && z.tableIndex === tableIndex),
-      );
-      dropZonesRef.current = [...rest, { kind, tableIndex, ...rect }];
+  useEffect(() => {
+    if (!showTransferChoice) {
+      dropZonesRef.current = [];
+      lockedDropRef.current = null;
+      draggingCardIdRef.current = null;
+      setDragBounds(null);
+      setHoverDrop(null);
+    }
+  }, [showTransferChoice, game?.table.length]);
+
+  const onPairAnchorLayout = useCallback(
+    (tableIndex: number, anchor: ScreenRect, showTransfer: boolean) => {
+      const pairZones = zonesFromPairAnchor(tableIndex, anchor.x, anchor.y, showTransfer);
+      const rest = dropZonesRef.current.filter((z) => z.tableIndex !== tableIndex);
+      dropZonesRef.current = [...rest, ...pairZones];
     },
     [],
   );
@@ -121,42 +198,44 @@ export function GameScreen() {
   );
 
   const onDropAt = useCallback(
-    (card: CardModel, screenX: number, screenY: number) => {
+    (card: CardModel, _bounds: DragCardBounds) => {
       if (!view) return;
 
-      const zone = findDropZone(screenX, screenY, dropZonesRef.current);
-      if (zone?.kind === "transfer") {
-        const targets = view.transferable[card.id];
-        if (targets?.includes(zone.tableIndex)) {
-          submitHuman({
-            type: "TRANSFER",
-            player: humanId,
-            card,
-            target: zone.tableIndex,
-          });
-          return;
+      if (showTransferChoice) {
+        const zone = lockedDropRef.current;
+        lockedDropRef.current = null;
+        setHoverDrop(null);
+
+        if (zone?.kind === "transfer") {
+          const targets = view.transferable[card.id];
+          if (targets?.includes(zone.tableIndex)) {
+            submitHuman({
+              type: "TRANSFER",
+              player: humanId,
+              card,
+              target: zone.tableIndex,
+            });
+            return;
+          }
         }
-      }
-      if (zone?.kind === "defend") {
-        const targets = view.defendable[card.id];
-        if (targets?.includes(zone.tableIndex)) {
-          submitHuman({
-            type: "DEFEND",
-            player: humanId,
-            card,
-            target: zone.tableIndex,
-          });
-          return;
+        if (zone?.kind === "defend") {
+          const targets = view.defendable[card.id];
+          if (targets?.includes(zone.tableIndex)) {
+            submitHuman({
+              type: "DEFEND",
+              player: humanId,
+              card,
+              target: zone.tableIndex,
+            });
+            return;
+          }
         }
+        return;
       }
 
-      // Missed the drop target — only fall back for non-transfer moves.
-      const canTransferCard = Boolean(view.transferable[card.id]?.length);
-      if (!canTransferCard) {
-        playCard(card);
-      }
+      playCard(card);
     },
-    [view, submitHuman, humanId, playCard],
+    [view, showTransferChoice, submitHuman, humanId, playCard],
   );
 
   const confirmTake = useCallback(() => {
@@ -229,14 +308,11 @@ export function GameScreen() {
             <TableArea
               table={game.table}
               trumpSuit={game.trumpSuit}
-              defendTargets={defendTargets}
-              defendDragTargets={defendDragTargets}
               transferTargets={transferTargets}
-              transferHighlight={
-                draggingCardId !== null &&
-                Boolean(view.transferable[draggingCardId]?.length)
-              }
-              onDropZoneLayout={onDropZoneLayout}
+              hoverDefendIndex={hoverDrop?.kind === "defend" ? hoverDrop.tableIndex : null}
+              hoverTransferIndex={hoverDrop?.kind === "transfer" ? hoverDrop.tableIndex : null}
+              remeasureKey={zoneRemeasureKey}
+              onPairAnchorLayout={showTransferChoice ? onPairAnchorLayout : undefined}
             />
           </View>
         </View>
@@ -276,7 +352,9 @@ export function GameScreen() {
             trumpSuit={game.trumpSuit}
             onPlay={playCard}
             onDropAt={onDropAt}
-            onDragActive={setDraggingCardId}
+            onDragMove={showTransferChoice ? updateDragAim : undefined}
+            onDragBegin={showTransferChoice ? handleDragBegin : undefined}
+            onDragActive={handleDragActive}
           />
 
           <View style={styles.reactions}>
