@@ -369,7 +369,11 @@ export function GameScreen() {
             />
           </View>
           <View style={styles.deckSlot}>
-            <DeckPile deckCount={game.deck.length} trumpCard={game.trumpCard} trumpSuit={game.trumpSuit} />
+            <DeckPile
+              deckCount={game.deck.length}
+              trumpCard={game.trumpCard}
+              trumpSuit={game.trumpSuit}
+            />
           </View>
         </View>
 
