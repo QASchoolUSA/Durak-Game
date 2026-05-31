@@ -14,7 +14,7 @@ import { Hand } from "../components/Hand";
 import { PlayerSeat, type SeatRole } from "../components/PlayerSeat";
 import { PotBadge } from "../components/PotBadge";
 import { ReactionsBar } from "../components/ReactionsBar";
-import { TableArea } from "../components/TableArea";
+import { TableArea, type TableAreaHandle } from "../components/TableArea";
 import { TurnTimer } from "../components/TurnTimer";
 import { useGameStore } from "../game/store";
 import { getHumanView, formatRulesLabel, opponentOrder } from "../game/selectors";
@@ -22,9 +22,7 @@ import {
   type DragCardBounds,
   type DropZone,
   type DropZoneKind,
-  type ScreenRect,
   resolveDropFromBounds,
-  zonesFromPairAnchor,
 } from "../game/dropZones";
 import { colors, radius, spacing, timing } from "../theme";
 
@@ -49,6 +47,8 @@ export function GameScreen() {
   const submitHuman = useGameStore((s) => s.submitHuman);
   const autoPlayHuman = useGameStore((s) => s.autoPlayHuman);
   const goHome = useGameStore((s) => s.goHome);
+  const debugScenario = useGameStore((s) => s.debugScenario);
+  const startBeatTransferDebug = useGameStore((s) => s.startBeatTransferDebug);
 
   const view = useMemo(() => (game ? getHumanView(game, humanId) : null), [game, humanId]);
   const isPerevodnoy = game?.rules.variant === "perevodnoy";
@@ -64,6 +64,9 @@ export function GameScreen() {
   const dropZonesRef = useRef<DropZone[]>([]);
   const lockedDropRef = useRef<DropZone | null>(null);
   const draggingCardIdRef = useRef<string | null>(null);
+  const lastDragBoundsRef = useRef<DragCardBounds | null>(null);
+  const pendingReaimRef = useRef(false);
+  const tableAreaRef = useRef<TableAreaHandle>(null);
   const firedRef = useRef(false);
 
   // Stable across the timer's frequent re-renders so the hand never re-springs.
@@ -99,16 +102,18 @@ export function GameScreen() {
   );
 
   const resolveZoneForCard = useCallback(
-    (card: CardModel, bounds: DragCardBounds): DropZone | null => {
+    (card: CardModel, bounds: DragCardBounds, commit = false): DropZone | null => {
       const options = dropOptionsForCard(card);
       if (!options) return null;
+      const tableOverlap =
+        options.kinds.includes("defend") && options.kinds.includes("transfer");
       const result = resolveDropFromBounds(
         bounds,
         dropZonesRef.current,
-        options,
-        lockedDropRef.current,
+        { ...options, tableOverlap, commit },
+        commit ? null : lockedDropRef.current,
       );
-      lockedDropRef.current = result.locked;
+      if (!commit) lockedDropRef.current = result.locked;
       return result.zone;
     },
     [dropOptionsForCard],
@@ -117,6 +122,7 @@ export function GameScreen() {
   const updateDragAim = useCallback(
     (bounds: DragCardBounds | null) => {
       setDragBounds(bounds);
+      lastDragBoundsRef.current = bounds;
       const cardId = draggingCardIdRef.current;
       if (!bounds || !cardId) {
         lockedDropRef.current = null;
@@ -129,21 +135,6 @@ export function GameScreen() {
     [cardById, resolveZoneForCard],
   );
 
-  const handleDragActive = useCallback((cardId: string | null) => {
-    draggingCardIdRef.current = cardId;
-    setDraggingCardId(cardId);
-    if (!cardId) {
-      lockedDropRef.current = null;
-      setHoverDrop(null);
-    }
-  }, []);
-
-  const handleDragBegin = useCallback(() => {
-    lockedDropRef.current = null;
-    setHoverDrop(null);
-    setZoneRemeasureKey((k) => k + 1);
-  }, []);
-
   const transferTargets = useMemo(() => {
     if (!showTransferChoice) return [];
     const indices = new Set<number>();
@@ -153,10 +144,43 @@ export function GameScreen() {
     return [...indices];
   }, [showTransferChoice, view?.transferable]);
 
+  const expectedZoneCount = showTransferChoice ? transferTargets.length * 2 : 0;
+
+  const reaimFromLastBounds = useCallback(() => {
+    const bounds = lastDragBoundsRef.current;
+    const cardId = draggingCardIdRef.current;
+    if (!bounds || !cardId) return;
+    if (showTransferChoice && dropZonesRef.current.length < expectedZoneCount) {
+      pendingReaimRef.current = true;
+      return;
+    }
+    pendingReaimRef.current = false;
+    const card = cardById(cardId);
+    if (card) setHoverDrop(resolveZoneForCard(card, bounds));
+  }, [cardById, resolveZoneForCard, showTransferChoice, expectedZoneCount]);
+
+  const handleDragActive = useCallback((cardId: string | null) => {
+    draggingCardIdRef.current = cardId;
+    setDraggingCardId(cardId);
+    if (!cardId) {
+      lockedDropRef.current = null;
+      lastDragBoundsRef.current = null;
+      pendingReaimRef.current = false;
+      setHoverDrop(null);
+    }
+  }, []);
+
+  const handleDragBegin = useCallback(() => {
+    lockedDropRef.current = null;
+    if (showTransferChoice) {
+      tableAreaRef.current?.remeasureZones();
+    }
+  }, [showTransferChoice]);
+
   const turnLabel = useMemo(() => {
     if (!view) return "Your move";
     if (view.isDefender) {
-      if (showTransferChoice) return "Drag to highlighted target";
+      if (showTransferChoice) return "Drag to beat or transfer";
       return "Defend";
     }
     if (view.mustOpen) return "Attack";
@@ -168,16 +192,39 @@ export function GameScreen() {
       dropZonesRef.current = [];
       lockedDropRef.current = null;
       draggingCardIdRef.current = null;
+      lastDragBoundsRef.current = null;
       setDragBounds(null);
       setHoverDrop(null);
     }
   }, [showTransferChoice, game?.table.length]);
 
-  const onPairAnchorLayout = useCallback(
-    (tableIndex: number, anchor: ScreenRect, showTransfer: boolean) => {
-      const pairZones = zonesFromPairAnchor(tableIndex, anchor.x, anchor.y, showTransfer);
-      const rest = dropZonesRef.current.filter((z) => z.tableIndex !== tableIndex);
-      dropZonesRef.current = [...rest, ...pairZones];
+  useEffect(() => {
+    if (showTransferChoice) {
+      setZoneRemeasureKey((k) => k + 1);
+    }
+  }, [showTransferChoice, transferTargets, game?.table]);
+
+  const onDropZoneLayout = useCallback(
+    (zone: DropZone) => {
+      const rest = dropZonesRef.current.filter(
+        (z) => !(z.tableIndex === zone.tableIndex && z.kind === zone.kind),
+      );
+      dropZonesRef.current = [...rest, zone];
+      if (pendingReaimRef.current || draggingCardIdRef.current) {
+        reaimFromLastBounds();
+      }
+    },
+    [reaimFromLastBounds],
+  );
+
+  const onDropZoneRemoved = useCallback(
+    (tableIndex: number, kind: DropZoneKind) => {
+      dropZonesRef.current = dropZonesRef.current.filter(
+        (z) => !(z.tableIndex === tableIndex && z.kind === kind),
+      );
+      setHoverDrop((prev) =>
+        prev?.tableIndex === tableIndex && prev.kind === kind ? null : prev,
+      );
     },
     [],
   );
@@ -198,11 +245,11 @@ export function GameScreen() {
   );
 
   const onDropAt = useCallback(
-    (card: CardModel, _bounds: DragCardBounds) => {
+    (card: CardModel, bounds: DragCardBounds) => {
       if (!view) return;
 
       if (showTransferChoice) {
-        const zone = lockedDropRef.current;
+        const zone = resolveZoneForCard(card, bounds, true);
         lockedDropRef.current = null;
         setHoverDrop(null);
 
@@ -235,7 +282,7 @@ export function GameScreen() {
 
       playCard(card);
     },
-    [view, showTransferChoice, submitHuman, humanId, playCard],
+    [view, showTransferChoice, submitHuman, humanId, playCard, resolveZoneForCard],
   );
 
   const confirmTake = useCallback(() => {
@@ -249,7 +296,7 @@ export function GameScreen() {
 
   useEffect(() => {
     firedRef.current = false;
-    if (!view?.mustAct) {
+    if (debugScenario || !view?.mustAct) {
       setRemaining(timing.turnSeconds);
       return;
     }
@@ -265,7 +312,7 @@ export function GameScreen() {
     tick();
     const iv = setInterval(tick, 100);
     return () => clearInterval(iv);
-  }, [view?.mustAct, lastMoveAt, autoPlayHuman]);
+  }, [debugScenario, view?.mustAct, lastMoveAt, autoPlayHuman]);
 
   if (!game || !view) return null;
 
@@ -282,9 +329,16 @@ export function GameScreen() {
             <PotBadge pot={pot} buyIn={buyIn} />
             <Text style={styles.rulesBadge}>{formatRulesLabel(game)}</Text>
           </View>
-          <Pressable style={styles.exit} onPress={goHome} hitSlop={8}>
-            <Text style={styles.exitText}>Exit</Text>
-          </Pressable>
+          <View style={styles.headerActions}>
+            {debugScenario && (
+              <Pressable style={styles.restart} onPress={() => startBeatTransferDebug()} hitSlop={8}>
+                <Text style={styles.restartText}>Restart</Text>
+              </Pressable>
+            )}
+            <Pressable style={styles.exit} onPress={goHome} hitSlop={8}>
+              <Text style={styles.exitText}>Exit</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.opponents}>
@@ -303,13 +357,15 @@ export function GameScreen() {
         <View style={styles.middle}>
           <View style={styles.tableSlot}>
             <TableArea
+              ref={tableAreaRef}
               table={game.table}
               trumpSuit={game.trumpSuit}
               transferTargets={transferTargets}
               hoverDefendIndex={hoverDrop?.kind === "defend" ? hoverDrop.tableIndex : null}
               hoverTransferIndex={hoverDrop?.kind === "transfer" ? hoverDrop.tableIndex : null}
               remeasureKey={zoneRemeasureKey}
-              onPairAnchorLayout={showTransferChoice ? onPairAnchorLayout : undefined}
+              onDropZoneLayout={showTransferChoice ? onDropZoneLayout : undefined}
+              onDropZoneRemoved={showTransferChoice ? onDropZoneRemoved : undefined}
             />
           </View>
           <View style={styles.deckSlot}>
@@ -385,6 +441,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
   },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  restart: {
+    backgroundColor: "rgba(70, 167, 88, 0.2)",
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: colors.success,
+  },
+  restartText: { color: colors.success, fontWeight: "700" },
   exit: {
     backgroundColor: colors.panel,
     borderRadius: radius.pill,
