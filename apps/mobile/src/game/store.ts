@@ -11,6 +11,10 @@ import {
 } from "@durak/game-core";
 import { timing } from "../theme";
 import { safeMoveFor } from "./autoMove";
+import {
+  createBeatTransferDebugState,
+  type DebugScenario,
+} from "./debugScenarios";
 
 export type Screen = "home" | "game" | "result";
 
@@ -36,6 +40,10 @@ interface GameStore {
   humanId: PlayerId;
   names: Record<PlayerId, string>;
   game: GameState | null;
+  /** When set, game is a frozen test scenario (no AI, no turn timer). */
+  debugScenario: DebugScenario | null;
+  /** Bumped on each debug launch so GameScreen remounts clean. */
+  debugSessionKey: number;
   /** Timestamp of the last applied move; used to reset the turn timer. */
   lastMoveAt: number;
   /** Bumped whenever the human's stake should be (visually) committed to the pot. */
@@ -46,6 +54,7 @@ interface GameStore {
   setVariant: (variant: GameVariant) => void;
   setThrowInScope: (scope: ThrowInScope) => void;
   startGame: (n?: number) => void;
+  startBeatTransferDebug: () => void;
   goHome: () => void;
   submitHuman: (move: Move) => void;
   autoPlayHuman: () => void;
@@ -63,6 +72,10 @@ function cancelAi() {
 
 export const useGameStore = create<GameStore>((set, get) => {
   function afterApply(next: GameState) {
+    if (get().debugScenario) {
+      set({ game: next, lastMoveAt: Date.now() });
+      return;
+    }
     if (next.phase === "gameOver") {
       cancelAi();
       set({ game: next, lastMoveAt: Date.now(), screen: "result" });
@@ -99,6 +112,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     humanId: HUMAN_ID,
     names: { [HUMAN_ID]: "You" },
     game: null,
+    debugScenario: null,
+    debugSessionKey: 0,
     lastMoveAt: 0,
     pot: 0,
     buyIn: 100,
@@ -127,9 +142,26 @@ export const useGameStore = create<GameStore>((set, get) => {
       scheduleAi();
     },
 
+    startBeatTransferDebug: () => {
+      cancelAi();
+      const { names } = buildPlayers(3);
+      set({
+        screen: "game",
+        numPlayers: 3,
+        variant: "perevodnoy",
+        throwInScope: "all",
+        names,
+        game: createBeatTransferDebugState(),
+        debugScenario: "beatTransfer",
+        debugSessionKey: get().debugSessionKey + 1,
+        lastMoveAt: Date.now(),
+        pot: get().buyIn * 3,
+      });
+    },
+
     goHome: () => {
       cancelAi();
-      set({ screen: "home", game: null });
+      set({ screen: "home", game: null, debugScenario: null });
     },
 
     submitHuman: (move) => {

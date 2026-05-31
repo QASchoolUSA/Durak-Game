@@ -8,13 +8,14 @@ import { ResultScreen } from "./src/screens/ResultScreen";
 
 export default function App() {
   const screen = useGameStore((s) => s.screen);
+  const debugSessionKey = useGameStore((s) => s.debugSessionKey);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar style="light" />
         {screen === "home" && <HomeScreen />}
-        {screen === "game" && <GameScreen />}
+        {screen === "game" && <GameScreen key={debugSessionKey} />}
         {screen === "result" && <ResultScreen />}
       </SafeAreaProvider>
     </GestureHandlerRootView>

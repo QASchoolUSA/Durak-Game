@@ -36,6 +36,7 @@ export function HomeScreen() {
   const setVariant = useGameStore((s) => s.setVariant);
   const setThrowInScope = useGameStore((s) => s.setThrowInScope);
   const startGame = useGameStore((s) => s.startGame);
+  const startBeatTransferDebug = useGameStore((s) => s.startBeatTransferDebug);
   const buyIn = useGameStore((s) => s.buyIn);
 
   const activeThrowIn = THROW_IN.find((t) => t.id === throwInScope)!;
@@ -116,6 +117,15 @@ export function HomeScreen() {
           <Pressable style={styles.play} onPress={() => startGame()}>
             <Text style={styles.playText}>Play vs AI</Text>
           </Pressable>
+
+          {__DEV__ && (
+            <Pressable style={styles.debugPlay} onPress={() => startBeatTransferDebug()}>
+              <Text style={styles.debugPlayText}>Test beat / transfer</Text>
+              <Text style={styles.debugPlayHint}>
+                Jump to defend with beat or transfer choice (3 players, no AI)
+              </Text>
+            </Pressable>
+          )}
         </Animated.View>
 
         <Text style={styles.footer}>{rulesFooter(variant, throwInScope, numPlayers)}</Text>
@@ -186,5 +196,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   playText: { color: colors.feltBottom, fontWeight: "900", fontSize: 18, letterSpacing: 1 },
+  debugPlay: {
+    marginTop: spacing.md,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    width: "100%",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.success,
+    backgroundColor: "rgba(70, 167, 88, 0.12)",
+  },
+  debugPlayText: { color: colors.success, fontWeight: "800", fontSize: 14 },
+  debugPlayHint: {
+    color: colors.textMuted,
+    fontSize: 10,
+    marginTop: 4,
+    textAlign: "center",
+  },
   footer: { color: colors.textMuted, fontSize: 11, marginTop: spacing.xl, textAlign: "center" },
 });

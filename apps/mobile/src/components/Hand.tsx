@@ -37,7 +37,6 @@ const SPRING = { damping: 18, stiffness: 220, mass: 0.7 };
 const DEAL_SPRING = { damping: 20, stiffness: 260, mass: 0.65 };
 /** Matches HandCard scale while dragging. */
 const DRAG_SCALE = 1.12;
-const AIM_MOVE_THRESHOLD = 4;
 const PEEK_LIFT = 5;
 
 const GESTURE_IDLE = 0;
@@ -264,10 +263,6 @@ function HandComponent({
   const press = useSharedValue(0);
   const grabOffsetX = useSharedValue(0);
   const grabOffsetY = useSharedValue(0);
-  const lastAimCx = useSharedValue(-1e9);
-  const lastAimCy = useSharedValue(-1e9);
-  const aimFrame = useSharedValue(0);
-
   const playableMaskSV = useSharedValue<boolean[]>([]);
 
   const layoutSV = useSharedValue<HandHitLayout>({
@@ -312,21 +307,26 @@ function HandComponent({
     onDragMove?.(bounds);
   };
 
-  const aimToScreen = (layerBounds: {
-    centerX: number;
-    centerY: number;
-    halfW: number;
-    halfH: number;
-  }) => {
-    const origin = layerOriginRef.current;
-    if (!origin) return;
-    notifyDragMove({
-      centerX: origin.x + layerBounds.centerX,
-      centerY: origin.y + layerBounds.centerY,
-      halfW: layerBounds.halfW,
-      halfH: layerBounds.halfH,
-    });
-  };
+  const emitAim = useCallback(
+    (
+      layerBounds: { centerX: number; centerY: number; halfW: number; halfH: number },
+      fingerLayerX: number,
+      fingerLayerY: number,
+    ) => {
+      touchLayerRef.current?.measureInWindow((ox, oy) => {
+        layerOriginRef.current = { x: ox, y: oy };
+        notifyDragMove({
+          centerX: ox + layerBounds.centerX,
+          centerY: oy + layerBounds.centerY,
+          halfW: layerBounds.halfW,
+          halfH: layerBounds.halfH,
+          aimX: ox + fingerLayerX,
+          aimY: oy + fingerLayerY,
+        });
+      });
+    },
+    [],
+  );
 
   const clearDragAim = () => {
     notifyDragMove(null);
@@ -343,25 +343,36 @@ function HandComponent({
   const tryDropAtScreen = (
     slot: number,
     layerBounds: { centerX: number; centerY: number; halfW: number; halfH: number },
+    fingerLayerX: number,
+    fingerLayerY: number,
   ) => {
     const card = sortedCards[slot];
     if (!card || !interactive || !playableIds.has(card.id)) return;
-    const origin = layerOriginRef.current;
-    if (!origin) return;
-    if (onDropAt) {
-      onDropAt(card, {
-        centerX: origin.x + layerBounds.centerX,
-        centerY: origin.y + layerBounds.centerY,
-        halfW: layerBounds.halfW,
-        halfH: layerBounds.halfH,
-      });
-      return;
-    }
-    if (onPlay) onPlay(card);
+    touchLayerRef.current?.measureInWindow((ox, oy) => {
+      layerOriginRef.current = { x: ox, y: oy };
+      if (onDropAt) {
+        onDropAt(card, {
+          centerX: ox + layerBounds.centerX,
+          centerY: oy + layerBounds.centerY,
+          halfW: layerBounds.halfW,
+          halfH: layerBounds.halfH,
+          aimX: ox + fingerLayerX,
+          aimY: oy + fingerLayerY,
+        });
+        return;
+      }
+      if (onPlay) onPlay(card);
+    });
   };
 
-  const beginDragSlot = (slot: number) => {
+  const beginDragSlot = (
+    slot: number,
+    layerBounds: { centerX: number; centerY: number; halfW: number; halfH: number },
+    fingerLayerX: number,
+    fingerLayerY: number,
+  ) => {
     notifyDragBegin(slot);
+    emitAim(layerBounds, fingerLayerX, fingerLayerY);
   };
 
   const cancelPlayDrag = () => {
@@ -378,10 +389,6 @@ function HandComponent({
 
       playDragNotified.value = 0;
       gestureMode.value = GESTURE_PEEK;
-      lastAimCx.value = -1e9;
-      lastAimCy.value = -1e9;
-      aimFrame.value = 0;
-
       if (idx < 0) {
         activeSlot.value = -1;
         press.value = withSpring(0, SPRING);
@@ -415,7 +422,11 @@ function HandComponent({
           grabOffsetY.value = e.y - centerY;
           if (playDragNotified.value === 0) {
             playDragNotified.value = 1;
-            runOnJS(beginDragSlot)(slot);
+            const tx = e.x - grabOffsetX.value - centerX;
+            const ty = e.y - grabOffsetY.value - centerY;
+            const lift = press.value * PEEK_LIFT;
+            const startBounds = cardBoundsInLayer(slot, layout, tx, ty, lift);
+            runOnJS(beginDragSlot)(slot, startBounds, e.x, e.y);
           }
         } else if (absX >= BROWSE_THRESHOLD && absX > absY) {
           const delta = Math.round(e.translationX / layout.spacing);
@@ -443,15 +454,7 @@ function HandComponent({
       const lift = press.value * PEEK_LIFT;
       const bounds = cardBoundsInLayer(slot, layout, dragX.value, dragY.value, lift);
 
-      aimFrame.value += 1;
-      const moved =
-        Math.abs(bounds.centerX - lastAimCx.value) > AIM_MOVE_THRESHOLD ||
-        Math.abs(bounds.centerY - lastAimCy.value) > AIM_MOVE_THRESHOLD;
-      if (moved || aimFrame.value % 2 === 0) {
-        lastAimCx.value = bounds.centerX;
-        lastAimCy.value = bounds.centerY;
-        runOnJS(aimToScreen)(bounds);
-      }
+      runOnJS(emitAim)(bounds, e.x, e.y);
     })
     .onEnd((e) => {
       const mode = gestureMode.value;
@@ -467,7 +470,7 @@ function HandComponent({
 
         if (commitPlay) {
           const bounds = cardBoundsInLayer(idx, layout, finalDragX, finalDragY, lift);
-          runOnJS(tryDropAtScreen)(idx, bounds);
+          runOnJS(tryDropAtScreen)(idx, bounds, e.x, e.y);
         }
       }
 
