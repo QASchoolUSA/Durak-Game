@@ -301,9 +301,6 @@ export function GameScreen() {
         </View>
 
         <View style={styles.middle}>
-          <View style={styles.deckSlot}>
-            <DeckPile deckCount={game.deck.length} trumpCard={game.trumpCard} trumpSuit={game.trumpSuit} />
-          </View>
           <View style={styles.tableSlot}>
             <TableArea
               table={game.table}
@@ -314,6 +311,9 @@ export function GameScreen() {
               remeasureKey={zoneRemeasureKey}
               onPairAnchorLayout={showTransferChoice ? onPairAnchorLayout : undefined}
             />
+          </View>
+          <View style={styles.deckSlot}>
+            <DeckPile deckCount={game.deck.length} trumpCard={game.trumpCard} trumpSuit={game.trumpSuit} />
           </View>
         </View>
 
@@ -403,21 +403,20 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     gap: spacing.sm,
   },
-  middle: { flex: 1 },
-  // Deck stack + trump card sit pinned to the right edge, vertically centered.
-  deckSlot: {
-    position: "absolute",
-    right: spacing.md,
-    top: 0,
-    bottom: 0,
-    justifyContent: "center",
+  middle: {
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
-    zIndex: 1,
   },
-  // The play area fills the middle and centers cards both horizontally and vertically.
+  // Play area takes remaining width so pairs never sit under the deck column.
   tableSlot: {
     flex: 1,
     justifyContent: "center",
+  },
+  deckSlot: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingRight: spacing.md,
   },
   bottom: { paddingBottom: spacing.xs, overflow: "visible" },
   timerRow: { height: 38, alignItems: "center", justifyContent: "center" },
