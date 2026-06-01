@@ -52,6 +52,9 @@ export interface TableAreaHandle {
 export interface TableAreaProps {
   table: TablePair[];
   trumpSuit: string;
+  /** Pairs that show beat + transfer slot signs (Perevodnoy opening defend). */
+  choiceTargets?: number[];
+  /** Subset of choiceTargets where transfer drop is legal. */
   transferTargets?: number[];
   hoverDefendIndex?: number | null;
   hoverTransferIndex?: number | null;
@@ -65,6 +68,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
     {
       table,
       trumpSuit,
+      choiceTargets = [],
       transferTargets = [],
       hoverDefendIndex = null,
       hoverTransferIndex = null,
@@ -75,6 +79,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
     ref,
   ) {
     const { w, h } = cardSize.table;
+    const choiceSet = new Set(choiceTargets);
     const transferSet = new Set(transferTargets);
     const measureZones = Boolean(onDropZoneLayout);
     const reportersRef = useRef(new Set<() => void>());
@@ -97,13 +102,14 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
     return (
       <View style={styles.container}>
         {table.map((pair, i) => {
-          const showTransfer = transferSet.has(i) && !pair.defense;
+          const showChoice = choiceSet.has(i) && !pair.defense;
+          const transferEnabled = transferSet.has(i);
           const beatHover = hoverDefendIndex === i;
-          const transferHover = hoverTransferIndex === i;
-          const beatDimmed = showTransfer && transferHover;
-          const transferDimmed = showTransfer && beatHover;
-          const pairW = pairLayoutWidth(showTransfer);
-          const pairH = showTransfer ? h + 8 : h + 16;
+          const transferHover = transferEnabled && hoverTransferIndex === i;
+          const beatDimmed = showChoice && transferHover;
+          const transferDimmed = showChoice && beatHover;
+          const pairW = pairLayoutWidth(showChoice);
+          const pairH = showChoice ? h + 8 : h + 16;
 
           const attackCard = (
             <Card
@@ -133,6 +139,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
               height={h}
               active={transferHover}
               dimmed={transferDimmed}
+              disabled={!transferEnabled}
             />
           );
 
@@ -144,7 +151,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
             >
               <View style={[styles.pair, { width: pairW, height: pairH }]}>
                 <View style={[styles.attackSlot, { width: w, height: h }]}>
-                  {showTransfer && measureZones ? (
+                  {showChoice && measureZones ? (
                     <MeasuredDropSlot
                       tableIndex={i}
                       kind="defend"
@@ -155,21 +162,21 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
                     >
                       {beatSlot}
                     </MeasuredDropSlot>
-                  ) : showTransfer ? (
+                  ) : showChoice ? (
                     beatSlot
                   ) : (
                     attackCard
                   )}
                 </View>
 
-                {showTransfer && (
+                {showChoice && (
                   <View
                     style={[
                       styles.transferSlot,
                       { left: w + TRANSFER_CHOICE_LAYOUT.gap, width: w, height: h },
                     ]}
                   >
-                    {measureZones ? (
+                    {transferEnabled && measureZones ? (
                       <MeasuredDropSlot
                         tableIndex={i}
                         kind="transfer"

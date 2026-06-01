@@ -40,6 +40,8 @@ export interface ChoiceDropSlotProps {
   height: number;
   active: boolean;
   dimmed: boolean;
+  /** Non-interactive slot (e.g. transfer unavailable this round). */
+  disabled?: boolean;
   /** Beat slot: attack card. Transfer slot: omit. */
   children?: React.ReactNode;
 }
@@ -50,21 +52,23 @@ function ChoiceDropSlotComponent({
   height,
   active,
   dimmed,
+  disabled = false,
   children,
 }: ChoiceDropSlotProps) {
   const config = VARIANT_CONFIG[variant];
   const scale = useSharedValue(1);
+  const isHighlighted = active && !disabled;
 
   useEffect(() => {
-    scale.value = withTiming(active ? 1.03 : 1, { duration: 120 });
-  }, [active, scale]);
+    scale.value = withTiming(isHighlighted ? 1.03 : 1, { duration: 120 });
+  }, [isHighlighted, scale]);
 
   const animatedInner = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
   const animatedOuter = useAnimatedStyle(() => ({
-    opacity: dimmed ? 0.38 : 1,
+    opacity: disabled ? 0.42 : dimmed ? 0.38 : 1,
   }));
 
   const iconSize = Math.round(width * 0.38);
@@ -79,11 +83,15 @@ function ChoiceDropSlotComponent({
           styles.frame,
           { width, height },
           {
-            borderColor: active ? config.borderActive : config.borderIdle,
-            borderStyle: active ? "solid" : "dashed",
-            backgroundColor: active ? config.fillActive : config.fillIdle,
+            borderColor: isHighlighted
+              ? config.borderActive
+              : disabled
+                ? "rgba(185, 198, 190, 0.25)"
+                : config.borderIdle,
+            borderStyle: isHighlighted ? "solid" : "dashed",
+            backgroundColor: isHighlighted ? config.fillActive : config.fillIdle,
           },
-          active && {
+          isHighlighted && {
             shadowColor: config.glowColor,
             shadowOpacity: 0.55,
             shadowRadius: 12,
@@ -99,7 +107,7 @@ function ChoiceDropSlotComponent({
               {
                 fontSize: iconSize,
                 lineHeight: iconSize,
-                color: active ? config.iconColorActive : config.iconColor,
+                color: isHighlighted ? config.iconColorActive : config.iconColor,
               },
             ]}
           >

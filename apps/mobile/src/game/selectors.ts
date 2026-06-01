@@ -8,6 +8,7 @@ import {
   legalAttacks,
   legalDefenses,
   legalTransfers,
+  undefendedCount,
   undefendedPairs,
 } from "@durak/game-core";
 
@@ -74,6 +75,50 @@ export function getHumanView(state: GameState, human: PlayerId): HumanView {
     mustOpen,
     mustAct,
   };
+}
+
+export interface BeatTransferChoice {
+  /** Show dual-slot beat/transfer chrome on the table. */
+  active: boolean;
+  /** Table indices that use the dual-slot layout (beat + transfer signs). */
+  choiceIndices: number[];
+  /** Table indices where transfer drop is legal. */
+  transferIndices: number[];
+}
+
+/** Perevodnoy opening defend — show beat/transfer slot signs on the table. */
+export function getBeatTransferChoice(
+  state: GameState,
+  view: HumanView,
+): BeatTransferChoice {
+  const empty: BeatTransferChoice = {
+    active: false,
+    choiceIndices: [],
+    transferIndices: [],
+  };
+  if (state.rules.variant !== "perevodnoy") return empty;
+  if (!view.isDefender || state.takeInProgress || undefendedCount(state) === 0) {
+    return empty;
+  }
+  // Transfer is only legal before throw-ins (single attack on table).
+  if (state.table.length !== 1) return empty;
+
+  const choiceIndices: number[] = [];
+  const transferIndices: number[] = [];
+
+  state.table.forEach((pair, i) => {
+    if (pair.defense) return;
+    const canBeat = Object.values(view.defendable).some((targets) => targets.includes(i));
+    const canXfer =
+      view.canTransfer &&
+      Object.values(view.transferable).some((targets) => targets.includes(i));
+    if (canBeat || canXfer) {
+      choiceIndices.push(i);
+      if (canXfer) transferIndices.push(i);
+    }
+  });
+
+  return { active: choiceIndices.length > 0, choiceIndices, transferIndices };
 }
 
 /** Opponents arranged clockwise starting from the seat after the human. */
