@@ -1,65 +1,148 @@
-/** Central design tokens so the whole game shares one cohesive, modern look. */
+/** Central design tokens — one cohesive, professional look across the whole game. */
 
 export const colors = {
-  // Table felt (used as a vertical gradient top -> bottom).
-  feltTop: "#12694B",
-  feltBottom: "#0B3D2E",
-  feltEdge: "#072A20",
+  // ── Table felt ──────────────────────────────────────────────────────────────
+  feltTop:    "#14724F",
+  feltMid:    "#0F5A3C",
+  feltBottom: "#092E1F",
+  feltEdge:   "#061A12",
 
-  gold: "#E7C067",
-  goldDim: "#9A7B36",
+  // ── Gold ────────────────────────────────────────────────────────────────────
+  gold:        "#E7C067",
+  goldBright:  "#F5D27A",
+  goldDim:     "#9A7B36",
+  goldDeep:    "#6B520E",
 
-  cardFace: "#FAF7F0",
-  cardFaceEdge: "#E7E0D2",
-  cardBack: "#15324A",
-  cardBackAccent: "#23527A",
+  // ── Cards ───────────────────────────────────────────────────────────────────
+  cardFace:       "#FAF7F0",
+  cardFaceEdge:   "#DDD6C5",
+  cardBack:       "#15324A",
+  cardBackAccent: "#1E4D72",
 
-  suitRed: "#D7263D",
+  // ── Suits ───────────────────────────────────────────────────────────────────
+  suitRed:   "#D7263D",
   suitBlack: "#20232A",
 
+  // ── Status ──────────────────────────────────────────────────────────────────
   trumpGlow: "#F2D27A",
+  success:   "#46A758",
+  danger:    "#E5484D",
 
+  // ── Semantic aliases ─────────────────────────────────────────────────────────
+  win:  "#46A758",
+  lose: "#E5484D",
+  draw: "#B9C6BE",
+
+  // ── Text ────────────────────────────────────────────────────────────────────
   textLight: "#F5F3EC",
-  textMuted: "#B9C6BE",
-  textDark: "#1B1B1F",
+  textMuted: "#A8BAB2",
+  textFaint: "#6B8078",
+  textDark:  "#1B1B1F",
 
-  overlay: "rgba(4, 20, 14, 0.72)",
-  panel: "#0F352899",
-  danger: "#E5484D",
-  success: "#46A758",
+  // ── UI ──────────────────────────────────────────────────────────────────────
+  overlay:    "rgba(4, 18, 12, 0.80)",
+  overlayMid: "rgba(4, 18, 12, 0.55)",
+  panel:      "rgba(9, 46, 31, 0.75)",
+  panelLight: "rgba(20, 80, 55, 0.55)",
+  separator:  "rgba(231, 192, 103, 0.15)",
 };
 
 export const radius = {
-  card: 9,
-  panel: 18,
-  pill: 999,
+  card:  9,
+  panel: 20,
+  pill:  999,
+  sm:    6,
 };
 
 export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 18,
-  xl: 28,
+  xxs: 2,
+  xs:  4,
+  sm:  8,
+  md:  14,
+  lg:  20,
+  xl:  28,
+  xxl: 40,
 };
 
-/** Cards keep a standard playing-card aspect ratio. */
+/** Typography scale — use directly in StyleSheet.create() style objects. */
+export const typography = {
+  hero:    { fontSize: 58, fontWeight: "900" as const, letterSpacing: 8  },
+  display: { fontSize: 34, fontWeight: "900" as const, letterSpacing: 3  },
+  title:   { fontSize: 22, fontWeight: "800" as const, letterSpacing: 1  },
+  heading: { fontSize: 17, fontWeight: "700" as const, letterSpacing: 0.3 },
+  body:    { fontSize: 14, fontWeight: "500" as const },
+  caption: { fontSize: 12, fontWeight: "600" as const, letterSpacing: 0.5 },
+  label:   { fontSize:  9, fontWeight: "800" as const, letterSpacing: 1.2 },
+  micro:   { fontSize:  8, fontWeight: "700" as const, letterSpacing: 0.8 },
+};
+
+/** Reusable shadow presets (spread as style props). */
+export const shadows = {
+  card: {
+    shadowColor: "#000",
+    shadowOpacity: 0.40,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  panel: {
+    shadowColor: "#000",
+    shadowOpacity: 0.60,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 14,
+  },
+  goldGlow: {
+    shadowColor: "#E7C067",
+    shadowOpacity: 0.70,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 12,
+  },
+  successGlow: {
+    shadowColor: "#46A758",
+    shadowOpacity: 0.65,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 10,
+  },
+  dangerGlow: {
+    shadowColor: "#E5484D",
+    shadowOpacity: 0.65,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 10,
+  },
+};
+
+/** Cards keep a standard playing-card aspect ratio (63 × 88 mm → 1.397). */
 export const CARD_ASPECT = 1.4;
 
 export const cardSize = {
-  /** Cards in the human player's hand — sized for easy tap/drag targets. */
-  hand: { w: 76, h: Math.round(76 * CARD_ASPECT) },
+  /** Cards in the human player's hand — sized for comfortable drag targets. */
+  hand:  { w: 76, h: Math.round(76 * CARD_ASPECT) },
   /** Cards resting on the table. */
   table: { w: 62, h: Math.round(62 * CARD_ASPECT) },
   /** Deck pile + trump peek on the right edge. */
   small: { w: 48, h: Math.round(48 * CARD_ASPECT) },
+  /** Decorative fan cards on the home screen. */
+  fan:   { w: 68, h: Math.round(68 * CARD_ASPECT) },
 };
 
 export const timing = {
   /** Seconds a player has to act before the safe move is auto-played. */
   turnSeconds: 12,
-  /** Pace of AI moves (ms) so the action is readable. */
-  aiMoveDelayMs: 750,
 };
+
+/** Responsive layout helper — call with useWindowDimensions().width. */
+export function layoutFor(windowWidth: number) {
+  const isTablet = windowWidth >= 768;
+  return {
+    isTablet,
+    maxContent: isTablet ? 520 : Math.min(windowWidth - 32, 420),
+    cardScale:  isTablet ? 1.35 : 1.0,
+    hPad:       isTablet ? 40 : 20,
+  };
+}
 
 export type SeatColor = string;

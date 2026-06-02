@@ -17,14 +17,15 @@ import { ReactionsBar } from "../components/ReactionsBar";
 import { TableArea, type TableAreaHandle } from "../components/TableArea";
 import { TurnTimer } from "../components/TurnTimer";
 import { useGameStore } from "../game/store";
-import { getHumanView, formatRulesLabel, opponentOrder, getBeatTransferChoice } from "../game/selectors";
+import { getHumanView, opponentOrder, getBeatTransferChoice } from "../game/selectors";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   type DragCardBounds,
   type DropZone,
   type DropZoneKind,
   resolveDropFromBounds,
 } from "../game/dropZones";
-import { colors, radius, spacing, timing } from "../theme";
+import { colors, radius, shadows, spacing, timing, typography } from "../theme";
 
 function activePlayer(game: GameState): PlayerId {
   if (!game.takeInProgress && undefendedCount(game) > 0) return game.defenderId;
@@ -37,7 +38,11 @@ function seatRole(game: GameState, id: PlayerId): SeatRole {
   return null;
 }
 
-export function GameScreen() {
+export interface GameScreenProps {
+  onOpenSettings?: () => void;
+}
+
+export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const game = useGameStore((s) => s.game);
   const humanId = useGameStore((s) => s.humanId);
   const names = useGameStore((s) => s.names);
@@ -323,13 +328,18 @@ export function GameScreen() {
     <Background>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerLeft}>
             <PotBadge pot={pot} buyIn={buyIn} />
-            <Text style={styles.rulesBadge}>{formatRulesLabel(game)}</Text>
           </View>
+
           <View style={styles.headerActions}>
-            <Pressable style={styles.exit} onPress={goHome} hitSlop={8}>
-              <Text style={styles.exitText}>Exit</Text>
+            {onOpenSettings && (
+              <Pressable style={styles.headerBtn} onPress={onOpenSettings} hitSlop={10}>
+                <Text style={styles.headerBtnText}>⚙</Text>
+              </Pressable>
+            )}
+            <Pressable style={[styles.headerBtn, styles.headerBtnExit]} onPress={goHome} hitSlop={10}>
+              <Text style={[styles.headerBtnText, styles.headerBtnExitText]}>✕</Text>
             </Pressable>
           </View>
         </View>
@@ -348,20 +358,37 @@ export function GameScreen() {
         </View>
 
         <View style={styles.middle}>
+          {/* Felt surface — visual grounding for the play area */}
           <View style={styles.tableSlot}>
-            <TableArea
-              ref={tableAreaRef}
-              table={game.table}
-              trumpSuit={game.trumpSuit}
-              choiceTargets={beatTransferChoice.choiceIndices}
-              transferTargets={transferTargets}
-              hoverDefendIndex={hoverDrop?.kind === "defend" ? hoverDrop.tableIndex : null}
-              hoverTransferIndex={hoverDrop?.kind === "transfer" ? hoverDrop.tableIndex : null}
-              dragActive={showBeatTransferChoice && !!draggingCardId}
-              remeasureKey={zoneRemeasureKey}
-              onDropZoneLayout={showBeatTransferChoice ? onDropZoneLayout : undefined}
-              onDropZoneRemoved={showBeatTransferChoice ? onDropZoneRemoved : undefined}
-            />
+            <View style={styles.tableFrame}>
+              {/* Felt gradient — lit from the top */}
+              <LinearGradient
+                colors={[colors.feltTop, colors.feltMid, colors.feltBottom]}
+                locations={[0, 0.55, 1]}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              {/* Soft overhead light pooled in the centre */}
+              <View style={styles.tableSpotlight} pointerEvents="none" />
+              {/* Decorative inlay rings */}
+              <View style={styles.tableRingOuter} pointerEvents="none" />
+              <View style={styles.tableRingInner} pointerEvents="none" />
+
+              <TableArea
+                ref={tableAreaRef}
+                table={game.table}
+                trumpSuit={game.trumpSuit}
+                choiceTargets={beatTransferChoice.choiceIndices}
+                transferTargets={transferTargets}
+                hoverDefendIndex={hoverDrop?.kind === "defend" ? hoverDrop.tableIndex : null}
+                hoverTransferIndex={hoverDrop?.kind === "transfer" ? hoverDrop.tableIndex : null}
+                dragActive={showBeatTransferChoice && !!draggingCardId}
+                remeasureKey={zoneRemeasureKey}
+                onDropZoneLayout={showBeatTransferChoice ? onDropZoneLayout : undefined}
+                onDropZoneRemoved={showBeatTransferChoice ? onDropZoneRemoved : undefined}
+              />
+            </View>
           </View>
           <View style={styles.deckSlot}>
             <DeckPile
@@ -385,18 +412,18 @@ export function GameScreen() {
 
           <View style={styles.actions}>
             <Pressable
-              style={[styles.actionBtn, !view.canTake && styles.actionDisabled]}
+              style={[styles.actionBtn, styles.takeBtn, !view.canTake && styles.actionDisabled]}
               disabled={!view.canTake}
               onPress={() => setTakeConfirmOpen(true)}
             >
-              <Text style={styles.actionText}>Take</Text>
+              <Text style={styles.actionText}>TAKE</Text>
             </Pressable>
             <Pressable
               style={[styles.actionBtn, styles.doneBtn, !view.canPass && styles.actionDisabled]}
               disabled={!view.canPass}
               onPress={() => submitHuman({ type: "PASS", player: humanId })}
             >
-              <Text style={[styles.actionText, styles.doneText]}>Done</Text>
+              <Text style={[styles.actionText, styles.doneText]}>DONE</Text>
             </Pressable>
           </View>
 
@@ -435,28 +462,35 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
+    gap: spacing.xs,
   },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  exit: {
+  headerLeft: { flex: 1 },
+  headerActions: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: spacing.xs },
+  headerBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.panel,
-    borderRadius: radius.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: colors.goldDim,
+    borderColor: "rgba(231, 192, 103, 0.20)",
   },
-  exitText: { color: colors.textLight, fontWeight: "700" },
-  rulesBadge: { color: colors.textMuted, fontSize: 10, fontWeight: "600", marginTop: 2 },
+  headerBtnExit: {
+    borderColor: "rgba(229, 72, 77, 0.30)",
+    backgroundColor: "rgba(229, 72, 77, 0.10)",
+  },
+  headerBtnText: { color: colors.textMuted, fontSize: 13, fontWeight: "700" },
+  headerBtnExitText: { color: "#E5A0A2" },
   opponents: {
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "flex-start",
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
     gap: spacing.sm,
   },
   middle: {
@@ -464,33 +498,94 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  // Play area takes remaining width so pairs never sit under the deck column.
   tableSlot: {
     flex: 1,
     justifyContent: "center",
+    paddingLeft: spacing.sm,
+  },
+  tableFrame: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 999,
+    marginVertical: spacing.sm,
+    overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: "rgba(231, 192, 103, 0.22)",
+    ...shadows.panel,
+  },
+  // Pooled overhead light — a soft, lighter felt disc in the centre
+  tableSpotlight: {
+    position: "absolute",
+    top: "12%",
+    left: "12%",
+    right: "12%",
+    bottom: "12%",
+    borderRadius: 999,
+    backgroundColor: "rgba(120, 220, 170, 0.10)",
+  },
+  // Thin gold inlay ring near the rail
+  tableRingOuter: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    right: 8,
+    bottom: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(231, 192, 103, 0.16)",
+  },
+  // Darker felt seam just inside it
+  tableRingInner: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    right: 12,
+    bottom: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(4, 14, 9, 0.30)",
   },
   deckSlot: {
     justifyContent: "center",
     alignItems: "center",
     paddingRight: spacing.md,
   },
-  bottom: { paddingBottom: spacing.xs, overflow: "visible" },
-  timerRow: { height: 38, alignItems: "center", justifyContent: "center" },
+  bottom:    { paddingBottom: spacing.xs, overflow: "visible" },
+  timerRow:  {
+    height: 42,
+    alignItems: "stretch",
+    justifyContent: "center",
+    paddingHorizontal: spacing.xl,
+  },
   actions: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: spacing.md,
+    gap: spacing.sm,
     marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xl,
   },
   actionBtn: {
-    backgroundColor: colors.danger,
-    paddingVertical: 9,
-    paddingHorizontal: 26,
+    flex: 1,
+    paddingVertical: 11,
     borderRadius: radius.pill,
+    alignItems: "center",
   },
-  doneBtn: { backgroundColor: colors.gold },
-  actionDisabled: { opacity: 0.3 },
-  actionText: { color: "#fff", fontWeight: "800", fontSize: 15 },
+  takeBtn: {
+    backgroundColor: colors.danger,
+    ...shadows.dangerGlow,
+  },
+  doneBtn: {
+    backgroundColor: colors.gold,
+    ...shadows.goldGlow,
+  },
+  actionDisabled: { opacity: 0.28 },
+  actionText: {
+    ...typography.caption,
+    color: "#fff",
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
   doneText: { color: colors.feltBottom },
   reactions: { alignItems: "center", marginTop: spacing.xs, overflow: "visible", zIndex: 20 },
 });

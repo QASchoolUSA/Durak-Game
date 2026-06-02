@@ -9,7 +9,7 @@ import {
   isRed,
 } from "@durak/game-core";
 import { Card } from "./Card";
-import { colors, cardSize, radius } from "../theme";
+import { colors, cardSize, radius, shadows } from "../theme";
 
 export interface DeckPileProps {
   deckCount: number;
@@ -19,12 +19,15 @@ export interface DeckPileProps {
 
 function DeckPileComponent({ deckCount, trumpCard, trumpSuit }: DeckPileProps) {
   const { w, h } = cardSize.small;
-  const suitColor = isRed(trumpSuit) ? colors.suitRed : colors.suitBlack;
+  const suitColor = isRed(trumpSuit) ? colors.suitRed : "#20232A";
   const rank = RANK_LABELS[trumpCard.rank];
+  const symbol = SUIT_SYMBOLS[trumpSuit];
 
   return (
     <Animated.View entering={FadeIn.duration(400)} style={styles.column}>
-      <View style={[styles.tagStack, { width: w + 6, height: h + 6 }]}>
+
+      {/* ── Deck stack ── */}
+      <View style={[styles.stack, { width: w + 6, height: h + 6 }]}>
         {deckCount > 0 ? (
           <>
             <Card faceDown width={w} height={h} style={{ position: "absolute", top: 5, left: 5 }} />
@@ -32,17 +35,21 @@ function DeckPileComponent({ deckCount, trumpCard, trumpSuit }: DeckPileProps) {
             <Card faceDown width={w} height={h} />
           </>
         ) : (
-          <View style={[styles.tagEmptyDeck, { width: w, height: h }]}>
-            <Text style={styles.tagEmptyText}>0</Text>
+          <View style={[styles.emptyDeck, { width: w, height: h }]}>
+            <Text style={styles.emptyText}>–</Text>
           </View>
         )}
-        <View style={styles.cornerTag}>
-          <Text style={[styles.cornerRank, { color: suitColor }]}>{rank}</Text>
-          <Text style={[styles.cornerSuit, { color: suitColor }]}>{SUIT_SYMBOLS[trumpSuit]}</Text>
+
+        {/* Trump badge — top-left corner of stack */}
+        <View style={styles.trumpBadge}>
+          <Text style={[styles.trumpRank, { color: suitColor }]}>{rank}</Text>
+          <Text style={[styles.trumpSuit, { color: suitColor }]}>{symbol}</Text>
         </View>
+
+        {/* Deck count ring — bottom-right */}
         {deckCount > 0 && (
-          <View style={styles.tagCountRing}>
-            <Text style={styles.tagCountText}>{deckCount}</Text>
+          <View style={styles.countRing}>
+            <Text style={styles.countText}>{deckCount}</Text>
           </View>
         )}
       </View>
@@ -53,57 +60,60 @@ function DeckPileComponent({ deckCount, trumpCard, trumpSuit }: DeckPileProps) {
 const styles = StyleSheet.create({
   column: {
     alignItems: "center",
+    gap: 6,
   },
-  tagStack: {
+  stack: {
     position: "relative",
   },
-  tagEmptyDeck: {
+  emptyDeck: {
     borderRadius: radius.card,
     backgroundColor: colors.feltEdge,
     borderWidth: 1,
-    borderColor: colors.goldDim,
+    borderColor: "rgba(231,192,103,0.20)",
     alignItems: "center",
     justifyContent: "center",
   },
-  tagEmptyText: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: "700",
+  emptyText: {
+    color: colors.textFaint,
+    fontSize: 18,
+    fontWeight: "300",
   },
-  cornerTag: {
+
+  // Trump corner badge
+  trumpBadge: {
     position: "absolute",
-    top: -4,
-    left: -4,
+    top: -5,
+    left: -5,
     backgroundColor: colors.cardFace,
-    borderRadius: 6,
+    borderRadius: 7,
     borderWidth: 1.5,
     borderColor: colors.gold,
     paddingHorizontal: 5,
     paddingVertical: 3,
     alignItems: "center",
-    shadowColor: colors.trumpGlow,
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 3,
+    ...shadows.goldGlow,
   },
-  cornerRank: { fontSize: 11, fontWeight: "900", lineHeight: 12 },
-  cornerSuit: { fontSize: 10, fontWeight: "800", lineHeight: 11 },
-  tagCountRing: {
+  trumpRank: { fontSize: 11, fontWeight: "900", lineHeight: 12 },
+  trumpSuit: { fontSize: 10, fontWeight: "800", lineHeight: 11 },
+
+  // Deck count ring
+  countRing: {
     position: "absolute",
-    bottom: -6,
-    right: -6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    bottom: -7,
+    right: -7,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: colors.gold,
     alignItems: "center",
     justifyContent: "center",
+    ...shadows.goldGlow,
   },
-  tagCountText: {
+  countText: {
     color: colors.feltBottom,
     fontWeight: "900",
-    fontSize: 11,
+    fontSize: 10,
+    lineHeight: 12,
   },
 });
 

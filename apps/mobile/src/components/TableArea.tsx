@@ -223,8 +223,9 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "center",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.md,
     paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   pair: { position: "relative" },
   attackSlot: {
@@ -236,7 +237,12 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
   },
-  defense: { position: "absolute", top: 16, left: 14 },
+  defense: {
+    position: "absolute",
+    top: 14,
+    left: 12,
+    transform: [{ rotate: "5deg" }],
+  },
 });
 
 export const TableArea = React.memo(TableAreaComponent);

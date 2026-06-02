@@ -11,10 +11,12 @@ import {
   pickMove,
   undefendedCount,
 } from "@durak/game-core";
-import { timing } from "../theme";
 import { safeMoveFor } from "./autoMove";
 
 export type Screen = "home" | "game" | "result";
+export type Difficulty = "easy" | "medium" | "hard";
+
+const AI_DELAY: Record<Difficulty, number> = { easy: 1400, medium: 750, hard: 320 };
 
 const HUMAN_ID: PlayerId = "you";
 const BOT_NAMES = ["Olga", "Ivan", "Dmitri"];
@@ -44,9 +46,11 @@ interface GameStore {
   pot: number;
   buyIn: number;
 
+  difficulty: Difficulty;
   setNumPlayers: (n: number) => void;
   setVariant: (variant: GameVariant) => void;
   setThrowInScope: (scope: ThrowInScope) => void;
+  setDifficulty: (d: Difficulty) => void;
   startGame: (n?: number) => void;
   goHome: () => void;
   submitHuman: (move: Move) => void;
@@ -104,7 +108,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         }
       }
       // No AI can act -> it is the human's turn; wait for input.
-    }, timing.aiMoveDelayMs);
+    }, AI_DELAY[get().difficulty]);
   }
 
   return {
@@ -112,6 +116,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     numPlayers: 2,
     variant: "podkidnoy",
     throwInScope: "all",
+    difficulty: "medium",
     humanId: HUMAN_ID,
     names: { [HUMAN_ID]: "You" },
     game: null,
@@ -122,6 +127,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     setNumPlayers: (n) => set({ numPlayers: Math.min(4, Math.max(2, n)) }),
     setVariant: (variant) => set({ variant }),
     setThrowInScope: (throwInScope) => set({ throwInScope }),
+    setDifficulty: (difficulty) => set({ difficulty }),
 
     startGame: (n) => {
       cancelAi();
