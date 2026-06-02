@@ -151,7 +151,8 @@ function resolveBeatTransferPair(
   transfer: DropZone,
   locked: DropZone | null,
 ): DropZone | null {
-  const { x: aimX } = aimPoint(bounds);
+  const aim = aimPoint(bounds);
+  const aimX = aim.x;
   // Use card center Y — the card rises to the zone while the finger stays lower
   if (!inVerticalBand(bounds.centerY, defend, transfer)) return null;
 
@@ -181,16 +182,18 @@ function resolveBeatTransferPair(
   }
 
   const pad = CHOICE_HIT_PAD;
+  // Use card center Y for vertical proximity checks
+  const cardY = bounds.centerY;
   const nearBeat =
     aimX >= beatLeft - pad &&
     aimX <= beatRight + pad &&
-    aimY >= defend.y - pad &&
-    aimY <= defend.y + defend.height + pad;
+    cardY >= defend.y - pad &&
+    cardY <= defend.y + defend.height + pad;
   const nearTransfer =
     aimX >= xferLeft - pad &&
     aimX <= xferRight + pad &&
-    aimY >= transfer.y - pad &&
-    aimY <= transfer.y + transfer.height + pad;
+    cardY >= transfer.y - pad &&
+    cardY <= transfer.y + transfer.height + pad;
 
   if (nearBeat && !nearTransfer) return defend;
   if (nearTransfer && !nearBeat) return transfer;

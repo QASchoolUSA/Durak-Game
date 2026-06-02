@@ -11,7 +11,7 @@
       "backgroundColor": "#0B3D2E"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.durakgame.app"
     },
     "android": {
