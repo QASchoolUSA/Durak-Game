@@ -19,15 +19,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import type { Difficulty } from "../game/store";
-import { useGameStore } from "../game/store";
 import { colors, radius, spacing, typography } from "../theme";
-
-const DIFFICULTIES: { id: Difficulty; label: string; hint: string }[] = [
-  { id: "easy",   label: "Easy",   hint: "AI plays slowly and makes mistakes" },
-  { id: "medium", label: "Medium", hint: "Balanced — good for most players"    },
-  { id: "hard",   label: "Hard",   hint: "Fast and nearly optimal AI moves"    },
-];
+import { CardDesignPicker } from "./CardDesignPicker";
 
 const SPRING_IN  = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
@@ -42,9 +35,6 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const { height: screenH } = useWindowDimensions();
   const insets  = useSafeAreaInsets();
   const drawerH = Math.round(screenH * 0.82);
-
-  const difficulty    = useGameStore((s) => s.difficulty);
-  const setDifficulty = useGameStore((s) => s.setDifficulty);
 
   // Local visual-only toggles (no audio/haptics implementation required)
   const [sound,   setSound]   = useState(true);
@@ -168,25 +158,12 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               <Row label="Haptic Feedback" value={haptics} onToggle={setHaptics} />
             </View>
 
-            {/* ── AI Difficulty ── */}
+            {/* ── Card Design ── */}
             <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>
-              AI DIFFICULTY
+              CARD DESIGN
             </Text>
-            <View style={styles.card}>
-              {DIFFICULTIES.map((d, i) => (
-                <React.Fragment key={d.id}>
-                  {i > 0 && <View style={styles.rowDivider} />}
-                  <Pressable style={styles.diffRow} onPress={() => setDifficulty(d.id)}>
-                    <View style={styles.diffInfo}>
-                      <Text style={styles.diffLabel}>{d.label}</Text>
-                      <Text style={styles.diffHint}>{d.hint}</Text>
-                    </View>
-                    <View style={[styles.radio, difficulty === d.id && styles.radioActive]}>
-                      {difficulty === d.id && <View style={styles.radioDot} />}
-                    </View>
-                  </Pressable>
-                </React.Fragment>
-              ))}
+            <View style={styles.cardDesignPanel}>
+              <CardDesignPicker />
             </View>
 
             <Text style={styles.version}>Durak · v1.0 · Classic Russian Card Game</Text>
@@ -270,6 +247,14 @@ const styles = StyleSheet.create({
     borderColor: colors.separator,
     overflow: "hidden",
   },
+  cardDesignPanel: {
+    backgroundColor: colors.panel,
+    borderRadius: radius.panel,
+    borderWidth: 1,
+    borderColor: colors.separator,
+    padding: spacing.md,
+    overflow: "hidden",
+  },
   toggleRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -282,32 +267,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.separator,
     marginHorizontal: spacing.md,
-  },
-  diffRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: spacing.md,
-  },
-  diffInfo:  { flex: 1 },
-  diffLabel: { ...typography.body, color: colors.textLight, fontWeight: "700" },
-  diffHint:  { ...typography.caption, color: colors.textMuted, marginTop: 2 },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: colors.goldDim,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  radioActive: { borderColor: colors.gold },
-  radioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.gold,
   },
   version: {
     ...typography.caption,

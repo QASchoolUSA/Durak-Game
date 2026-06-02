@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -6,17 +6,8 @@ import Animated, {
   withDelay,
   withTiming,
 } from "react-native-reanimated";
+import { useCardTheme } from "../theme/CardThemeContext";
 import { colors } from "../theme";
-
-const CONFETTI_COLORS = [
-  colors.gold,
-  colors.goldBright,
-  colors.success,
-  colors.cardFace,
-  colors.suitRed,
-  "#7BCFB8",
-  "#F2A65A",
-];
 
 // Deterministic "random" from seed — no Math.random() in hot paths
 function sr(seed: number): number {
@@ -38,17 +29,19 @@ interface Particle {
   duration: number;
 }
 
-const PARTICLES: Particle[] = Array.from({ length: N }, (_, i) => ({
-  id: i,
-  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length]!,
-  size: 5 + Math.round(sr(i * 7) * 5),
-  isCircle: sr(i * 13) > 0.5,
-  startX: (sr(i * 3) - 0.5) * 80,
-  velX: (sr(i * 5) - 0.5) * 340,
-  velY: -(sr(i * 11) * 360 + 120),
-  delay: Math.round(sr(i * 17) * 220),
-  duration: Math.round(sr(i * 19) * 600) + 1100,
-}));
+function buildParticles(confettiColors: string[]): Particle[] {
+  return Array.from({ length: N }, (_, i) => ({
+    id: i,
+    color: confettiColors[i % confettiColors.length]!,
+    size: 5 + Math.round(sr(i * 7) * 5),
+    isCircle: sr(i * 13) > 0.5,
+    startX: (sr(i * 3) - 0.5) * 80,
+    velX: (sr(i * 5) - 0.5) * 340,
+    velY: -(sr(i * 11) * 360 + 120),
+    delay: Math.round(sr(i * 17) * 220),
+    duration: Math.round(sr(i * 19) * 600) + 1100,
+  }));
+}
 
 function Particle({ p }: { p: Particle }) {
   const tx = useSharedValue(p.startX);
@@ -56,7 +49,6 @@ function Particle({ p }: { p: Particle }) {
   const op = useSharedValue(1);
 
   useEffect(() => {
-    const totalDuration = p.delay + p.duration;
     tx.value = withDelay(p.delay, withTiming(p.startX + p.velX, { duration: p.duration }));
     ty.value = withDelay(p.delay, withTiming(p.velY + 500, { duration: p.duration }));
     op.value = withDelay(p.delay + p.duration * 0.55, withTiming(0, { duration: p.duration * 0.45 }));
@@ -85,9 +77,24 @@ function Particle({ p }: { p: Particle }) {
 }
 
 export function Confetti() {
+  const theme = useCardTheme();
+  const particles = useMemo(
+    () =>
+      buildParticles([
+        colors.gold,
+        colors.goldBright,
+        colors.success,
+        theme.face,
+        theme.suitRed,
+        "#7BCFB8",
+        "#F2A65A",
+      ]),
+    [theme.face, theme.suitRed],
+  );
+
   return (
     <View style={styles.container} pointerEvents="none">
-      {PARTICLES.map((p) => (
+      {particles.map((p) => (
         <Particle key={p.id} p={p} />
       ))}
     </View>

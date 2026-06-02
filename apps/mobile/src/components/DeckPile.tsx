@@ -8,6 +8,7 @@ import {
   SUIT_SYMBOLS,
   isRed,
 } from "@durak/game-core";
+import { useCardTheme } from "../theme/CardThemeContext";
 import { Card } from "./Card";
 import { colors, cardSize, radius, shadows } from "../theme";
 
@@ -18,8 +19,9 @@ export interface DeckPileProps {
 }
 
 function DeckPileComponent({ deckCount, trumpCard, trumpSuit }: DeckPileProps) {
+  const theme = useCardTheme();
   const { w, h } = cardSize.small;
-  const suitColor = isRed(trumpSuit) ? colors.suitRed : "#20232A";
+  const suitColor = isRed(trumpSuit) ? theme.suitRed : theme.suitBlack;
   const rank = RANK_LABELS[trumpCard.rank];
   const symbol = SUIT_SYMBOLS[trumpSuit];
 
@@ -41,7 +43,7 @@ function DeckPileComponent({ deckCount, trumpCard, trumpSuit }: DeckPileProps) {
         )}
 
         {/* Trump badge — top-left corner of stack */}
-        <View style={styles.trumpBadge}>
+        <View style={[styles.trumpBadge, { backgroundColor: theme.face }]}>
           <Text style={[styles.trumpRank, { color: suitColor }]}>{rank}</Text>
           <Text style={[styles.trumpSuit, { color: suitColor }]}>{symbol}</Text>
         </View>
@@ -84,7 +86,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -5,
     left: -5,
-    backgroundColor: colors.cardFace,
     borderRadius: 7,
     borderWidth: 1.5,
     borderColor: colors.gold,

@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
+  Easing,
   type SharedValue,
   useAnimatedStyle,
   useSharedValue,
@@ -31,6 +32,12 @@ const CARD_LAYOUT = [
 ];
 
 const { w, h } = cardSize.fan;
+const FAN_SPREAD_X = 88;
+const FAN_DROP_Y = 18;
+
+/** Wide enough for ±88px fan spread from center. */
+const FAN_WIDTH = w + FAN_SPREAD_X * 2;
+const FAN_HEIGHT = h + FAN_DROP_Y * 2 + 8;
 
 function FanCard({
   card,
@@ -38,6 +45,7 @@ function FanCard({
   tx,
   ty,
   sway,
+  spread,
   isTrump,
 }: {
   card: CardModel;
@@ -45,30 +53,43 @@ function FanCard({
   tx: number;
   ty: number;
   sway: SharedValue<number>;
+  spread: SharedValue<number>;
   isTrump: boolean;
 }) {
-  const aStyle = useAnimatedStyle(() => {
-    const totalRot = rotate + sway.value * (rotate === 0 ? 0.4 : Math.sign(rotate) * 0.8);
+  const transformStyle = useAnimatedStyle(() => {
+    const spreadT = spread.value;
+    const totalRot = (rotate * spreadT) + sway.value * (rotate === 0 ? 0.4 : Math.sign(rotate) * 0.8);
     return {
+      opacity: 0.35 + spreadT * 0.65,
       transform: [
-        { translateX: tx },
-        { translateY: ty },
+        { translateX: tx * spreadT },
+        { translateY: ty * spreadT },
         { rotate: `${totalRot}deg` },
+        { scale: 0.88 + spreadT * 0.12 },
       ],
     };
   });
 
   return (
-    <Animated.View style={[styles.card, aStyle]}>
-      <Card card={card} width={w} height={h} trump={isTrump} />
-    </Animated.View>
+    <View style={styles.cardAnchor}>
+      <Animated.View style={[{ width: w, height: h }, transformStyle]}>
+        <Card card={card} width={w} height={h} trump={isTrump} />
+      </Animated.View>
+    </View>
   );
 }
 
 export function CardFan() {
   const sway = useSharedValue(0);
+  const spread = useSharedValue(0);
+  const floatY = useSharedValue(0);
 
   useEffect(() => {
+    spread.value = withTiming(1, {
+      duration: 900,
+      easing: Easing.out(Easing.cubic),
+    });
+
     sway.value = withRepeat(
       withSequence(
         withTiming( 1, { duration: 3200 }),
@@ -77,10 +98,23 @@ export function CardFan() {
       -1,
       true,
     );
-  }, [sway]);
+
+    floatY.value = withRepeat(
+      withSequence(
+        withTiming(-6, { duration: 2800, easing: Easing.inOut(Easing.sin) }),
+        withTiming( 6, { duration: 2800, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      true,
+    );
+  }, [sway, spread, floatY]);
+
+  const containerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: floatY.value }],
+  }));
 
   return (
-    <View style={styles.container} pointerEvents="none">
+    <Animated.View style={[styles.container, containerStyle]} pointerEvents="none">
       {FAN_CARDS.map((card, i) => (
         <FanCard
           key={card.id}
@@ -89,22 +123,28 @@ export function CardFan() {
           tx={CARD_LAYOUT[i]!.tx}
           ty={CARD_LAYOUT[i]!.ty}
           sway={sway}
-          // The front card (diamonds jack) is the "trump" card for visual flair
+          spread={spread}
           isTrump={i === 2}
         />
       ))}
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    width: w,
-    height: h,
+    width: FAN_WIDTH,
+    height: FAN_HEIGHT,
     alignItems: "center",
     justifyContent: "center",
   },
-  card: {
+  cardAnchor: {
     position: "absolute",
+    left: "50%",
+    top: "50%",
+    width: w,
+    height: h,
+    marginLeft: -w / 2,
+    marginTop: -h / 2,
   },
 });
