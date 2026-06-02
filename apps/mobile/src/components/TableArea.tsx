@@ -58,6 +58,8 @@ export interface TableAreaProps {
   transferTargets?: number[];
   hoverDefendIndex?: number | null;
   hoverTransferIndex?: number | null;
+  /** True while the player is dragging — show zones as available targets. */
+  dragActive?: boolean;
   remeasureKey?: number;
   onDropZoneLayout?: (zone: DropZone) => void;
   onDropZoneRemoved?: (tableIndex: number, kind: DropZoneKind) => void;
@@ -72,6 +74,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
       transferTargets = [],
       hoverDefendIndex = null,
       hoverTransferIndex = null,
+      dragActive = false,
       remeasureKey = 0,
       onDropZoneLayout,
       onDropZoneRemoved,
@@ -127,6 +130,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
               height={h}
               active={beatHover}
               dimmed={beatDimmed}
+              available={dragActive}
             >
               {attackCard}
             </ChoiceDropSlot>
@@ -140,6 +144,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
               active={transferHover}
               dimmed={transferDimmed}
               disabled={!transferEnabled}
+              available={dragActive}
             />
           );
 

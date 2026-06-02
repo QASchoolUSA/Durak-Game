@@ -47,7 +47,9 @@ const CHOICE_HYSTERESIS = 8;
 const { w: TABLE_W, h: TABLE_H } = cardSize.table;
 
 const LOCK_RELEASE_SLACK = 12;
-const MIN_OVERLAP_RATIO = 0.12;
+const MIN_OVERLAP_RATIO = 0.08;
+/** Start highlighting the nearest zone when the card centre is within this many px. */
+const PROXIMITY_PX = 180;
 
 export function pairLayoutWidth(showTransfer: boolean): number {
   if (!showTransfer) return TABLE_W + 16;
@@ -133,10 +135,11 @@ function gapMidpoint(defend: DropZone, transfer: DropZone): number {
 }
 
 /** Midpoint of the physical gap between unpadded slot frames. */
-function inVerticalBand(centerY: number, defend: DropZone, transfer: DropZone): boolean {
-  const top = Math.min(defend.y, transfer.y);
-  const bottom = Math.max(defend.y + defend.height, transfer.y + transfer.height);
-  return centerY >= top && centerY <= bottom;
+function inVerticalBand(y: number, defend: DropZone, transfer: DropZone): boolean {
+  const pad = 40;
+  const top = Math.min(defend.y, transfer.y) - pad;
+  const bottom = Math.max(defend.y + defend.height, transfer.y + transfer.height) + pad;
+  return y >= top && y <= bottom;
 }
 
 /**
@@ -148,8 +151,9 @@ function resolveBeatTransferPair(
   transfer: DropZone,
   locked: DropZone | null,
 ): DropZone | null {
-  const { x: aimX, y: aimY } = aimPoint(bounds);
-  if (!inVerticalBand(aimY, defend, transfer)) return null;
+  const { x: aimX } = aimPoint(bounds);
+  // Use card center Y — the card rises to the zone while the finger stays lower
+  if (!inVerticalBand(bounds.centerY, defend, transfer)) return null;
 
   const beatLeft = defend.x;
   const beatRight = defend.x + defend.width;
@@ -251,9 +255,9 @@ export function releaseLockedZone(
     const defend = locked.kind === "defend" ? locked : partner;
     const transfer = locked.kind === "transfer" ? locked : partner;
     const mid = gapMidpoint(defend, transfer);
-    const { x: aimX, y: aimY } = aimPoint(bounds);
+    const { x: aimX } = aimPoint(bounds);
 
-    if (!inVerticalBand(aimY, defend, transfer)) return false;
+    if (!inVerticalBand(bounds.centerY, defend, transfer)) return false;
 
     if (locked.kind === "defend" && aimX < mid + CHOICE_HYSTERESIS) return true;
     if (locked.kind === "transfer" && aimX > mid - CHOICE_HYSTERESIS) return true;
@@ -375,6 +379,26 @@ export function resolveDropFromBounds(
   const best = resolveByOverlap(overlapBounds, candidates);
   if (best) {
     return { zone: best, locked: commit ? null : lockZone(best) };
+  }
+
+  // Proximity — highlight the nearest reachable zone as the card approaches.
+  // No lock so the highlight switches freely while the card is still far away.
+  if (!commit) {
+    let nearestZone: DropZone | null = null;
+    let nearestDist = PROXIMITY_PX;
+    for (const zone of candidates) {
+      const c = zoneCenter(zone);
+      const dx = bounds.centerX - c.x;
+      const dy = bounds.centerY - c.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestZone = zone;
+      }
+    }
+    if (nearestZone) {
+      return { zone: nearestZone, locked: null };
+    }
   }
 
   return { zone: null, locked: null };

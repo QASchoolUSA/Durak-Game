@@ -357,6 +357,7 @@ export function GameScreen() {
               transferTargets={transferTargets}
               hoverDefendIndex={hoverDrop?.kind === "defend" ? hoverDrop.tableIndex : null}
               hoverTransferIndex={hoverDrop?.kind === "transfer" ? hoverDrop.tableIndex : null}
+              dragActive={showBeatTransferChoice && !!draggingCardId}
               remeasureKey={zoneRemeasureKey}
               onDropZoneLayout={showBeatTransferChoice ? onDropZoneLayout : undefined}
               onDropZoneRemoved={showBeatTransferChoice ? onDropZoneRemoved : undefined}
