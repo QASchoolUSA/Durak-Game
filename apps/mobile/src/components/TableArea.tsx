@@ -199,13 +199,15 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
                 )}
 
                 {pair.defense && (
-                  <Animated.View entering={ZoomIn.duration(200)} style={styles.defense}>
-                    <Card
-                      card={pair.defense}
-                      width={w}
-                      height={h}
-                      trump={pair.defense.suit === trumpSuit}
-                    />
+                  <Animated.View entering={ZoomIn.duration(200)}>
+                    <View style={styles.defense}>
+                      <Card
+                        card={pair.defense}
+                        width={w}
+                        height={h}
+                        trump={pair.defense.suit === trumpSuit}
+                      />
+                    </View>
                   </Animated.View>
                 )}
               </View>

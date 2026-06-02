@@ -180,8 +180,8 @@ function ChoiceDropSlotComponent({
   const aScale = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const aInner = useAnimatedStyle(() => ({ opacity: innerOp.value }));
   const aOuter = useAnimatedStyle(() => ({ opacity: outerOp.value }));
-  const aLabel = useAnimatedStyle(() => ({
-    opacity: labelOp.value,
+  const aLabelOpacity = useAnimatedStyle(() => ({ opacity: labelOp.value }));
+  const aLabelShift = useAnimatedStyle(() => ({
     transform: [{ translateY: labelY.value }],
   }));
 
@@ -277,10 +277,12 @@ function ChoiceDropSlotComponent({
       </Animated.View>
 
       {/* ── Action label — slides up from below ── */}
-      <Animated.View pointerEvents="none" style={[styles.labelWrap, aLabel]}>
-        <Text style={[styles.labelText, { color: cfg.labelColor }]}>
-          {cfg.label}
-        </Text>
+      <Animated.View pointerEvents="none" style={[styles.labelWrap, aLabelOpacity]}>
+        <Animated.View style={aLabelShift}>
+          <Text style={[styles.labelText, { color: cfg.labelColor }]}>
+            {cfg.label}
+          </Text>
+        </Animated.View>
       </Animated.View>
 
     </Animated.View>

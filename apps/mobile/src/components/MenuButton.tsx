@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -53,7 +53,8 @@ function MenuButtonComponent({
     variant === "primary" ? shadows.goldGlow : undefined;
 
   return (
-    <Animated.View style={[styles.wrap, aStyle, extraShadow]}>
+    <View style={[styles.wrap, extraShadow]}>
+      <Animated.View style={aStyle}>
       <Pressable
         onPressIn={() => {
           scale.value = withSpring(0.96, SPRING);
@@ -74,7 +75,8 @@ function MenuButtonComponent({
         ) : null}
         <Text style={[styles.label, { color: textColor }]}>{label}</Text>
       </Pressable>
-    </Animated.View>
+      </Animated.View>
+    </View>
   );
 }
 

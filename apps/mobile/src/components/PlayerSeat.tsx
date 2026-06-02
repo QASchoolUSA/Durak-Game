@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
+import { useCardTheme } from "../theme/CardThemeContext";
 import { colors, radius, cardSize, shadows } from "../theme";
 
 export type SeatRole = "attacker" | "defender" | null;
@@ -22,6 +23,7 @@ function avatarColor(name: string): string {
 }
 
 function MiniFan({ count }: { count: number }) {
+  const theme = useCardTheme();
   const shown = Math.min(count, 6);
   const cardW = Math.round(cardSize.small.w * 0.58);
   const cardH = Math.round(cardSize.small.h * 0.58);
@@ -37,6 +39,8 @@ function MiniFan({ count }: { count: number }) {
               width: cardW,
               height: cardH,
               left: i * stride,
+              backgroundColor: theme.back,
+              borderColor: theme.backAccent,
               transform: [{ rotate: `${(i - (shown - 1) / 2) * 7}deg` }],
             },
           ]}
@@ -161,9 +165,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     borderRadius: 4,
-    backgroundColor: colors.cardBack,
     borderWidth: 1,
-    borderColor: colors.cardBackAccent,
   },
   cardCount: {
     color: colors.textLight,

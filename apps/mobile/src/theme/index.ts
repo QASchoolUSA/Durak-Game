@@ -45,6 +45,31 @@ export const colors = {
   panel:      "rgba(9, 46, 31, 0.75)",
   panelLight: "rgba(20, 80, 55, 0.55)",
   separator:  "rgba(231, 192, 103, 0.15)",
+
+  // ── Home screen — same felt as game/result; gold accents for decor only ─────
+  homeBg: {
+    top:    "#14724F",
+    mid:    "#0F5A3C",
+    bottom: "#092E1F",
+    edge:   "#061A12",
+  },
+  homeDecor: {
+    ring:             "rgba(231, 192, 103, 0.16)",
+    ringFaint:        "rgba(231, 192, 103, 0.07)",
+    diamond:          "rgba(231, 192, 103, 0.11)",
+    line:             "rgba(231, 192, 103, 0.12)",
+    spotlight:        "rgba(231, 192, 103, 0.06)",
+    spotlightFade:    "rgba(231, 192, 103, 0.02)",
+    sparkle:          "#E7C067",
+    vignette:         "rgba(6, 26, 18, 0.35)",
+    vignetteSoft:     "rgba(6, 26, 18, 0.22)",
+    panelBg:          "#14724F",
+    panelBgDeep:      "#092E1F",
+    panelBorder:      "rgba(231, 192, 103, 0.28)",
+    panelBorderInner: "rgba(231, 192, 103, 0.10)",
+    textSub:          "#A8BAB2",
+    textFaint:        "#6B8078",
+  },
 };
 
 export const radius = {
