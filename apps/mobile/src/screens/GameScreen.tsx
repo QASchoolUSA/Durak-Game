@@ -17,7 +17,11 @@ import { ReactionsBar } from "../components/ReactionsBar";
 import { Hand } from "../components/Hand";
 import { PlayerSeat, type SeatRole } from "../components/PlayerSeat";
 import { PotBadge } from "../components/PotBadge";
-import { TableArea, type TableAreaHandle } from "../components/TableArea";
+import {
+  TableArea,
+  type TableAreaHandle,
+  type TableExitKind,
+} from "../components/TableArea";
 import { TurnTimer } from "../components/TurnTimer";
 import { useGameStore } from "../game/store";
 import {
@@ -34,6 +38,8 @@ import {
   resolveDropFromBounds,
 } from "../game/dropZones";
 import { colors, radius, shadows, spacing, timing, typography } from "../theme";
+
+const TABLE_EXIT_RESET_MS = 450;
 
 function activePlayer(game: GameState): PlayerId {
   if (!game.takeInProgress && undefendedCount(game) > 0) return game.defenderId;
@@ -75,6 +81,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const [takeConfirmOpen, setTakeConfirmOpen] = useState(false);
   const [graveyardOpen, setGraveyardOpen] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
+  const [tableExitKind, setTableExitKind] = useState<TableExitKind>("toDiscard");
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [dragBounds, setDragBounds] = useState<DragCardBounds | null>(null);
   const [hoverDrop, setHoverDrop] = useState<DropZone | null>(null);
@@ -86,6 +93,16 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const pendingReaimRef = useRef(false);
   const tableAreaRef = useRef<TableAreaHandle>(null);
   const firedRef = useRef(false);
+  const prevGameRef = useRef<GameState | null>(null);
+  const exitResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleExitKindReset = useCallback(() => {
+    if (exitResetTimerRef.current) clearTimeout(exitResetTimerRef.current);
+    exitResetTimerRef.current = setTimeout(() => {
+      exitResetTimerRef.current = null;
+      setTableExitKind("toDiscard");
+    }, TABLE_EXIT_RESET_MS);
+  }, []);
 
   // Stable across the timer's frequent re-renders so the hand never re-springs.
   const playableIds = useMemo(
@@ -300,9 +317,45 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   );
 
   const confirmTake = useCallback(() => {
+    setTableExitKind("toHand");
     submitHuman({ type: "TAKE", player: humanId });
     setTakeConfirmOpen(false);
   }, [submitHuman, humanId]);
+
+  useEffect(() => {
+    if (!game) {
+      prevGameRef.current = null;
+      return;
+    }
+
+    const prev = prevGameRef.current;
+    if (prev) {
+      if (prev.table.length > 0 && game.table.length === 0) {
+        const kind: TableExitKind = prev.takeInProgress
+          ? prev.defenderId === humanId
+            ? "toHand"
+            : "toOpponent"
+          : "toDiscard";
+        setTableExitKind(kind);
+        scheduleExitKindReset();
+      } else if (
+        !prev.takeInProgress &&
+        game.takeInProgress &&
+        game.defenderId !== humanId
+      ) {
+        setTableExitKind("toOpponent");
+      }
+    }
+
+    prevGameRef.current = game;
+  }, [game, humanId, scheduleExitKindReset]);
+
+  useEffect(
+    () => () => {
+      if (exitResetTimerRef.current) clearTimeout(exitResetTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!view?.canTake) setTakeConfirmOpen(false);
@@ -398,6 +451,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               ref={tableAreaRef}
               table={game.table}
               trumpSuit={game.trumpSuit}
+              exitKind={tableExitKind}
               choiceTargets={beatTransferChoice.choiceIndices}
               transferTargets={transferTargets}
               hoverDefendIndex={hoverDrop?.kind === "defend" ? hoverDrop.tableIndex : null}

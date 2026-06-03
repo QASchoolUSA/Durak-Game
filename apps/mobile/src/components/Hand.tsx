@@ -88,6 +88,7 @@ interface HandCardProps {
   card: CardModel;
   slotIndex: number;
   total: number;
+  layoutWidth: number;
   spacing: number;
   rotPerSlot: number;
   trump: boolean;
@@ -103,6 +104,7 @@ function HandCard({
   card,
   slotIndex,
   total,
+  layoutWidth,
   spacing,
   rotPerSlot,
   trump,
@@ -117,7 +119,7 @@ function HandCard({
   const mid = (total - 1) / 2;
   const rel = slotIndex - mid;
 
-  const restX = rel * spacing;
+  const restX = layoutWidth / 2 + rel * spacing;
   const restY = 0;
   const restRot = rel * rotPerSlot;
 
@@ -144,7 +146,7 @@ function HandCard({
     tx.value = withSpring(restX, SPRING);
     ty.value = withSpring(restY, SPRING);
     rot.value = withSpring(restRot, SPRING);
-  }, [restX, restY, restRot, isNew, tx, ty, rot, activeSlot, slotIndex]);
+  }, [restX, restY, restRot, isNew, tx, ty, rot, activeSlot, slotIndex, layoutWidth]);
 
   useAnimatedReaction(
     () => activeSlot.value,
@@ -524,13 +526,14 @@ function HandComponent({
           onLayout={reportLayerOrigin}
           style={[styles.touchLayer, { height: handHeight }]}
         >
-          <View style={[styles.center, { height: handHeight }]}>
+          <View style={[styles.fanHost, { height: handHeight }]}>
             {sortedCards.map((card, slotIndex) => (
               <HandCard
                 key={card.id}
                 card={card}
                 slotIndex={slotIndex}
                 total={total}
+                layoutWidth={width}
                 spacing={spacing}
                 rotPerSlot={rotPerSlot}
                 trump={card.suit === trumpSuit}
@@ -552,10 +555,9 @@ function HandComponent({
 const styles = StyleSheet.create({
   container: { justifyContent: "flex-end", alignItems: "center", overflow: "visible" },
   touchLayer: { alignSelf: "stretch", width: "100%", overflow: "visible" },
-  center: {
+  fanHost: {
     alignSelf: "stretch",
-    alignItems: "center",
-    justifyContent: "flex-end",
+    width: "100%",
     overflow: "visible",
   },
   card: { position: "absolute" },

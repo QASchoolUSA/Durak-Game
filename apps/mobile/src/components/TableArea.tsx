@@ -18,10 +18,53 @@ import {
 } from "../game/dropZones";
 import { cardSize, spacing } from "../theme";
 
-function makeSweepOut(delay: number) {
+export type TableExitKind = "toHand" | "toOpponent" | "toDiscard";
+
+const EXIT_DURATION = 360;
+
+type ExitTarget = {
+  translateX: number;
+  translateY: number;
+  rotate: string;
+  scale: number;
+};
+
+function exitTargetFor(kind: TableExitKind, pairIndex: number): ExitTarget {
+  switch (kind) {
+    case "toHand":
+      return {
+        translateX: 12 + pairIndex * 6,
+        translateY: 240,
+        rotate: "-8deg",
+        scale: 0.75,
+      };
+    case "toOpponent": {
+      const spread = (pairIndex - 1.5) * 18;
+      return {
+        translateX: spread,
+        translateY: -165,
+        rotate: `${-6 + pairIndex * 2}deg`,
+        scale: 0.8,
+      };
+    }
+    case "toDiscard":
+    default:
+      return {
+        translateX: -40 + pairIndex * 12,
+        translateY: 52,
+        rotate: "4deg",
+        scale: 0.88,
+      };
+  }
+}
+
+function makeTableExit(kind: TableExitKind, pairIndex: number) {
+  const delay = Math.min(pairIndex * 55, 220);
+  const target = exitTargetFor(kind, pairIndex);
+
   return () => {
     "worklet";
-    const duration = 360;
+    const duration = EXIT_DURATION;
     return {
       initialValues: {
         opacity: 1,
@@ -35,10 +78,14 @@ function makeSweepOut(delay: number) {
       animations: {
         opacity: withDelay(delay, withTiming(0, { duration })),
         transform: [
-          { translateX: withDelay(delay, withTiming(280, { duration })) },
-          { translateY: withDelay(delay, withTiming(-130, { duration })) },
-          { rotate: withDelay(delay, withTiming("32deg", { duration })) },
-          { scale: withDelay(delay, withTiming(0.82, { duration })) },
+          {
+            translateX: withDelay(delay, withTiming(target.translateX, { duration })),
+          },
+          {
+            translateY: withDelay(delay, withTiming(target.translateY, { duration })),
+          },
+          { rotate: withDelay(delay, withTiming(target.rotate, { duration })) },
+          { scale: withDelay(delay, withTiming(target.scale, { duration })) },
         ],
       },
     };
@@ -52,6 +99,8 @@ export interface TableAreaHandle {
 export interface TableAreaProps {
   table: TablePair[];
   trumpSuit: string;
+  /** Where table cards visually go when the bout clears. */
+  exitKind?: TableExitKind;
   /** Pairs that show beat + transfer slot signs (Perevodnoy opening defend). */
   choiceTargets?: number[];
   /** Subset of choiceTargets where transfer drop is legal. */
@@ -70,6 +119,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
     {
       table,
       trumpSuit,
+      exitKind = "toDiscard",
       choiceTargets = [],
       transferTargets = [],
       hoverDefendIndex = null,
@@ -152,7 +202,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
             <Animated.View
               key={pair.attack.id}
               entering={FadeIn.duration(180)}
-              exiting={makeSweepOut(i * 55)}
+              exiting={makeTableExit(exitKind, i)}
             >
               <View style={[styles.pair, { width: pairW, height: pairH }]}>
                 <View style={[styles.attackSlot, { width: w, height: h }]}>
