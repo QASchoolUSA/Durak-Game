@@ -5,17 +5,26 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "scheme": "durak",
     "splash": {
       "backgroundColor": "#0B3D2E"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.durakgame.app"
+      "bundleIdentifier": "com.kedrov.durakgame",
+      "buildNumber": "1",
+      "icon": {
+        "light": "./assets/ios-icon-light.png",
+        "dark": "./assets/ios-icon-dark.png",
+        "tinted": "./assets/ios-icon-tinted.png"
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
-      "package": "com.durakgame.app",
+      "package": "com.kedrov.durakgame",
       "adaptiveIcon": {
         "backgroundColor": "#0B3D2E",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -26,6 +35,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f8c6d0c7-6ad7-42dd-a4ec-9a50bba3910c"
+      }
+    },
+    "owner": "kedrov"
   }
 }

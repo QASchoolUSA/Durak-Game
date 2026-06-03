@@ -20,7 +20,8 @@ export function computeHandLayout(
 
   const hPad = 20;
   const mid = (count - 1) / 2;
-  const rotPerSlot = count >= 6 ? 1.6 : count >= 4 ? 2 : 2.6;
+  // Slightly less fan than before — smoother edges when rotated on screen.
+  const rotPerSlot = count >= 6 ? 1.4 : count >= 4 ? 1.75 : 2.2;
   const maxRotRad = ((mid * rotPerSlot) * Math.PI) / 180;
 
   const halfW = cardW / 2;

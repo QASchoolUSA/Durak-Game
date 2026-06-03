@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { Platform, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   FadeOut,
   type SharedValue,
   runOnJS,
+  useAnimatedProps,
   useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
@@ -22,7 +23,12 @@ import {
   type HandHitLayout,
 } from "../game/handHitTest";
 import { type DragCardBounds } from "../game/dropZones";
-import { cardSize } from "../theme";
+import { cardSize, radius } from "../theme";
+
+const handCardClip =
+  Platform.OS === "ios"
+    ? ({ borderCurve: "continuous" as const } satisfies { borderCurve: "continuous" })
+    : {};
 
 /** Minimum drag distance (px) before a release counts as a play attempt. */
 const DRAG_RELEASE_THRESHOLD = 18;
@@ -155,6 +161,15 @@ function HandCard({
     zIndex: activeSlot.value === slotIndex ? 10000 : slotIndex,
   }));
 
+  const rasterProps = useAnimatedProps(() => {
+    const isElevated = activeSlot.value === slotIndex;
+    const inFan = total > 1 && !isElevated;
+    return {
+      shouldRasterizeIOS: inFan,
+      renderToHardwareTextureAndroid: inFan,
+    };
+  });
+
   const transformStyle = useAnimatedStyle(() => {
     const isElevated = activeSlot.value === slotIndex;
     const isPlayDrag = gestureMode.value === GESTURE_PLAY && isElevated;
@@ -192,7 +207,15 @@ function HandCard({
         wrapperStyle,
       ]}
     >
-      <Animated.View style={[{ width: w, height: h }, transformStyle]}>
+      <Animated.View
+        animatedProps={rasterProps}
+        style={[
+          styles.cardClip,
+          { width: w, height: h, borderRadius: radius.card },
+          handCardClip,
+          transformStyle,
+        ]}
+      >
         <Card card={card} width={w} height={h} trump={trump} />
       </Animated.View>
     </Animated.View>
@@ -536,6 +559,7 @@ const styles = StyleSheet.create({
     overflow: "visible",
   },
   card: { position: "absolute" },
+  cardClip: { overflow: "hidden" },
 });
 
 export const Hand = React.memo(HandComponent);

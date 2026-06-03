@@ -1,5 +1,7 @@
 /** Central design tokens — one cohesive, professional look across the whole game. */
 
+import { PixelRatio } from "react-native";
+
 export const colors = {
   // ── Table felt ──────────────────────────────────────────────────────────────
   feltTop:    "#14724F",
@@ -143,9 +145,11 @@ export const shadows = {
 /** Cards keep a standard playing-card aspect ratio (63 × 88 mm → 1.397). */
 export const CARD_ASPECT = 1.4;
 
+const snap = (n: number) => PixelRatio.roundToNearestPixel(n);
+
 export const cardSize = {
   /** Cards in the human player's hand — sized for comfortable drag targets. */
-  hand:  { w: 76, h: Math.round(76 * CARD_ASPECT) },
+  hand:  { w: snap(76), h: snap(Math.round(76 * CARD_ASPECT)) },
   /** Cards resting on the table. */
   table: { w: 62, h: Math.round(62 * CARD_ASPECT) },
   /** Deck pile + trump peek on the right edge. */

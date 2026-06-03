@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View, ViewStyle } from "react-native";
+import { Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
 import {
   type Card as CardModel,
   RANK_LABELS,
@@ -441,6 +441,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
     elevation: 5,
+    ...(Platform.OS === "ios" ? { borderCurve: "continuous" as const } : {}),
   },
   base: {
     borderRadius: radius.card,
