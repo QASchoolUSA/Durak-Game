@@ -35,14 +35,19 @@ export type GameVariant = "podkidnoy" | "perevodnoy";
 /** Who may throw in matching ranks after the opening attack. */
 export type ThrowInScope = "all" | "neighbor";
 
+/** Standard rules vs human-only ability powers (client-enforced). */
+export type PlayStyle = "standard" | "abilities";
+
 export interface GameRules {
   variant: GameVariant;
   throwInScope: ThrowInScope;
+  playStyle: PlayStyle;
 }
 
 export const DEFAULT_RULES: GameRules = {
   variant: "podkidnoy",
   throwInScope: "all",
+  playStyle: "standard",
 };
 
 /** Every move a player can submit. Throw-ins are just ATTACK on a non-empty table. */

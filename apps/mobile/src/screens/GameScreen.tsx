@@ -10,10 +10,12 @@ import {
 import { Background } from "../components/Background";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DeckPile } from "../components/DeckPile";
+import { AbilityDock } from "../components/AbilityDock";
+import { GraveyardSheet } from "../components/GraveyardSheet";
+import { ReactionsBar } from "../components/ReactionsBar";
 import { Hand } from "../components/Hand";
 import { PlayerSeat, type SeatRole } from "../components/PlayerSeat";
 import { PotBadge } from "../components/PotBadge";
-import { ReactionsBar } from "../components/ReactionsBar";
 import { TableArea, type TableAreaHandle } from "../components/TableArea";
 import { TurnTimer } from "../components/TurnTimer";
 import { useGameStore } from "../game/store";
@@ -62,6 +64,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
 
   const [remaining, setRemaining] = useState(timing.turnSeconds);
   const [takeConfirmOpen, setTakeConfirmOpen] = useState(false);
+  const [graveyardOpen, setGraveyardOpen] = useState(false);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [dragBounds, setDragBounds] = useState<DragCardBounds | null>(null);
   const [hoverDrop, setHoverDrop] = useState<DropZone | null>(null);
@@ -322,6 +325,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const active = activePlayer(game);
 
   const humanHand = game.hands[humanId] ?? [];
+  const abilitiesMode = game.rules.playStyle === "abilities";
 
   return (
     <Background variant="game">
@@ -410,6 +414,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             </Pressable>
           </View>
 
+          <View style={styles.utilityRow}>
+            <ReactionsBar />
+          </View>
+
           <Hand
             cards={humanHand}
             playableIds={playableIds}
@@ -422,9 +430,14 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             onDragActive={handleDragActive}
           />
 
-          <View style={styles.reactions}>
-            <ReactionsBar />
-          </View>
+          {abilitiesMode && (
+            <View style={styles.abilitiesRow}>
+              <AbilityDock
+                discardCount={game.discard.length}
+                onGraveyardPress={() => setGraveyardOpen(true)}
+              />
+            </View>
+          )}
         </View>
       </SafeAreaView>
 
@@ -437,6 +450,15 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         onConfirm={confirmTake}
         onCancel={() => setTakeConfirmOpen(false)}
       />
+
+      {abilitiesMode && (
+        <GraveyardSheet
+          visible={graveyardOpen}
+          onClose={() => setGraveyardOpen(false)}
+          cards={game.discard}
+          trumpSuit={game.trumpSuit}
+        />
+      )}
     </Background>
   );
 }
@@ -527,5 +549,16 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   doneText: { color: colors.feltBottom },
-  reactions: { alignItems: "center", marginTop: spacing.xs, overflow: "visible", zIndex: 20 },
+  utilityRow: {
+    width: "100%",
+    marginBottom: spacing.xs,
+    overflow: "visible",
+    zIndex: 20,
+  },
+  abilitiesRow: {
+    width: "100%",
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.xs,
+    overflow: "visible",
+  },
 });

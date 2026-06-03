@@ -54,6 +54,11 @@ function cloneState(s: GameState): GameState {
   };
 }
 
+/** Deep copy of game state (for client-side undo snapshots). */
+export function cloneGameState(s: GameState): GameState {
+  return cloneState(s);
+}
+
 /** First attacker = holder of the lowest trump; falls back to the first seat. */
 function findFirstAttacker(state: GameState): PlayerId {
   let bestPlayer: PlayerId | null = null;
@@ -82,6 +87,7 @@ export function createGame(
   const rules: GameRules = {
     variant: options.rules?.variant ?? DEFAULT_RULES.variant,
     throwInScope: options.rules?.throwInScope ?? DEFAULT_RULES.throwInScope,
+    playStyle: options.rules?.playStyle ?? DEFAULT_RULES.playStyle,
   };
 
   // Bottom card fixes the trump suit and is drawn last.
@@ -217,11 +223,82 @@ export function applyMove(prev: GameState, move: Move): GameState {
     }
   }
 
+  markFinishedPlayers(state);
+  if (checkGameOver(state)) return state;
+  tryResolveZeroAttackers(state);
+  markFinishedPlayers(state);
+  checkGameOver(state);
   return state;
+}
+
+function markFinishedPlayers(state: GameState): void {
+  for (const p of state.players) {
+    if (
+      handOf(state, p).length === 0 &&
+      state.deck.length === 0 &&
+      !state.finishedOrder.includes(p)
+    ) {
+      state.finishedOrder.push(p);
+    }
+  }
+}
+
+/** Returns true when the game has just ended (deck empty, at most one holder). */
+function checkGameOver(state: GameState): boolean {
+  if (state.deck.length > 0) return false;
+  if (state.table.length > 0 || state.takeInProgress) return false;
+  const inPlay = state.players.filter((p) => handOf(state, p).length > 0);
+  if (inPlay.length > 1) return false;
+  state.phase = "gameOver";
+  state.loserId = inPlay.length === 1 ? inPlay[0]! : null;
+  return true;
+}
+
+function assignNextRoles(state: GameState, defenderTook: boolean): void {
+  let newAttacker = defenderTook
+    ? seatAfter(state, state.defenderId, true)
+    : handOf(state, state.defenderId).length > 0
+      ? state.defenderId
+      : seatAfter(state, state.defenderId, true);
+
+  if (handOf(state, newAttacker).length === 0) {
+    newAttacker = seatAfter(state, newAttacker, true);
+  }
+
+  let newDefender = seatAfter(state, newAttacker, true);
+  if (handOf(state, newDefender).length === 0) {
+    newDefender = seatAfter(state, newDefender, true);
+  }
+
+  state.attackerId = newAttacker;
+  state.defenderId = newDefender;
+}
+
+/** When every attacker is out, finish or advance the bout without hanging. */
+function tryResolveZeroAttackers(state: GameState): void {
+  if (state.phase !== "playing") return;
+  const atk = attackers(state);
+  if (atk.length > 0 || state.takeInProgress) return;
+
+  if (state.table.length > 0 && undefendedCount(state) === 0) {
+    for (const pair of state.table) {
+      state.discard.push(pair.attack);
+      if (pair.defense) state.discard.push(pair.defense);
+    }
+    endRound(state, false);
+    return;
+  }
+
+  if (state.table.length === 0) {
+    endRound(state, false);
+  }
 }
 
 /** Ends the round once every attacker has passed (or the defender has taken). */
 function resolveIfReady(state: GameState): void {
+  tryResolveZeroAttackers(state);
+  if (state.phase !== "playing") return;
+
   const atk = attackers(state);
   const allPassed = atk.every((p) => state.passed.includes(p));
   if (!allPassed) return;
@@ -269,35 +346,14 @@ function drawUp(state: GameState): void {
 
 function endRound(state: GameState, defenderTook: boolean): void {
   drawUp(state);
-
-  for (const p of state.players) {
-    if (
-      handOf(state, p).length === 0 &&
-      state.deck.length === 0 &&
-      !state.finishedOrder.includes(p)
-    ) {
-      state.finishedOrder.push(p);
-    }
-  }
+  markFinishedPlayers(state);
 
   state.table = [];
   state.passed = [];
   state.takeInProgress = false;
 
-  const inPlay = state.players.filter((p) => handOf(state, p).length > 0);
-  if (inPlay.length <= 1 && state.deck.length === 0) {
-    state.phase = "gameOver";
-    state.loserId = inPlay.length === 1 ? inPlay[0]! : null;
-    return;
-  }
-
-  const newAttacker = defenderTook
-    ? seatAfter(state, state.defenderId, true)
-    : handOf(state, state.defenderId).length > 0
-      ? state.defenderId
-      : seatAfter(state, state.defenderId, true);
-  state.attackerId = newAttacker;
-  state.defenderId = seatAfter(state, newAttacker, true);
+  if (checkGameOver(state)) return;
+  assignNextRoles(state, defenderTook);
 }
 
 export function isGameOver(state: GameState): boolean {

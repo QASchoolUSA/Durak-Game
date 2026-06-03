@@ -139,5 +139,6 @@ function formatThrowIn(scope: GameState["rules"]["throwInScope"], players: numbe
 
 export function formatRulesLabel(state: GameState): string {
   const mode = state.rules.variant === "podkidnoy" ? "Podkidnoy" : "Perevodnoy";
-  return `${mode} · ${formatThrowIn(state.rules.throwInScope, state.players.length)}`;
+  const style = state.rules.playStyle === "abilities" ? "Abilities" : "Standard";
+  return `${mode} · ${formatThrowIn(state.rules.throwInScope, state.players.length)} · ${style}`;
 }

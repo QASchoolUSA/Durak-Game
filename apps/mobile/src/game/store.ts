@@ -3,10 +3,12 @@ import {
   type GameState,
   type GameVariant,
   type Move,
+  type PlayStyle,
   type PlayerId,
   type ThrowInScope,
   applyMove,
   canTransfer,
+  cloneGameState,
   createGame,
   pickMove,
   undefendedCount,
@@ -17,6 +19,7 @@ export type Screen = "home" | "game" | "result";
 export type Difficulty = "easy" | "medium" | "hard";
 
 const AI_DELAY: Record<Difficulty, number> = { easy: 1400, medium: 750, hard: 320 };
+const RETURN_WINDOW_MS = 3000;
 
 const HUMAN_ID: PlayerId = "you";
 const BOT_NAMES = ["Olga", "Ivan", "Dmitri"];
@@ -32,33 +35,43 @@ function buildPlayers(n: number): { ids: PlayerId[]; names: Record<PlayerId, str
   return { ids, names };
 }
 
+function isHumanCardMove(move: Move, humanId: PlayerId): boolean {
+  return (
+    move.player === humanId &&
+    (move.type === "ATTACK" || move.type === "DEFEND" || move.type === "TRANSFER")
+  );
+}
+
 interface GameStore {
   screen: Screen;
   numPlayers: number;
   variant: GameVariant;
   throwInScope: ThrowInScope;
+  playStyle: PlayStyle;
   humanId: PlayerId;
   names: Record<PlayerId, string>;
   game: GameState | null;
-  /** Timestamp of the last applied move; used to reset the turn timer. */
   lastMoveAt: number;
-  /** Bumped whenever the human's stake should be (visually) committed to the pot. */
+  returnSnapshot: GameState | null;
+  returnExpiresAt: number;
   pot: number;
   buyIn: number;
-
   difficulty: Difficulty;
   setNumPlayers: (n: number) => void;
   setVariant: (variant: GameVariant) => void;
   setThrowInScope: (scope: ThrowInScope) => void;
+  setPlayStyle: (style: PlayStyle) => void;
   setDifficulty: (d: Difficulty) => void;
   startGame: (n?: number) => void;
   goHome: () => void;
   submitHuman: (move: Move) => void;
   autoPlayHuman: () => void;
+  returnLastCard: () => void;
+  clearReturnWindow: () => void;
 }
 
-// AI scheduling lives outside the store so overlapping loops can be cancelled.
 let aiTimer: ReturnType<typeof setTimeout> | null = null;
+let returnTimer: ReturnType<typeof setTimeout> | null = null;
 
 function cancelAi() {
   if (aiTimer) {
@@ -67,8 +80,22 @@ function cancelAi() {
   }
 }
 
+function cancelReturnTimer() {
+  if (returnTimer) {
+    clearTimeout(returnTimer);
+    returnTimer = null;
+  }
+}
+
 export const useGameStore = create<GameStore>((set, get) => {
+  function clearReturnWindow() {
+    cancelReturnTimer();
+    set({ returnSnapshot: null, returnExpiresAt: 0 });
+  }
+
   function afterApply(next: GameState) {
+    clearReturnWindow();
+
     if (next.phase === "gameOver") {
       cancelAi();
       set({ game: next, lastMoveAt: Date.now(), screen: "result" });
@@ -78,6 +105,15 @@ export const useGameStore = create<GameStore>((set, get) => {
     scheduleAi();
   }
 
+  function scheduleAiAfterReturnWindow() {
+    cancelReturnTimer();
+    returnTimer = setTimeout(() => {
+      returnTimer = null;
+      set({ returnSnapshot: null, returnExpiresAt: 0 });
+      scheduleAi();
+    }, RETURN_WINDOW_MS);
+  }
+
   function scheduleAi() {
     cancelAi();
     aiTimer = setTimeout(() => {
@@ -85,7 +121,6 @@ export const useGameStore = create<GameStore>((set, get) => {
       const { game, humanId } = get();
       if (!game || game.phase !== "playing") return;
 
-      // Perevodnoy opening defend: hold the table until the human picks beat or transfer.
       if (
         game.rules.variant === "perevodnoy" &&
         game.defenderId === humanId &&
@@ -96,18 +131,21 @@ export const useGameStore = create<GameStore>((set, get) => {
         return;
       }
 
-      // Also hold while transfer is still legal (belt-and-suspenders).
       if (canTransfer(game, humanId)) return;
 
       for (const p of game.players) {
         if (p === humanId) continue;
         const move = pickMove(game, p);
         if (move) {
-          afterApply(applyMove(game, move));
+          try {
+            const next = applyMove(game, move);
+            afterApply(next);
+          } catch {
+            /* ignore */
+          }
           return;
         }
       }
-      // No AI can act -> it is the human's turn; wait for input.
     }, AI_DELAY[get().difficulty]);
   }
 
@@ -116,27 +154,32 @@ export const useGameStore = create<GameStore>((set, get) => {
     numPlayers: 2,
     variant: "podkidnoy",
     throwInScope: "all",
+    playStyle: "standard",
     difficulty: "medium",
     humanId: HUMAN_ID,
     names: { [HUMAN_ID]: "You" },
     game: null,
     lastMoveAt: 0,
+    returnSnapshot: null,
+    returnExpiresAt: 0,
     pot: 0,
     buyIn: 100,
 
     setNumPlayers: (n) => set({ numPlayers: Math.min(4, Math.max(2, n)) }),
     setVariant: (variant) => set({ variant }),
     setThrowInScope: (throwInScope) => set({ throwInScope }),
+    setPlayStyle: (playStyle) => set({ playStyle }),
     setDifficulty: (difficulty) => set({ difficulty }),
 
     startGame: (n) => {
       cancelAi();
+      clearReturnWindow();
       const count = n ?? get().numPlayers;
-      const { variant, throwInScope } = get();
+      const { variant, throwInScope, playStyle } = get();
       const { ids, names } = buildPlayers(count);
       const game = createGame(ids, {
         seed: (Math.random() * 2 ** 32) >>> 0,
-        rules: { variant, throwInScope },
+        rules: { variant, throwInScope, playStyle },
       });
       set({
         screen: "game",
@@ -151,14 +194,48 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     goHome: () => {
       cancelAi();
+      clearReturnWindow();
       set({ screen: "home", game: null });
     },
 
     submitHuman: (move) => {
-      const { game } = get();
+      const { game, humanId, playStyle } = get();
       if (!game || game.phase !== "playing") return;
+
+      const abilitiesActive = game.rules.playStyle === "abilities";
+      const cardPlay = isHumanCardMove(move, humanId);
+      const snapshot =
+        abilitiesActive && cardPlay ? cloneGameState(game) : null;
+
       try {
-        afterApply(applyMove(game, move));
+        const next = applyMove(game, move);
+        cancelReturnTimer();
+
+        if (next.phase === "gameOver") {
+          cancelAi();
+          set({
+            game: next,
+            lastMoveAt: Date.now(),
+            screen: "result",
+            returnSnapshot: null,
+            returnExpiresAt: 0,
+          });
+          return;
+        }
+
+        if (abilitiesActive && cardPlay && snapshot) {
+          cancelAi();
+          set({
+            game: next,
+            lastMoveAt: Date.now(),
+            returnSnapshot: snapshot,
+            returnExpiresAt: Date.now() + RETURN_WINDOW_MS,
+          });
+          scheduleAiAfterReturnWindow();
+          return;
+        }
+
+        afterApply(next);
       } catch {
         // Illegal move (e.g. stale UI). Ignore and let the user try again.
       }
@@ -169,12 +246,25 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!game || game.phase !== "playing") return;
       const move = safeMoveFor(game, humanId);
       if (move) {
-        try {
-          afterApply(applyMove(game, move));
-        } catch {
-          /* ignore */
-        }
+        get().submitHuman(move);
       }
     },
+
+    returnLastCard: () => {
+      const { returnSnapshot, returnExpiresAt } = get();
+      if (!returnSnapshot || Date.now() > returnExpiresAt) return;
+
+      cancelReturnTimer();
+      cancelAi();
+      set({
+        game: returnSnapshot,
+        lastMoveAt: Date.now(),
+        returnSnapshot: null,
+        returnExpiresAt: 0,
+      });
+      scheduleAi();
+    },
+
+    clearReturnWindow,
   };
 });

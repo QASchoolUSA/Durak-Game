@@ -17,7 +17,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import type { GameVariant, ThrowInScope } from "@durak/game-core";
+import type { GameVariant, ThrowInScope, PlayStyle } from "@durak/game-core";
 import type { Difficulty } from "../game/store";
 import { useGameStore } from "../game/store";
 import { MenuButton } from "./MenuButton";
@@ -53,6 +53,11 @@ const VARIANTS: {
 const THROW_OPTIONS: { id: ThrowInScope; label: string; desc: string }[] = [
   { id: "all",      label: "All",       desc: "Any attacker can add" },
   { id: "neighbor", label: "Neighbors", desc: "Adjacent only"        },
+];
+
+const PLAY_STYLE_OPTIONS: { id: PlayStyle; label: string; desc: string }[] = [
+  { id: "standard",  label: "Standard",       desc: "Classic Durak — no special powers" },
+  { id: "abilities", label: "With Abilities", desc: "Return cards & view the graveyard" },
 ];
 
 const DIFF_OPTIONS: {
@@ -154,10 +159,12 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const numPlayers  = useGameStore((s) => s.numPlayers);
   const variant     = useGameStore((s) => s.variant);
   const throwIn     = useGameStore((s) => s.throwInScope);
+  const playStyle   = useGameStore((s) => s.playStyle);
   const difficulty  = useGameStore((s) => s.difficulty);
   const setPlayers  = useGameStore((s) => s.setNumPlayers);
   const setVariant  = useGameStore((s) => s.setVariant);
   const setThrowIn  = useGameStore((s) => s.setThrowInScope);
+  const setPlayStyle = useGameStore((s) => s.setPlayStyle);
   const setDiff     = useGameStore((s) => s.setDifficulty);
   const startGame   = useGameStore((s) => s.startGame);
 
@@ -249,6 +256,24 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                       desc={v.desc}
                       active={variant === v.id}
                       onPress={() => setVariant(v.id)}
+                    />
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.sectionSep} />
+
+              {/* Play Style */}
+              <View style={styles.section}>
+                <SectionLabel label="PLAY STYLE" />
+                <View style={styles.toggleRow}>
+                  {PLAY_STYLE_OPTIONS.map((opt) => (
+                    <ToggleBtn
+                      key={opt.id}
+                      label={opt.label}
+                      desc={opt.desc}
+                      active={playStyle === opt.id}
+                      onPress={() => setPlayStyle(opt.id)}
                     />
                   ))}
                 </View>
@@ -392,7 +417,12 @@ function ToggleBtn({ label, desc, active, disabled, onPress }: {
       disabled={disabled}
     >
       <Text style={[styles.toggleLabel, active && styles.toggleLabelOn]}>{label}</Text>
-      <Text style={[styles.toggleDesc,  active && styles.toggleDescOn]}>{desc}</Text>
+      <Text
+        style={[styles.toggleDesc, active && styles.toggleDescOn]}
+        numberOfLines={2}
+      >
+        {desc}
+      </Text>
     </Pressable>
   );
 }
@@ -629,19 +659,26 @@ const styles = StyleSheet.create({
   // ── Toggle buttons ──────────────────────────────────────────────────────────
   toggleRow: { flexDirection: "row", gap: spacing.sm },
   toggleBtn: {
-    flex: 1, height: 50,
-    borderRadius: radius.panel, borderWidth: 1.5,
-    borderColor: IDLE_BORDER, backgroundColor: IDLE_BG,
-    alignItems: "center", justifyContent: "center", gap: 3,
+    flex: 1,
+    minHeight: 54,
+    borderRadius: radius.panel,
+    borderWidth: 1.5,
+    borderColor: IDLE_BORDER,
+    backgroundColor: IDLE_BG,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   toggleBtnOn: {
     borderColor: colors.gold,
     backgroundColor: "rgba(231,192,103,0.10)",
     ...shadows.goldGlow,
   },
-  toggleLabel:   { ...typography.body,  color: colors.textMuted, fontWeight: "800" },
+  toggleLabel:   { ...typography.body,  color: colors.textMuted, fontWeight: "800", textAlign: "center" },
   toggleLabelOn: { color: colors.gold },
-  toggleDesc:    { ...typography.label, color: colors.textFaint, letterSpacing: 0.3 },
+  toggleDesc:    { ...typography.label, color: colors.textFaint, letterSpacing: 0.3, textAlign: "center" },
   toggleDescOn:  { color: colors.goldDim },
 
   // ── Difficulty buttons ──────────────────────────────────────────────────────

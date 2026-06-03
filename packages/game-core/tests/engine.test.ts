@@ -250,6 +250,58 @@ describe("illegal moves throw", () => {
   });
 });
 
+describe("game over", () => {
+  it("ends with a draw when both players empty their hands on an empty deck", () => {
+    let s = baseState({
+      hands: { A: [makeCard(9, "hearts")], B: [makeCard(10, "hearts")] },
+      deck: [],
+    });
+    s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "hearts") });
+    s = applyMove(s, { type: "DEFEND", player: "B", card: makeCard(10, "hearts"), target: 0 });
+    expect(isGameOver(s)).toBe(true);
+    expect(s.loserId).toBeNull();
+    expect(s.finishedOrder).toEqual(expect.arrayContaining(["A", "B"]));
+  });
+
+  it("ends with a loser when only one player still holds cards", () => {
+    let s = baseState({
+      hands: { A: [makeCard(9, "hearts")], B: [makeCard(7, "hearts"), makeCard(8, "clubs")] },
+      deck: [],
+    });
+    s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "hearts") });
+    s = applyMove(s, { type: "TAKE", player: "B" });
+    expect(isGameOver(s)).toBe(true);
+    expect(s.loserId).toBe("B");
+    expect(s.hands["B"]!.length).toBeGreaterThan(0);
+    expect(s.finishedOrder).toContain("A");
+  });
+
+  it("resolves when only the defender still has cards and the table is clear", () => {
+    let s = baseState({
+      players: ["A", "B", "C"],
+      hands: { A: [], B: [], C: [makeCard(8, "clubs")] },
+      deck: [],
+      attackerId: "A",
+      defenderId: "C",
+      finishedOrder: ["A", "B"],
+      table: [{ attack: makeCard(6, "diamonds") }],
+    });
+    s = applyMove(s, { type: "TAKE", player: "C" });
+    expect(isGameOver(s)).toBe(true);
+    expect(s.loserId).toBe("C");
+  });
+
+  it("detects game over immediately after the last card is played on an empty deck", () => {
+    let s = baseState({
+      hands: { A: [makeCard(6, "hearts")], B: [makeCard(7, "hearts")] },
+      deck: [],
+    });
+    s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(6, "hearts") });
+    s = applyMove(s, { type: "DEFEND", player: "B", card: makeCard(7, "hearts"), target: 0 });
+    expect(s.phase).toBe("gameOver");
+  });
+});
+
 describe("full seeded games via AI", () => {
   for (const players of [["A", "B"], ["A", "B", "C"], ["A", "B", "C", "D"]]) {
     it(`plays a ${players.length}-player game to completion and conserves cards`, () => {

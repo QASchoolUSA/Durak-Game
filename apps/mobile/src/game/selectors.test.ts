@@ -23,7 +23,7 @@ function baseState(partial: Partial<GameState>): GameState {
     loserId: null,
     phase: "playing",
     maxAttacks: 6,
-    rules: { variant: "perevodnoy", throwInScope: "all" },
+    rules: { variant: "perevodnoy", throwInScope: "all", playStyle: "standard" },
     ...partial,
   };
 }

@@ -57,6 +57,10 @@ const SECTIONS = [
     title: "Winning",
     body: "A player leaves the game as soon as their hand is empty and the deck is empty. The last player with cards is the Durak and loses the round.",
   },
+  {
+    title: "Abilities Mode",
+    body: "When playing With Abilities, you have two extra powers:\n\n• Return card — after you play a card (attack, defend, or transfer), tap Return within 3 seconds to take it back. AI opponents wait during this window.\n\n• Graveyard — tap GRAVE anytime to see every card that has left play (successfully beaten pairs in the discard pile), sorted by suit.",
+  },
 ];
 
 export interface RulesModalProps {
