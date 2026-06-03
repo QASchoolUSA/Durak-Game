@@ -12,6 +12,7 @@ import Animated, {
 import type { Card as CardModel } from "@durak/game-core";
 import { Card } from "./Card";
 import { cardSize } from "../theme";
+import { MENU_CARD_THEME } from "../theme/cardThemes";
 
 // Decorative cards for the fan — fixed suit/rank combos for visual appeal
 const FAN_CARDS: CardModel[] = [
@@ -73,7 +74,13 @@ function FanCard({
   return (
     <View style={styles.cardAnchor}>
       <Animated.View style={[{ width: w, height: h }, transformStyle]}>
-        <Card card={card} width={w} height={h} trump={isTrump} />
+        <Card
+          card={card}
+          width={w}
+          height={h}
+          trump={isTrump}
+          themeOverride={MENU_CARD_THEME}
+        />
       </Animated.View>
     </View>
   );

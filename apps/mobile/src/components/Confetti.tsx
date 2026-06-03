@@ -6,7 +6,7 @@ import Animated, {
   withDelay,
   withTiming,
 } from "react-native-reanimated";
-import { useCardTheme } from "../theme/CardThemeContext";
+import { MENU_CARD_THEME } from "../theme/cardThemes";
 import { colors } from "../theme";
 
 // Deterministic "random" from seed — no Math.random() in hot paths
@@ -77,7 +77,7 @@ function Particle({ p }: { p: Particle }) {
 }
 
 export function Confetti() {
-  const theme = useCardTheme();
+  const theme = MENU_CARD_THEME;
   const particles = useMemo(
     () =>
       buildParticles([

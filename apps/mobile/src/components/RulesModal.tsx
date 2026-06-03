@@ -1,8 +1,28 @@
-import React from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors, radius, spacing, typography } from "../theme";
+import { colors, spacing, typography } from "../theme";
+
+const SPRING_IN  = { damping: 26, stiffness: 290, mass: 0.85 };
+const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
+const BACKDROP_FULL = 0.76;
 
 const SECTIONS = [
   {
@@ -45,29 +65,113 @@ export interface RulesModalProps {
 }
 
 export function RulesModal({ visible, onClose }: RulesModalProps) {
+  const { height: screenH } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const drawerH = Math.round(screenH * 0.90);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const prevVisible = useRef(visible);
+
+  const ty        = useSharedValue(drawerH);
+  const backdropO = useSharedValue(0);
+  const drawerHSV = useSharedValue(drawerH);
+  useEffect(() => { drawerHSV.value = drawerH; }, [drawerH, drawerHSV]);
+
+  const animateOut = useCallback(
+    (onDone: () => void) => {
+      ty.value        = withSpring(drawerH, SPRING_OUT, () => runOnJS(onDone)());
+      backdropO.value = withTiming(0, { duration: 220 });
+    },
+    [drawerH, ty, backdropO],
+  );
+
+  const handleClose = useCallback(() => {
+    animateOut(() => { setModalVisible(false); onClose(); });
+  }, [animateOut, onClose]);
+
+  useEffect(() => {
+    if (visible && !prevVisible.current) {
+      ty.value = drawerH; backdropO.value = 0;
+      setModalVisible(true);
+    }
+    if (!visible && prevVisible.current && modalVisible) {
+      animateOut(() => setModalVisible(false));
+    }
+    prevVisible.current = visible;
+  }, [visible, drawerH, modalVisible, ty, backdropO, animateOut]);
+
+  const onModalShow = useCallback(() => {
+    ty.value        = withSpring(0, SPRING_IN);
+    backdropO.value = withTiming(BACKDROP_FULL, { duration: 280 });
+  }, [ty, backdropO]);
+
+  const swipeDown = Gesture.Pan()
+    .activeOffsetY(10)
+    .failOffsetX([-22, 22])
+    .onUpdate((e) => {
+      const drag = Math.max(0, e.translationY);
+      ty.value = drag;
+      backdropO.value = Math.max(0, BACKDROP_FULL * (1 - drag / (drawerHSV.value * 0.55)));
+    })
+    .onEnd((e) => {
+      if (e.translationY > 110 || e.velocityY > 650) {
+        ty.value = withSpring(drawerHSV.value, SPRING_OUT, () => {
+          runOnJS(setModalVisible)(false);
+          runOnJS(onClose)();
+        });
+        backdropO.value = withTiming(0, { duration: 210 });
+      } else {
+        ty.value        = withSpring(0, SPRING_IN);
+        backdropO.value = withTiming(BACKDROP_FULL, { duration: 200 });
+      }
+    });
+
+  const aBackdrop = useAnimatedStyle(() => ({ opacity: backdropO.value }));
+  const aSheet    = useAnimatedStyle(() => ({ transform: [{ translateY: ty.value }] }));
+
   return (
     <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      visible={modalVisible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onShow={onModalShow}
+      onRequestClose={handleClose}
     >
-      <LinearGradient
-        colors={[colors.feltMid, colors.feltBottom]}
-        style={styles.fill}
-      >
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>HOW TO PLAY</Text>
-            <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={12}>
-              <Text style={styles.closeIcon}>✕</Text>
-            </Pressable>
-          </View>
+      <GestureHandlerRootView style={styles.gestureRoot}>
+        <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, aBackdrop]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+        </Animated.View>
+
+        <Animated.View style={[styles.sheet, { height: drawerH }, aSheet]}>
+          <LinearGradient
+            colors={[colors.feltMid, colors.feltBottom]}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          />
+          <View style={styles.topAccent} />
+
+          <GestureDetector gesture={swipeDown}>
+            <View style={styles.topBar}>
+              <View style={styles.handleWrap}>
+                <View style={styles.handle} />
+              </View>
+              <View style={styles.header}>
+                <Text style={styles.title}>HOW TO PLAY</Text>
+                <Text style={styles.headerSub}>Swipe down to close</Text>
+              </View>
+            </View>
+          </GestureDetector>
+
+          <View style={styles.divider} />
 
           <ScrollView
             style={styles.scroll}
-            contentContainerStyle={styles.content}
+            contentContainerStyle={[
+              styles.content,
+              { paddingBottom: Math.max(insets.bottom, spacing.lg) + spacing.lg },
+            ]}
             showsVerticalScrollIndicator={false}
           >
             <Text style={styles.intro}>
@@ -91,34 +195,69 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
               </Text>
             </View>
           </ScrollView>
-        </SafeAreaView>
-      </LinearGradient>
+        </Animated.View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  fill: { flex: 1 },
-  safe: { flex: 1 },
+  gestureRoot: { flex: 1 },
+  backdrop: { backgroundColor: "rgba(4,14,9,1)" },
+
+  sheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
+    flexDirection: "column",
+  },
+  topAccent: {
+    position: "absolute",
+    top: 0,
+    left: 44,
+    right: 44,
+    height: 1,
+    borderRadius: 1,
+    backgroundColor: "rgba(231,192,103,0.38)",
+  },
+
+  topBar: {},
+  handleWrap: { alignItems: "center", paddingTop: 14, paddingBottom: 8 },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.20)",
+  },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
   },
   title: {
     ...typography.title,
     color: colors.gold,
     letterSpacing: 3,
-    flex: 1,
-    textAlign: "center",
   },
-  closeBtn:  { position: "absolute", right: spacing.lg },
-  closeIcon: { color: colors.textMuted, fontSize: 20, fontWeight: "700" },
-  scroll:    { flex: 1 },
-  content:   { padding: spacing.lg, paddingBottom: spacing.xxl },
+  headerSub: {
+    ...typography.caption,
+    color: colors.textFaint,
+    marginTop: 3,
+    letterSpacing: 0.4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(231,192,103,0.12)",
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xs,
+  },
+
+  scroll: { flex: 1 },
+  content: { padding: spacing.lg },
   intro: {
     ...typography.body,
     color: colors.textMuted,

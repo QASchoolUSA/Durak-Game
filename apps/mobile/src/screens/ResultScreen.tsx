@@ -122,7 +122,7 @@ export function ResultScreen() {
   const humanWon = !humanLost && !isDraw;
 
   return (
-    <Background>
+    <Background variant="home">
       {humanWon && <Confetti />}
       <SafeAreaView style={styles.safe}>
         <View style={[styles.content, { maxWidth: lay.maxContent }]}>

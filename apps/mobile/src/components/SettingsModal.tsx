@@ -20,7 +20,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors, radius, spacing, typography } from "../theme";
-import { CardDesignPicker } from "./CardDesignPicker";
+import { AppearancePicker } from "./AppearancePicker";
 
 const SPRING_IN  = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
@@ -123,7 +123,8 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
           <LinearGradient
             colors={[colors.feltMid, colors.feltBottom]}
             style={StyleSheet.absoluteFill}
-            start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
           />
           <View style={styles.topAccent} />
 
@@ -158,12 +159,12 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               <Row label="Haptic Feedback" value={haptics} onToggle={setHaptics} />
             </View>
 
-            {/* ── Card Design ── */}
+            {/* ── Appearance ── */}
             <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>
-              CARD DESIGN
+              APPEARANCE
             </Text>
             <View style={styles.cardDesignPanel}>
-              <CardDesignPicker />
+              <AppearancePicker />
             </View>
 
             <Text style={styles.version}>Durak · v1.0 · Classic Russian Card Game</Text>

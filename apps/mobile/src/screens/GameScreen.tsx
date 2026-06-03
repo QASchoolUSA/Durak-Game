@@ -18,7 +18,6 @@ import { TableArea, type TableAreaHandle } from "../components/TableArea";
 import { TurnTimer } from "../components/TurnTimer";
 import { useGameStore } from "../game/store";
 import { getHumanView, opponentOrder, getBeatTransferChoice } from "../game/selectors";
-import { LinearGradient } from "expo-linear-gradient";
 import {
   type DragCardBounds,
   type DropZone,
@@ -325,7 +324,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const humanHand = game.hands[humanId] ?? [];
 
   return (
-    <Background>
+    <Background variant="game">
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -360,35 +359,19 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         <View style={styles.middle}>
           {/* Felt surface — visual grounding for the play area */}
           <View style={styles.tableSlot}>
-            <View style={styles.tableFrame}>
-              {/* Felt gradient — lit from the top */}
-              <LinearGradient
-                colors={[colors.feltTop, colors.feltMid, colors.feltBottom]}
-                locations={[0, 0.55, 1]}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-              {/* Soft overhead light pooled in the centre */}
-              <View style={styles.tableSpotlight} pointerEvents="none" />
-              {/* Decorative inlay rings */}
-              <View style={styles.tableRingOuter} pointerEvents="none" />
-              <View style={styles.tableRingInner} pointerEvents="none" />
-
-              <TableArea
-                ref={tableAreaRef}
-                table={game.table}
-                trumpSuit={game.trumpSuit}
-                choiceTargets={beatTransferChoice.choiceIndices}
-                transferTargets={transferTargets}
-                hoverDefendIndex={hoverDrop?.kind === "defend" ? hoverDrop.tableIndex : null}
-                hoverTransferIndex={hoverDrop?.kind === "transfer" ? hoverDrop.tableIndex : null}
-                dragActive={showBeatTransferChoice && !!draggingCardId}
-                remeasureKey={zoneRemeasureKey}
-                onDropZoneLayout={showBeatTransferChoice ? onDropZoneLayout : undefined}
-                onDropZoneRemoved={showBeatTransferChoice ? onDropZoneRemoved : undefined}
-              />
-            </View>
+            <TableArea
+              ref={tableAreaRef}
+              table={game.table}
+              trumpSuit={game.trumpSuit}
+              choiceTargets={beatTransferChoice.choiceIndices}
+              transferTargets={transferTargets}
+              hoverDefendIndex={hoverDrop?.kind === "defend" ? hoverDrop.tableIndex : null}
+              hoverTransferIndex={hoverDrop?.kind === "transfer" ? hoverDrop.tableIndex : null}
+              dragActive={showBeatTransferChoice && !!draggingCardId}
+              remeasureKey={zoneRemeasureKey}
+              onDropZoneLayout={showBeatTransferChoice ? onDropZoneLayout : undefined}
+              onDropZoneRemoved={showBeatTransferChoice ? onDropZoneRemoved : undefined}
+            />
           </View>
           <View style={styles.deckSlot}>
             <DeckPile
@@ -502,49 +485,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     paddingLeft: spacing.sm,
-  },
-  tableFrame: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 999,
-    marginVertical: spacing.sm,
-    overflow: "hidden",
-    borderWidth: 1.5,
-    borderColor: "rgba(231, 192, 103, 0.22)",
-    ...shadows.panel,
-  },
-  // Pooled overhead light — a soft, lighter felt disc in the centre
-  tableSpotlight: {
-    position: "absolute",
-    top: "12%",
-    left: "12%",
-    right: "12%",
-    bottom: "12%",
-    borderRadius: 999,
-    backgroundColor: "rgba(120, 220, 170, 0.10)",
-  },
-  // Thin gold inlay ring near the rail
-  tableRingOuter: {
-    position: "absolute",
-    top: 8,
-    left: 8,
-    right: 8,
-    bottom: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(231, 192, 103, 0.16)",
-  },
-  // Darker felt seam just inside it
-  tableRingInner: {
-    position: "absolute",
-    top: 12,
-    left: 12,
-    right: 12,
-    bottom: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(4, 14, 9, 0.30)",
   },
   deckSlot: {
     justifyContent: "center",

@@ -12,11 +12,12 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { colors } from "../theme";
+import { useTableTheme } from "../theme/TableThemeContext";
 
 export interface BackgroundProps {
   children: React.ReactNode;
-  /** Richer animated ambience — home screen only. */
-  variant?: "default" | "home";
+  /** `home` — fixed app chrome; `game` — themed playing-area color. */
+  variant?: "home" | "game";
 }
 
 function sr(seed: number): number {
@@ -200,23 +201,41 @@ function HomeAmbience() {
   );
 }
 
-export function Background({ children, variant = "default" }: BackgroundProps) {
-  const isHome = variant === "home";
+export function Background({ children, variant = "home" }: BackgroundProps) {
+  const isGame = variant === "game";
+  const tableTheme = useTableTheme();
+
+  if (isGame) {
+    const grad = tableTheme.backgroundGradient;
+    if (grad) {
+      return (
+        <LinearGradient
+          colors={grad}
+          style={styles.fill}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+        >
+          {children}
+        </LinearGradient>
+      );
+    }
+    return (
+      <View style={[styles.fill, { backgroundColor: tableTheme.backgroundColor }]}>
+        {children}
+      </View>
+    );
+  }
 
   return (
     <LinearGradient
-      colors={
-        isHome
-          ? [colors.homeBg.top, colors.homeBg.mid, colors.homeBg.bottom, colors.homeBg.edge]
-          : [colors.feltTop, colors.feltMid, colors.feltBottom]
-      }
-      locations={isHome ? [0, 0.35, 0.72, 1] : [0, 0.45, 1]}
+      colors={[colors.homeBg.top, colors.homeBg.mid, colors.homeBg.bottom, colors.homeBg.edge]}
+      locations={[0, 0.35, 0.72, 1]}
       style={styles.fill}
     >
-      {isHome && <HomeAmbience />}
+      <HomeAmbience />
 
-      <View style={[styles.vignetteTop, isHome && styles.vignetteTopHome]} pointerEvents="none" />
-      <View style={[styles.vignetteBottom, isHome && styles.vignetteBottomHome]} pointerEvents="none" />
+      <View style={[styles.vignetteTop, styles.vignetteTopHome]} pointerEvents="none" />
+      <View style={[styles.vignetteBottom, styles.vignetteBottomHome]} pointerEvents="none" />
 
       {children}
     </LinearGradient>

@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { usePreferencesStore } from "../game/preferencesStore";
+import { DEFAULT_APPEARANCE } from "./appearanceThemes";
 import { type CardTheme, getCardTheme } from "./cardThemes";
 
-const CardThemeContext = createContext<CardTheme>(getCardTheme("classic"));
+const CardThemeContext = createContext<CardTheme>(getCardTheme(DEFAULT_APPEARANCE));
 
 export function CardThemeProvider({ children }: { children: React.ReactNode }) {
   const cardDesign = usePreferencesStore((s) => s.cardDesign);

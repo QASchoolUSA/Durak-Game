@@ -26,128 +26,197 @@ export interface CardProps {
   style?: ViewStyle;
 }
 
+function CornerBracket({
+  accent,
+  corner,
+}: {
+  accent: string;
+  corner: "tl" | "tr" | "bl" | "br";
+}) {
+  const positionStyle =
+    corner === "tl"
+      ? styles.bracketTL
+      : corner === "tr"
+        ? styles.bracketTR
+        : corner === "bl"
+          ? styles.bracketBL
+          : styles.bracketBR;
+
+  const armStyles =
+    corner === "tl"
+      ? [styles.bracketArmHLeft, styles.bracketArmVTop]
+      : corner === "tr"
+        ? [styles.bracketArmHRight, styles.bracketArmVRight]
+        : corner === "bl"
+          ? [styles.bracketArmHBottomLeft, styles.bracketArmVBottom]
+          : [styles.bracketArmHBottomRight, styles.bracketArmVBottomRight];
+
+  return (
+    <View style={[styles.cornerBracket, positionStyle]}>
+      <View style={[styles.bracketArmH, armStyles[0], { backgroundColor: accent }]} />
+      <View style={[styles.bracketArmV, armStyles[1], { backgroundColor: accent }]} />
+    </View>
+  );
+}
+
+function CrestPattern({ accent, accentSoft }: { accent: string; accentSoft: string }) {
+  const dotPositions = [
+    { top: "28%", left: "28%" },
+    { top: "28%", right: "28%" },
+    { bottom: "28%", left: "28%" },
+    { bottom: "28%", right: "28%" },
+  ] as const;
+
+  return (
+    <View style={styles.patternFill}>
+      {(["tl", "tr", "bl", "br"] as const).map((corner) => (
+        <CornerBracket key={corner} accent={accent} corner={corner} />
+      ))}
+      {dotPositions.map((pos, i) => (
+        <View
+          key={i}
+          style={[styles.crestDot, pos, { backgroundColor: accentSoft }]}
+        />
+      ))}
+      <View
+        style={[
+          styles.crestHollowDiamond,
+          { borderColor: accent },
+        ]}
+      />
+      <View
+        style={[
+          styles.crestInnerGem,
+          { backgroundColor: accent },
+        ]}
+      />
+    </View>
+  );
+}
+
+function SealPattern({ accent, accentSoft }: { accent: string; accentSoft: string }) {
+  const ringScales = [
+    { scale: 0.72, opacity: 0.55, soft: false },
+    { scale: 0.52, opacity: 0.75, soft: true },
+    { scale: 0.32, opacity: 0.9, soft: false },
+  ] as const;
+
+  const gemPositions = [
+    { top: "24%", left: "50%" },
+    { bottom: "24%", left: "50%" },
+    { top: "50%", left: "24%" },
+    { top: "50%", right: "24%" },
+  ] as const;
+
+  return (
+    <View style={styles.patternFill}>
+      {ringScales.map(({ scale, opacity, soft }, i) => (
+        <View
+          key={i}
+          style={[
+            styles.sealRing,
+            {
+              width: `${scale * 100}%`,
+              height: `${scale * 100}%`,
+              borderColor: soft ? accentSoft : accent,
+              opacity,
+            },
+          ]}
+        />
+      ))}
+      {gemPositions.map((pos, i) => (
+        <View
+          key={i}
+          style={[
+            styles.sealGem,
+            pos,
+            { backgroundColor: accentSoft },
+          ]}
+        />
+      ))}
+      <View style={[styles.sealCenter, { backgroundColor: accent }]} />
+    </View>
+  );
+}
+
+function WeavePattern({ accent, accentSoft }: { accent: string; accentSoft: string }) {
+  return (
+    <View style={styles.patternFill}>
+      {[-2, -1, 0, 1, 2].map((i) => (
+        <View
+          key={`d-${i}`}
+          style={[
+            styles.weaveLine,
+            {
+              backgroundColor: accentSoft,
+              transform: [{ rotate: "45deg" }, { translateY: i * 9 }],
+            },
+          ]}
+        />
+      ))}
+      {[-2, -1, 0, 1, 2].map((i) => (
+        <View
+          key={`c-${i}`}
+          style={[
+            styles.weaveLine,
+            {
+              backgroundColor: accentSoft,
+              transform: [{ rotate: "-45deg" }, { translateY: i * 9 }],
+            },
+          ]}
+        />
+      ))}
+      <View style={[styles.weaveBand, { backgroundColor: accent }]} />
+      <View
+        style={[
+          styles.weaveNotch,
+          { borderColor: accentSoft },
+        ]}
+      />
+    </View>
+  );
+}
+
+function SunburstPattern({ accent, accentSoft }: { accent: string; accentSoft: string }) {
+  return (
+    <View style={styles.patternFill}>
+      <View style={[styles.sunburstOuterRing, { borderColor: accentSoft }]} />
+      {Array.from({ length: 8 }, (_, i) => (
+        <View
+          key={i}
+          style={[
+            styles.sunburstSpoke,
+            {
+              backgroundColor: i % 2 === 0 ? accent : accentSoft,
+              transform: [{ rotate: `${i * 22.5}deg` }],
+            },
+          ]}
+        />
+      ))}
+      <View style={[styles.sunburstRosetteRing, { borderColor: accent }]} />
+      <View style={[styles.sunburstRosette, { backgroundColor: accent }]} />
+    </View>
+  );
+}
+
 function CardBackPattern({
   pattern,
   accent,
+  accentSoft,
 }: {
   pattern: CardBackPattern;
   accent: string;
+  accentSoft: string;
 }) {
   switch (pattern) {
-    case "diamond":
-      return (
-        <View
-          style={[
-            styles.backDiamond,
-            { backgroundColor: accent },
-          ]}
-        />
-      );
-    case "stripe":
-      return (
-        <View style={styles.patternFill}>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <View
-              key={i}
-              style={[
-                styles.backStripe,
-                {
-                  backgroundColor: accent,
-                  top: `${8 + i * 18}%`,
-                  opacity: 0.35 + (i % 2) * 0.15,
-                },
-              ]}
-            />
-          ))}
-        </View>
-      );
-    case "crosshatch":
-      return (
-        <View style={styles.patternFill}>
-          {[-1, 0, 1].map((i) => (
-            <View
-              key={`h-${i}`}
-              style={[
-                styles.backHatchLine,
-                {
-                  backgroundColor: accent,
-                  transform: [{ rotate: "45deg" }, { translateY: i * 10 }],
-                },
-              ]}
-            />
-          ))}
-          {[-1, 0, 1].map((i) => (
-            <View
-              key={`v-${i}`}
-              style={[
-                styles.backHatchLine,
-                {
-                  backgroundColor: accent,
-                  transform: [{ rotate: "-45deg" }, { translateY: i * 10 }],
-                },
-              ]}
-            />
-          ))}
-        </View>
-      );
-    case "dots":
-      return (
-        <View style={styles.patternFill}>
-          {[
-            { top: "22%" as const, left: "22%" as const },
-            { top: "22%" as const, right: "22%" as const },
-            { top: "50%" as const, left: "50%" as const },
-            { bottom: "22%" as const, left: "22%" as const },
-            { bottom: "22%" as const, right: "22%" as const },
-          ].map((pos, i) => (
-            <View
-              key={i}
-              style={[
-                styles.backDot,
-                pos,
-                { backgroundColor: accent },
-              ]}
-            />
-          ))}
-        </View>
-      );
-    case "chevron":
-      return (
-        <View style={styles.patternFill}>
-          {[0, 1, 2].map((i) => (
-            <View
-              key={i}
-              style={[
-                styles.backChevron,
-                {
-                  borderBottomColor: accent,
-                  opacity: 0.3 + i * 0.12,
-                  transform: [{ scale: 1 - i * 0.22 }],
-                },
-              ]}
-            />
-          ))}
-        </View>
-      );
-    case "rings":
-      return (
-        <View style={styles.patternFill}>
-          {[0.72, 0.52, 0.34].map((scale, i) => (
-            <View
-              key={i}
-              style={[
-                styles.backRing,
-                {
-                  borderColor: accent,
-                  width: `${scale * 100}%`,
-                  height: `${scale * 100}%`,
-                  opacity: 0.35 + i * 0.15,
-                },
-              ]}
-            />
-          ))}
-        </View>
-      );
+    case "crest":
+      return <CrestPattern accent={accent} accentSoft={accentSoft} />;
+    case "seal":
+      return <SealPattern accent={accent} accentSoft={accentSoft} />;
+    case "weave":
+      return <WeavePattern accent={accent} accentSoft={accentSoft} />;
+    case "sunburst":
+      return <SunburstPattern accent={accent} accentSoft={accentSoft} />;
   }
 }
 
@@ -294,6 +363,8 @@ function CardBack({
   height: number;
   theme: CardTheme;
 }) {
+  const panelColor = theme.backLight ?? theme.back;
+
   return (
     <View
       style={[
@@ -303,11 +374,28 @@ function CardBack({
     >
       <View
         style={[
-          styles.backInner,
+          styles.backOuterRim,
           { borderColor: theme.backAccent },
         ]}
-      >
-        <CardBackPattern pattern={theme.backPattern} accent={theme.backAccent} />
+      />
+      <View style={[styles.backPanel, { backgroundColor: panelColor }]}>
+        <View
+          style={[
+            styles.backFrameOuter,
+            { borderColor: theme.backAccent },
+          ]}
+        />
+        <View
+          style={[
+            styles.backFrameInner,
+            { borderColor: theme.backAccent },
+          ]}
+        />
+        <CardBackPattern
+          pattern={theme.backPattern}
+          accent={theme.backAccent}
+          accentSoft={theme.backAccentSoft ?? theme.backAccent}
+        />
       </View>
     </View>
   );
@@ -389,65 +477,168 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     textAlign: "center",
   },
-  backInner: {
+  backOuterRim: {
+    ...StyleSheet.absoluteFill,
+    margin: 2,
+    borderRadius: radius.card - 2,
+    borderWidth: 1.5,
+    opacity: 0.55,
+  },
+  backPanel: {
     flex: 1,
-    margin: 4,
-    borderRadius: radius.card - 3,
-    borderWidth: 2,
+    margin: "5%",
+    borderRadius: radius.card - 4,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
+  },
+  backFrameOuter: {
+    ...StyleSheet.absoluteFill,
+    margin: "6%",
+    borderRadius: radius.card - 5,
+    borderWidth: 2,
+  },
+  backFrameInner: {
+    ...StyleSheet.absoluteFill,
+    margin: "10%",
+    borderRadius: radius.card - 6,
+    borderWidth: 1,
+    opacity: 0.38,
   },
   patternFill: {
     ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },
-  backDiamond: {
-    width: "44%",
-    height: "44%",
-    transform: [{ rotate: "45deg" }],
-    borderRadius: 4,
-    opacity: 0.7,
-  },
-  backStripe: {
+  cornerBracket: {
     position: "absolute",
-    left: "8%",
-    right: "8%",
-    height: 3,
-    borderRadius: 2,
+    width: "14%",
+    height: "14%",
   },
-  backHatchLine: {
+  bracketTL: { top: "16%", left: "16%" },
+  bracketTR: { top: "16%", right: "16%" },
+  bracketBL: { bottom: "16%", left: "16%" },
+  bracketBR: { bottom: "16%", right: "16%" },
+  bracketArmH: {
     position: "absolute",
-    width: "120%",
     height: 2,
-    opacity: 0.45,
+    width: "100%",
     borderRadius: 1,
   },
-  backDot: {
+  bracketArmHLeft: { top: 0, left: 0 },
+  bracketArmHRight: { top: 0, right: 0 },
+  bracketArmHBottomLeft: { bottom: 0, left: 0 },
+  bracketArmHBottomRight: { bottom: 0, right: 0 },
+  bracketArmV: {
     position: "absolute",
-    width: 6,
-    height: 6,
+    width: 2,
+    height: "100%",
+    borderRadius: 1,
+  },
+  bracketArmVTop: { top: 0, left: 0 },
+  bracketArmVBottom: { bottom: 0, left: 0 },
+  bracketArmVRight: { top: 0, right: 0 },
+  bracketArmVBottomRight: { bottom: 0, right: 0 },
+  crestDot: {
+    position: "absolute",
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.45,
+    marginLeft: -2,
+    marginTop: -2,
+  },
+  crestHollowDiamond: {
+    width: "38%",
+    height: "38%",
+    transform: [{ rotate: "45deg" }],
     borderRadius: 3,
-    opacity: 0.55,
-    marginLeft: -3,
-    marginTop: -3,
+    borderWidth: 2,
+    backgroundColor: "transparent",
   },
-  backChevron: {
+  crestInnerGem: {
     position: "absolute",
-    width: 0,
-    height: 0,
-    borderLeftWidth: 18,
-    borderRightWidth: 18,
-    borderBottomWidth: 14,
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    transform: [{ rotate: "180deg" }],
+    width: "16%",
+    height: "16%",
+    transform: [{ rotate: "45deg" }],
+    borderRadius: 2,
+    opacity: 0.92,
   },
-  backRing: {
+  sealRing: {
     position: "absolute",
     borderRadius: 999,
     borderWidth: 2,
+  },
+  sealGem: {
+    position: "absolute",
+    width: "7%",
+    height: "7%",
+    transform: [{ rotate: "45deg" }],
+    borderRadius: 1,
+    marginLeft: "-3.5%",
+    marginTop: "-3.5%",
+    opacity: 0.6,
+  },
+  sealCenter: {
+    width: "10%",
+    height: "10%",
+    borderRadius: 999,
+    opacity: 0.95,
+  },
+  weaveLine: {
+    position: "absolute",
+    width: "130%",
+    height: 2,
+    borderRadius: 1,
+    opacity: 0.35,
+  },
+  weaveBand: {
+    position: "absolute",
+    left: "10%",
+    right: "10%",
+    top: "46%",
+    height: "8%",
+    opacity: 0.55,
+    borderRadius: 2,
+  },
+  weaveNotch: {
+    position: "absolute",
+    width: "14%",
+    height: "14%",
+    transform: [{ rotate: "45deg" }],
+    borderWidth: 2,
+    backgroundColor: "transparent",
+    borderRadius: 2,
+  },
+  sunburstSpoke: {
+    position: "absolute",
+    width: 2,
+    height: "42%",
+    top: "9%",
+    borderRadius: 1,
+    opacity: 0.7,
+  },
+  sunburstOuterRing: {
+    position: "absolute",
+    width: "68%",
+    height: "68%",
+    borderRadius: 999,
+    borderWidth: 2,
+    opacity: 0.5,
+  },
+  sunburstRosetteRing: {
+    position: "absolute",
+    width: "22%",
+    height: "22%",
+    borderRadius: 999,
+    borderWidth: 2,
+    opacity: 0.85,
+  },
+  sunburstRosette: {
+    width: "14%",
+    height: "14%",
+    borderRadius: 999,
+    opacity: 0.95,
   },
   highlight: {
     shadowColor: colors.gold,
