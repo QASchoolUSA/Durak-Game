@@ -12,6 +12,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DeckPile } from "../components/DeckPile";
 import { AbilityDock } from "../components/AbilityDock";
 import { GraveyardSheet } from "../components/GraveyardSheet";
+import { RevealSheet } from "../components/RevealSheet";
 import { ReactionsBar } from "../components/ReactionsBar";
 import { Hand } from "../components/Hand";
 import { PlayerSeat, type SeatRole } from "../components/PlayerSeat";
@@ -19,7 +20,13 @@ import { PotBadge } from "../components/PotBadge";
 import { TableArea, type TableAreaHandle } from "../components/TableArea";
 import { TurnTimer } from "../components/TurnTimer";
 import { useGameStore } from "../game/store";
-import { getHumanView, opponentOrder, getBeatTransferChoice } from "../game/selectors";
+import {
+  canReveal,
+  getHumanView,
+  opponentOrder,
+  getBeatTransferChoice,
+  revealEligibleOpponents,
+} from "../game/selectors";
 import {
   type DragCardBounds,
   type DropZone,
@@ -53,6 +60,8 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const submitHuman = useGameStore((s) => s.submitHuman);
   const autoPlayHuman = useGameStore((s) => s.autoPlayHuman);
   const goHome = useGameStore((s) => s.goHome);
+  const pauseForOverlay = useGameStore((s) => s.pauseForOverlay);
+  const resumeFromOverlay = useGameStore((s) => s.resumeFromOverlay);
 
   const view = useMemo(() => (game ? getHumanView(game, humanId) : null), [game, humanId]);
   const beatTransferChoice = useMemo(
@@ -65,6 +74,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const [remaining, setRemaining] = useState(timing.turnSeconds);
   const [takeConfirmOpen, setTakeConfirmOpen] = useState(false);
   const [graveyardOpen, setGraveyardOpen] = useState(false);
+  const [revealOpen, setRevealOpen] = useState(false);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [dragBounds, setDragBounds] = useState<DragCardBounds | null>(null);
   const [hoverDrop, setHoverDrop] = useState<DropZone | null>(null);
@@ -301,7 +311,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   useEffect(() => {
     firedRef.current = false;
     // Beat/transfer choice needs a deliberate drag — no timer auto-play.
-    if (!view?.mustAct || showBeatTransferChoice) {
+    if (!view?.mustAct || showBeatTransferChoice || revealOpen) {
       setRemaining(timing.turnSeconds);
       return;
     }
@@ -317,7 +327,28 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     tick();
     const iv = setInterval(tick, 100);
     return () => clearInterval(iv);
-  }, [view?.mustAct, showBeatTransferChoice, lastMoveAt, autoPlayHuman]);
+  }, [view?.mustAct, showBeatTransferChoice, revealOpen, lastMoveAt, autoPlayHuman]);
+
+  const revealEnabled = game && view ? canReveal(game, humanId, view) : false;
+  const revealOpponents = useMemo(() => {
+    if (!game || !revealOpen) return [];
+    return revealEligibleOpponents(game, humanId).map((id) => ({
+      id,
+      name: names[id] ?? id,
+      cards: game.hands[id] ?? [],
+    }));
+  }, [game, humanId, names, revealOpen]);
+
+  const openReveal = useCallback(() => {
+    if (!revealEnabled) return;
+    pauseForOverlay();
+    setRevealOpen(true);
+  }, [revealEnabled, pauseForOverlay]);
+
+  const closeReveal = useCallback(() => {
+    setRevealOpen(false);
+    resumeFromOverlay();
+  }, [resumeFromOverlay]);
 
   if (!game || !view) return null;
 
@@ -341,8 +372,8 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
                 <Text style={styles.headerBtnText}>⚙</Text>
               </Pressable>
             )}
-            <Pressable style={[styles.headerBtn, styles.headerBtnExit]} onPress={goHome} hitSlop={10}>
-              <Text style={[styles.headerBtnText, styles.headerBtnExitText]}>✕</Text>
+            <Pressable style={styles.headerBtn} onPress={goHome} hitSlop={10}>
+              <Text style={styles.headerBtnText}>✕</Text>
             </Pressable>
           </View>
         </View>
@@ -434,6 +465,8 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             <View style={styles.abilitiesRow}>
               <AbilityDock
                 discardCount={game.discard.length}
+                canReveal={revealEnabled}
+                onRevealPress={openReveal}
                 onGraveyardPress={() => setGraveyardOpen(true)}
               />
             </View>
@@ -457,6 +490,15 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
           onClose={() => setGraveyardOpen(false)}
           cards={game.discard}
           trumpSuit={game.trumpSuit}
+        />
+      )}
+
+      {abilitiesMode && (
+        <RevealSheet
+          visible={revealOpen}
+          onClose={closeReveal}
+          trumpSuit={game.trumpSuit}
+          opponents={revealOpponents}
         />
       )}
     </Background>
@@ -484,12 +526,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(231, 192, 103, 0.20)",
   },
-  headerBtnExit: {
-    borderColor: "rgba(229, 72, 77, 0.30)",
-    backgroundColor: "rgba(229, 72, 77, 0.10)",
-  },
   headerBtnText: { color: colors.textMuted, fontSize: 13, fontWeight: "700" },
-  headerBtnExitText: { color: "#E5A0A2" },
   opponents: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -557,6 +594,7 @@ const styles = StyleSheet.create({
   },
   abilitiesRow: {
     width: "100%",
+    alignItems: "center",
     paddingHorizontal: spacing.lg,
     marginTop: spacing.xs,
     overflow: "visible",

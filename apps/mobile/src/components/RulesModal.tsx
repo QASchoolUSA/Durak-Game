@@ -59,7 +59,7 @@ const SECTIONS = [
   },
   {
     title: "Abilities Mode",
-    body: "When playing With Abilities, you have two extra powers:\n\n• Return card — after you play a card (attack, defend, or transfer), tap Return within 3 seconds to take it back. AI opponents wait during this window.\n\n• Graveyard — tap GRAVE anytime to see every card that has left play (successfully beaten pairs in the discard pile), sorted by suit.",
+    body: "When playing With Abilities, you have three extra powers:\n\n• Return card — after you play a card (attack, defend, or transfer), tap Return within 3 seconds to take it back. AI opponents wait during this window.\n\n• Graveyard — tap GRAVE anytime to see every card that has left play (successfully beaten pairs in the discard pile), sorted by suit.\n\n• Reveal — on your turn, if an opponent holds 2+ cards, tap REVEAL. In 3–4 player games, choose the player first. Tap one of their face-down cards to peek at it for a few seconds. Unlimited uses while eligible.",
   },
 ];
 

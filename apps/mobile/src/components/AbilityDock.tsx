@@ -43,6 +43,32 @@ function ReturnPill() {
   );
 }
 
+function RevealPill({
+  canReveal,
+  onPress,
+}: {
+  canReveal: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={[dockPillStyles.pill, !canReveal && dockPillStyles.pillDisabled]}
+      onPress={onPress}
+      disabled={!canReveal}
+      accessibilityRole="button"
+      accessibilityLabel={
+        canReveal ? "Reveal an opponent card" : "Reveal unavailable"
+      }
+      accessibilityState={{ disabled: !canReveal }}
+    >
+      <Text style={dockPillStyles.icon}>👁</Text>
+      <Text style={[dockPillStyles.label, !canReveal && dockPillStyles.labelDisabled]}>
+        Reveal
+      </Text>
+    </Pressable>
+  );
+}
+
 function GraveyardPill({
   discardCount,
   onPress,
@@ -70,16 +96,24 @@ function GraveyardPill({
 
 export interface AbilityDockProps {
   discardCount: number;
+  canReveal: boolean;
   onGraveyardPress: () => void;
+  onRevealPress: () => void;
 }
 
-export function AbilityDock({ discardCount, onGraveyardPress }: AbilityDockProps) {
+export function AbilityDock({
+  discardCount,
+  canReveal,
+  onGraveyardPress,
+  onRevealPress,
+}: AbilityDockProps) {
   return (
     <View
       style={styles.row}
       accessibilityRole="toolbar"
       accessibilityLabel="Game abilities"
     >
+      <RevealPill canReveal={canReveal} onPress={onRevealPress} />
       <GraveyardPill discardCount={discardCount} onPress={onGraveyardPress} />
       <ReturnPill />
     </View>
@@ -90,6 +124,8 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
     gap: spacing.sm,
     height: DOCK_ROW_HEIGHT,
   },

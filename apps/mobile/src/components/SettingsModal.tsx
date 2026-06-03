@@ -25,6 +25,7 @@ import { AppearancePicker } from "./AppearancePicker";
 const SPRING_IN  = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
 const BACKDROP_FULL = 0.76;
+const DRAWER_HEIGHT_RATIO = 0.68;
 
 export interface SettingsModalProps {
   visible: boolean;
@@ -34,7 +35,7 @@ export interface SettingsModalProps {
 export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const { height: screenH } = useWindowDimensions();
   const insets  = useSafeAreaInsets();
-  const drawerH = Math.round(screenH * 0.82);
+  const drawerH = Math.round(screenH * DRAWER_HEIGHT_RATIO);
 
   // Local visual-only toggles (no audio/haptics implementation required)
   const [sound,   setSound]   = useState(true);

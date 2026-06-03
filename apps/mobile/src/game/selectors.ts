@@ -121,6 +121,20 @@ export function getBeatTransferChoice(
   return { active: choiceIndices.length > 0, choiceIndices, transferIndices };
 }
 
+/** Opponents the human can reveal from (2+ cards, still in play). */
+export function revealEligibleOpponents(state: GameState, human: PlayerId): PlayerId[] {
+  return state.players.filter(
+    (id) =>
+      id !== human &&
+      !state.finishedOrder.includes(id) &&
+      (state.hands[id]?.length ?? 0) > 1,
+  );
+}
+
+export function canReveal(state: GameState, human: PlayerId, view: HumanView): boolean {
+  return view.mustAct && revealEligibleOpponents(state, human).length > 0;
+}
+
 /** Opponents arranged clockwise starting from the seat after the human. */
 export function opponentOrder(state: GameState, human: PlayerId): PlayerId[] {
   const n = state.players.length;

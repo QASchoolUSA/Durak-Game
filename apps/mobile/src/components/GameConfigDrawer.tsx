@@ -57,7 +57,7 @@ const THROW_OPTIONS: { id: ThrowInScope; label: string; desc: string }[] = [
 
 const PLAY_STYLE_OPTIONS: { id: PlayStyle; label: string; desc: string }[] = [
   { id: "standard",  label: "Standard",       desc: "Classic Durak — no special powers" },
-  { id: "abilities", label: "With Abilities", desc: "Return cards & view the graveyard" },
+  { id: "abilities", label: "With Abilities", desc: "Return, graveyard & reveal a card" },
 ];
 
 const DIFF_OPTIONS: {

@@ -24,6 +24,13 @@ export const dockPillStyles = StyleSheet.create({
     borderColor: colors.gold,
     backgroundColor: "rgba(231, 192, 103, 0.14)",
   },
+  pillDisabled: {
+    opacity: 0.38,
+    borderColor: colors.separator,
+  },
+  labelDisabled: {
+    color: colors.textFaint,
+  },
   icon: {
     fontSize: 18,
     lineHeight: 20,

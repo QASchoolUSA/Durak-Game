@@ -68,6 +68,8 @@ interface GameStore {
   autoPlayHuman: () => void;
   returnLastCard: () => void;
   clearReturnWindow: () => void;
+  pauseForOverlay: () => void;
+  resumeFromOverlay: () => void;
 }
 
 let aiTimer: ReturnType<typeof setTimeout> | null = null;
@@ -266,5 +268,16 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     clearReturnWindow,
+
+    pauseForOverlay: () => {
+      cancelAi();
+    },
+
+    resumeFromOverlay: () => {
+      const { game } = get();
+      if (game?.phase === "playing") {
+        scheduleAi();
+      }
+    },
   };
 });
