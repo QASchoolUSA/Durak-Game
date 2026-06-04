@@ -18,6 +18,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { colors, radius, spacing } from "../theme";
+import { trigger } from "../feedback/haptics";
 import { DOCK_ROW_HEIGHT, dockPillStyles } from "./dockPill";
 
 const REACTIONS = [
@@ -100,6 +101,7 @@ function ReactionsBarComponent() {
 
   const pickReaction = useCallback(
     (emoji: string) => {
+      trigger("selection");
       react(emoji);
       closeDrawer();
     },

@@ -7,15 +7,18 @@ import {
 import type { CardDesignId } from "../theme/cardThemes";
 import type { TableDesignId } from "../theme/tableThemes";
 import { getStoredCardDesign, setStoredCardDesign } from "./cardDesignStorage";
+import { getStoredHapticsEnabled, setStoredHapticsEnabled } from "./hapticsStorage";
 import { getStoredTableDesign, setStoredTableDesign } from "./tableDesignStorage";
 
 interface PreferencesStore {
   cardDesign: CardDesignId;
   tableDesign: TableDesignId;
+  hapticsEnabled: boolean;
   hydrated: boolean;
   setAppearance: (id: AppearanceId) => void;
   setCardDesign: (id: CardDesignId) => void;
   setTableDesign: (id: TableDesignId) => void;
+  setHapticsEnabled: (enabled: boolean) => void;
 }
 
 function syncAppearance(id: AppearanceId) {
@@ -27,6 +30,7 @@ function syncAppearance(id: AppearanceId) {
 export const usePreferencesStore = create<PreferencesStore>(() => ({
   cardDesign: DEFAULT_APPEARANCE,
   tableDesign: DEFAULT_APPEARANCE,
+  hapticsEnabled: true,
   hydrated: false,
   setAppearance: (id) => {
     syncAppearance(id);
@@ -36,6 +40,10 @@ export const usePreferencesStore = create<PreferencesStore>(() => ({
   },
   setTableDesign: (id) => {
     syncAppearance(id);
+  },
+  setHapticsEnabled: (enabled) => {
+    usePreferencesStore.setState({ hapticsEnabled: enabled });
+    void setStoredHapticsEnabled(enabled);
   },
 }));
 
@@ -69,8 +77,19 @@ export async function loadTableDesign(): Promise<void> {
   }
 }
 
+export async function loadHapticsEnabled(): Promise<void> {
+  try {
+    const stored = await getStoredHapticsEnabled();
+    if (stored !== null) {
+      usePreferencesStore.setState({ hapticsEnabled: stored });
+    }
+  } catch {
+    // Fall through to default
+  }
+}
+
 export async function loadPreferences(): Promise<void> {
-  await Promise.all([loadCardDesign(), loadTableDesign()]);
+  await Promise.all([loadCardDesign(), loadTableDesign(), loadHapticsEnabled()]);
 
   const { cardDesign, tableDesign } = usePreferencesStore.getState();
   const appearance = cardDesign === tableDesign ? cardDesign : cardDesign;

@@ -6,6 +6,7 @@ import { Background } from "../components/Background";
 import { Confetti } from "../components/Confetti";
 import { MenuButton } from "../components/MenuButton";
 import { useGameStore } from "../game/store";
+import { trigger } from "../feedback/haptics";
 import { layoutFor, colors, radius, shadows, spacing, typography } from "../theme";
 
 // ── Rank badges ──────────────────────────────────────────────────────────────
@@ -120,6 +121,11 @@ export function ResultScreen() {
       : { headline: "VICTORY!", emoji: "🏆", headlineColor: colors.gold };
 
   const humanWon = !humanLost && !isDraw;
+
+  useEffect(() => {
+    if (humanWon) trigger("success");
+    else if (humanLost) trigger("failure");
+  }, [humanWon, humanLost]);
 
   return (
     <Background variant="game">

@@ -1,6 +1,7 @@
 import React from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radius, shadows, spacing, typography } from "../theme";
+import { trigger } from "../feedback/haptics";
 
 export interface ConfirmDialogProps {
   visible:        boolean;
@@ -34,10 +35,22 @@ export function ConfirmDialog({
           <Text style={styles.message}>{message}</Text>
 
           <View style={styles.actions}>
-            <Pressable style={[styles.btn, styles.cancelBtn]} onPress={onCancel}>
+            <Pressable
+              style={[styles.btn, styles.cancelBtn]}
+              onPress={() => {
+                trigger("uiTap");
+                onCancel();
+              }}
+            >
               <Text style={styles.cancelText}>{cancelLabel}</Text>
             </Pressable>
-            <Pressable style={[styles.btn, styles.confirmBtn]} onPress={onConfirm}>
+            <Pressable
+              style={[styles.btn, styles.confirmBtn]}
+              onPress={() => {
+                trigger("confirm");
+                onConfirm();
+              }}
+            >
               <Text style={styles.confirmText}>{confirmLabel}</Text>
             </Pressable>
           </View>

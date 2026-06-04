@@ -1,10 +1,17 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
+import type { SeatRole } from "../game/selectors";
+import { TakeSpeechBubble } from "./TakeSpeechBubble";
 import { useCardTheme } from "../theme/CardThemeContext";
 import { colors, radius, cardSize, shadows } from "../theme";
 
-export type SeatRole = "attacker" | "defender" | null;
+export type { SeatRole };
 
 export interface PlayerSeatProps {
   name:      string;
@@ -13,6 +20,8 @@ export interface PlayerSeatProps {
   active:    boolean;
   finished?: boolean;
 }
+
+const SPRING = { damping: 16, stiffness: 280, mass: 0.7 };
 
 const AVATAR_PALETTE = ["#C44536", "#2D7EA6", "#7B5EA6", "#2E8F6B", "#A0722A", "#4A8A9B"];
 
@@ -50,66 +59,139 @@ function MiniFan({ count }: { count: number }) {
   );
 }
 
-function PlayerSeatComponent({ name, cardCount, role, active, finished }: PlayerSeatProps) {
+function PlayerSeatComponent({
+  name,
+  cardCount,
+  role,
+  active,
+  finished,
+}: PlayerSeatProps) {
   const isAttacker = role === "attacker";
   const isDefender = role === "defender";
+  const isTaking = role === "taking";
+  const expanded = (active || isTaking) && !finished;
+
+  const scale = useSharedValue(expanded ? 1 : 0.94);
+  const seatOpacity = useSharedValue(expanded ? 1 : 0.88);
+
+  useEffect(() => {
+    scale.value = withSpring(expanded ? 1 : 0.94, SPRING);
+    seatOpacity.value = withSpring(expanded ? 1 : 0.88, SPRING);
+  }, [expanded, scale, seatOpacity]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: seatOpacity.value,
+  }));
+
+  const avatarSize = expanded ? 32 : 30;
+  const avatarRadius = avatarSize / 2;
+  const letterSize = expanded ? 14 : 12;
+
+  const avatarEl = (
+    <View style={[styles.avatarWrap, { width: avatarSize, height: avatarSize }]}>
+      {isTaking && !finished && <TakeSpeechBubble />}
+      <View
+        style={[
+          styles.avatar,
+          {
+            width: avatarSize,
+            height: avatarSize,
+            borderRadius: avatarRadius,
+            backgroundColor: avatarColor(name),
+          },
+        ]}
+      >
+        <Text style={[styles.avatarLetter, { fontSize: letterSize }]}>
+          {name.slice(0, 1).toUpperCase()}
+        </Text>
+      </View>
+    </View>
+  );
 
   return (
-    <Animated.View
-      entering={FadeIn.duration(350)}
-      style={[
-        styles.container,
-        active && styles.active,
-        finished && styles.finished,
-      ]}
-    >
-      {/* Gold inner tint when active */}
-      {active && <View style={styles.activeTint} pointerEvents="none" />}
-
-      {/* ── Main body ── */}
-      <View style={styles.body}>
-        {/* Avatar + name row */}
-        <View style={styles.topRow}>
-          <View style={[styles.avatar, { backgroundColor: avatarColor(name) }]}>
-            <Text style={styles.avatarLetter}>{name.slice(0, 1).toUpperCase()}</Text>
-          </View>
-          <Text style={styles.name} numberOfLines={1}>{name}</Text>
-        </View>
-
-        {/* Mini card fan + count */}
-        <View style={styles.cardsRow}>
-          <MiniFan count={cardCount} />
-          <Text style={styles.cardCount}>{cardCount}</Text>
-        </View>
-      </View>
-
-      {/* ── Role bar — full-width stripe at bottom ── */}
-      {(isAttacker || isDefender) && !finished && (
-        <View
+    <View style={styles.outer}>
+      <Animated.View style={animStyle}>
+        <Animated.View
+          entering={FadeIn.duration(350)}
           style={[
-            styles.roleBar,
-            isAttacker ? styles.roleBarAttack : styles.roleBarDefend,
+            styles.container,
+            active && expanded && styles.active,
+            isTaking && expanded && !active && styles.taking,
+            isTaking && !finished && styles.containerTaking,
+            finished && styles.finished,
           ]}
         >
-          <Text style={[styles.roleText, isAttacker ? styles.roleTextAttack : styles.roleTextDefend]}>
-            {isAttacker ? "ATTACKING" : "DEFENDING"}
-          </Text>
-        </View>
-      )}
+          {active && expanded && <View style={styles.activeTint} pointerEvents="none" />}
 
-      {finished && (
-        <View style={styles.roleBarFinished}>
-          <Text style={styles.roleTextFinished}>FINISHED</Text>
-        </View>
-      )}
-    </Animated.View>
+          <View style={[styles.body, expanded ? styles.bodyExpanded : styles.bodyCompact]}>
+            {expanded ? (
+              <View style={styles.topRow}>
+                {avatarEl}
+                <Text
+                  style={[styles.name, styles.nameExpanded, styles.nameSingleLine]}
+                  numberOfLines={1}
+                >
+                  {name}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.compactHeader}>
+                {avatarEl}
+                <Text
+                  style={[styles.name, styles.nameCompact, styles.nameSingleLine]}
+                  numberOfLines={1}
+                >
+                  {name}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.cardsRow}>
+              {expanded ? (
+                <>
+                  <MiniFan count={cardCount} />
+                  <Text style={styles.cardCount}>{cardCount}</Text>
+                </>
+              ) : (
+                <Text style={styles.cardCountCompact}>{cardCount} cards</Text>
+              )}
+            </View>
+          </View>
+
+          {expanded && (isAttacker || isDefender) && (
+            <View
+              style={[
+                styles.roleBar,
+                isAttacker ? styles.roleBarAttack : styles.roleBarDefend,
+              ]}
+            >
+              <Text style={[styles.roleText, isAttacker ? styles.roleTextAttack : styles.roleTextDefend]}>
+                {isAttacker ? "ATTACKING" : "DEFENDING"}
+              </Text>
+            </View>
+          )}
+
+          {finished && (
+            <View style={styles.roleBarFinished}>
+              <Text style={styles.roleTextFinished}>FINISHED</Text>
+            </View>
+          )}
+        </Animated.View>
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  outer: {
+    maxWidth: 168,
+    alignSelf: "flex-start",
+    overflow: "visible",
+  },
   container: {
-    flex: 1,
-    maxWidth: 150,
+    alignSelf: "flex-start",
+    minWidth: 112,
     borderRadius: radius.panel,
     backgroundColor: colors.panel,
     borderWidth: 1.5,
@@ -120,41 +202,68 @@ const styles = StyleSheet.create({
     borderColor: colors.gold,
     ...shadows.goldGlow,
   },
+  taking: {
+    borderColor: "rgba(221, 208, 245, 0.45)",
+  },
+  containerTaking: {
+    overflow: "visible",
+  },
   activeTint: {
     position: "absolute",
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(231, 192, 103, 0.05)",
     zIndex: 0,
   },
   finished: { opacity: 0.45 },
 
   body: {
-    padding: 10,
     gap: 8,
+  },
+  bodyExpanded: {
+    padding: 10,
+  },
+  bodyCompact: {
+    padding: 8,
+    gap: 6,
   },
   topRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 7,
   },
+  compactHeader: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 4,
+  },
+  avatarWrap: {
+    position: "relative",
+    flexShrink: 0,
+    overflow: "visible",
+  },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    flexShrink: 0,
   },
   avatarLetter: {
     color: "#fff",
     fontWeight: "900",
-    fontSize: 14,
   },
   name: {
     color: colors.textLight,
-    fontSize: 12,
     fontWeight: "700",
-    flex: 1,
+  },
+  nameSingleLine: {
+    flexShrink: 0,
+  },
+  nameExpanded: {
+    fontSize: 12,
+  },
+  nameCompact: {
+    fontSize: 12,
   },
   cardsRow: {
     flexDirection: "row",
@@ -172,8 +281,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
   },
+  cardCountCompact: {
+    color: colors.textLight,
+    fontSize: 12,
+    fontWeight: "800",
+  },
 
-  // ── Role bar ──────────────────────────────────────────────────────────────
   roleBar: {
     paddingVertical: 5,
     alignItems: "center",
@@ -197,8 +310,8 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 1.0,
   },
-  roleTextAttack:   { color: "#FFCED0" },
-  roleTextDefend:   { color: "#FFE9A0" },
+  roleTextAttack: { color: "#FFCED0" },
+  roleTextDefend: { color: "#FFE9A0" },
   roleTextFinished: { color: colors.textFaint, fontSize: 9, fontWeight: "700", letterSpacing: 0.8 },
 });
 

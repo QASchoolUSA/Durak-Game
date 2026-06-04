@@ -12,6 +12,15 @@ import {
   undefendedPairs,
 } from "@durak/game-core";
 
+export type SeatRole = "attacker" | "defender" | "taking" | null;
+
+export function getSeatRole(state: GameState, playerId: PlayerId): SeatRole {
+  if (state.takeInProgress && playerId === state.defenderId) return "taking";
+  if (playerId === state.defenderId) return "defender";
+  if (playerId === state.attackerId) return "attacker";
+  return null;
+}
+
 export interface HumanView {
   isDefender: boolean;
   isAttacker: boolean;

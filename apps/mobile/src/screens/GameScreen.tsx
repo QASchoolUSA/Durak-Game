@@ -15,7 +15,7 @@ import { GraveyardSheet } from "../components/GraveyardSheet";
 import { RevealSheet } from "../components/RevealSheet";
 import { ReactionsBar } from "../components/ReactionsBar";
 import { Hand } from "../components/Hand";
-import { PlayerSeat, type SeatRole } from "../components/PlayerSeat";
+import { PlayerSeat } from "../components/PlayerSeat";
 import { PotBadge } from "../components/PotBadge";
 import {
   TableArea,
@@ -27,6 +27,7 @@ import { useGameStore } from "../game/store";
 import {
   canReveal,
   getHumanView,
+  getSeatRole,
   opponentOrder,
   getBeatTransferChoice,
   revealEligibleOpponents,
@@ -38,6 +39,7 @@ import {
   resolveDropFromBounds,
 } from "../game/dropZones";
 import { colors, radius, shadows, spacing, timing, typography } from "../theme";
+import { trigger } from "../feedback/haptics";
 
 const TABLE_EXIT_RESET_MS = 450;
 
@@ -46,10 +48,12 @@ function activePlayer(game: GameState): PlayerId {
   return game.attackerId;
 }
 
-function seatRole(game: GameState, id: PlayerId): SeatRole {
-  if (id === game.defenderId) return "defender";
-  if (id === game.attackerId) return "attacker";
-  return null;
+function seatRoleForFinished(
+  game: GameState,
+  id: PlayerId,
+): ReturnType<typeof getSeatRole> {
+  if (game.finishedOrder.includes(id)) return null;
+  return getSeatRole(game, id);
 }
 
 export interface GameScreenProps {
@@ -93,6 +97,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const pendingReaimRef = useRef(false);
   const tableAreaRef = useRef<TableAreaHandle>(null);
   const firedRef = useRef(false);
+  const prevRemainingRef = useRef(timing.turnSeconds);
   const prevGameRef = useRef<GameState | null>(null);
   const exitResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -207,7 +212,12 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   }, [showBeatTransferChoice]);
 
   const turnLabel = useMemo(() => {
-    if (!view) return "Your move";
+    if (!view || !game) return "Your move";
+    if (game.takeInProgress) {
+      if (view.isDefender) return "Taking cards…";
+      if (view.attackable.length > 0) return "Throw in";
+      return "Waiting…";
+    }
     if (view.isDefender) {
       if (showBeatTransferChoice) {
         return transferTargets.length > 0 ? "Drag to beat or transfer" : "Drag to beat";
@@ -216,7 +226,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     }
     if (view.mustOpen) return "Attack";
     return "Your move";
-  }, [view, showBeatTransferChoice, transferTargets.length]);
+  }, [view, game, showBeatTransferChoice, transferTargets.length]);
 
   useEffect(() => {
     if (!showBeatTransferChoice) {
@@ -363,6 +373,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
 
   useEffect(() => {
     firedRef.current = false;
+    prevRemainingRef.current = timing.turnSeconds;
     // Beat/transfer choice needs a deliberate drag — no timer auto-play.
     if (!view?.mustAct || showBeatTransferChoice || revealOpen) {
       setRemaining(timing.turnSeconds);
@@ -371,9 +382,14 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     const start = lastMoveAt || Date.now();
     const tick = () => {
       const r = Math.max(0, timing.turnSeconds - (Date.now() - start) / 1000);
+      const prevR = prevRemainingRef.current;
+      if (prevR > 4 && r <= 4) trigger("timerWarning");
+      if (prevR > 1 && r <= 1) trigger("timerCritical");
       setRemaining(r);
+      prevRemainingRef.current = r;
       if (r <= 0 && !firedRef.current) {
         firedRef.current = true;
+        trigger("timerExpired");
         autoPlayHuman();
       }
     };
@@ -432,16 +448,19 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         </View>
 
         <View style={styles.opponents}>
-          {opponents.map((id) => (
+          {opponents.map((id) => {
+            const role = seatRoleForFinished(game, id);
+            return (
             <PlayerSeat
               key={id}
               name={names[id] ?? id}
               cardCount={(game.hands[id] ?? []).length}
-              role={seatRole(game, id)}
+              role={role}
               active={active === id && game.phase === "playing"}
               finished={game.finishedOrder.includes(id)}
             />
-          ))}
+            );
+          })}
         </View>
 
         <View style={styles.middle}>
@@ -486,7 +505,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             <Pressable
               style={[styles.actionBtn, styles.takeBtn, !view.canTake && styles.actionDisabled]}
               disabled={!view.canTake}
-              onPress={() => setTakeConfirmOpen(true)}
+              onPress={() => {
+                trigger("uiTap");
+                setTakeConfirmOpen(true);
+              }}
             >
               <Text style={styles.actionText}>TAKE</Text>
             </Pressable>
@@ -583,11 +605,14 @@ const styles = StyleSheet.create({
   headerBtnText: { color: colors.textMuted, fontSize: 13, fontWeight: "700" },
   opponents: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    flexWrap: "wrap",
+    justifyContent: "center",
     alignItems: "flex-start",
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
     gap: spacing.sm,
+    overflow: "visible",
   },
   middle: {
     flex: 1,

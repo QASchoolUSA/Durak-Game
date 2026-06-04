@@ -21,6 +21,8 @@ import Animated, {
 import { LinearGradient } from "expo-linear-gradient";
 import { colors, radius, spacing, typography } from "../theme";
 import { AppearancePicker } from "./AppearancePicker";
+import { trigger } from "../feedback/haptics";
+import { usePreferencesStore } from "../game/preferencesStore";
 
 const SPRING_IN  = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
@@ -37,9 +39,18 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const insets  = useSafeAreaInsets();
   const drawerH = Math.round(screenH * DRAWER_HEIGHT_RATIO);
 
-  // Local visual-only toggles (no audio/haptics implementation required)
-  const [sound,   setSound]   = useState(true);
-  const [haptics, setHaptics] = useState(true);
+  // Sound is visual-only for now; haptics wired to preferences store.
+  const [sound, setSound] = useState(true);
+  const hapticsEnabled = usePreferencesStore((s) => s.hapticsEnabled);
+  const setHapticsEnabled = usePreferencesStore((s) => s.setHapticsEnabled);
+
+  const handleHapticsToggle = useCallback(
+    (enabled: boolean) => {
+      setHapticsEnabled(enabled);
+      if (enabled) trigger("uiTap");
+    },
+    [setHapticsEnabled],
+  );
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(visible);
@@ -157,7 +168,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             <View style={styles.card}>
               <Row label="Sound Effects"   value={sound}   onToggle={setSound} />
               <View style={styles.rowDivider} />
-              <Row label="Haptic Feedback" value={haptics} onToggle={setHaptics} />
+              <Row label="Haptic Feedback" value={hapticsEnabled} onToggle={handleHapticsToggle} />
             </View>
 
             {/* ── Appearance ── */}

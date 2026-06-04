@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useGameStore } from "../game/store";
+import { trigger } from "../feedback/haptics";
 import { DOCK_ROW_HEIGHT, dockPillStyles } from "./dockPill";
 import { spacing } from "../theme";
 
@@ -32,7 +33,10 @@ function ReturnPill() {
   return (
     <Pressable
       style={[dockPillStyles.pill, dockPillStyles.pillUrgent]}
-      onPress={returnLastCard}
+      onPress={() => {
+        trigger("uiTap");
+        returnLastCard();
+      }}
       accessibilityRole="button"
       accessibilityLabel={`Return card, ${Math.ceil(remaining)} seconds left`}
     >

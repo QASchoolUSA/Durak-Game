@@ -78,8 +78,8 @@ export function createGame(
   playerIds: PlayerId[],
   options: CreateGameOptions = {},
 ): GameState {
-  if (playerIds.length < 2 || playerIds.length > 4) {
-    throw new Error("Durak supports 2 to 4 players.");
+  if (playerIds.length < 2 || playerIds.length > 6) {
+    throw new Error("Durak supports 2 to 6 players.");
   }
   const seed = options.seed ?? (Math.random() * 2 ** 32) >>> 0;
   const deck = shuffle(buildDeck(), mulberry32(seed));

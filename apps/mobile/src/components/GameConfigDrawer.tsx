@@ -22,6 +22,7 @@ import type { Difficulty } from "../game/store";
 import { useGameStore } from "../game/store";
 import { MenuButton } from "./MenuButton";
 import { colors, radius, shadows, spacing, typography } from "../theme";
+import { trigger } from "../feedback/haptics";
 
 // ── Static config ─────────────────────────────────────────────────────────────
 
@@ -29,6 +30,8 @@ const PLAYER_OPTIONS = [
   { count: 2, hint: "1 vs 1"  },
   { count: 3, hint: "vs 2 AI" },
   { count: 4, hint: "vs 3 AI" },
+  { count: 5, hint: "vs 4 AI" },
+  { count: 6, hint: "vs 5 AI" },
 ];
 
 const VARIANTS: {
@@ -169,7 +172,10 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const startGame   = useGameStore((s) => s.startGame);
 
   const handleStart = useCallback(() => {
-    setModalVisible(false); onClose(); startGame();
+    trigger("gameStart");
+    setModalVisible(false);
+    onClose();
+    startGame();
   }, [onClose, startGame]);
 
   // ── Animated styles ────────────────────────────────────────────────────────
@@ -235,7 +241,10 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                       count={p.count}
                       hint={p.hint}
                       active={numPlayers === p.count}
-                      onPress={() => setPlayers(p.count)}
+                      onPress={() => {
+                        trigger("selection");
+                        setPlayers(p.count);
+                      }}
                     />
                   ))}
                 </View>
@@ -255,7 +264,10 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                       tag={v.tag}
                       desc={v.desc}
                       active={variant === v.id}
-                      onPress={() => setVariant(v.id)}
+                      onPress={() => {
+                        trigger("selection");
+                        setVariant(v.id);
+                      }}
                     />
                   ))}
                 </View>
@@ -273,7 +285,10 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                       label={opt.label}
                       desc={opt.desc}
                       active={playStyle === opt.id}
-                      onPress={() => setPlayStyle(opt.id)}
+                      onPress={() => {
+                        trigger("selection");
+                        setPlayStyle(opt.id);
+                      }}
                     />
                   ))}
                 </View>
@@ -285,7 +300,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
               <View style={[styles.section, numPlayers <= 2 && styles.sectionLocked]}>
                 <SectionLabel
                   label="THROW-IN"
-                  badge={numPlayers <= 2 ? "3–4 players only" : undefined}
+                  badge={numPlayers <= 2 ? "3–6 players only" : undefined}
                 />
                 <View style={styles.toggleRow}>
                   {THROW_OPTIONS.map((t) => (
@@ -295,7 +310,10 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                       desc={t.desc}
                       active={throwIn === t.id}
                       disabled={numPlayers <= 2}
-                      onPress={() => setThrowIn(t.id)}
+                      onPress={() => {
+                        trigger("selection");
+                        setThrowIn(t.id);
+                      }}
                     />
                   ))}
                 </View>
@@ -316,7 +334,10 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                       color={d.color}
                       activeBg={d.activeBg}
                       active={difficulty === d.id}
-                      onPress={() => setDiff(d.id)}
+                      onPress={() => {
+                        trigger("selection");
+                        setDiff(d.id);
+                      }}
                     />
                   ))}
                 </View>
@@ -533,9 +554,9 @@ const styles = StyleSheet.create({
   },
 
   // ── Player buttons ─────────────────────────────────────────────────────────
-  playerRow: { flexDirection: "row", gap: spacing.sm },
+  playerRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   playerBtn: {
-    flex: 1, height: 66,
+    flexGrow: 1, flexBasis: "30%", minWidth: 96, height: 66,
     borderRadius: radius.panel, borderWidth: 1.5,
     borderColor: IDLE_BORDER, backgroundColor: IDLE_BG,
     alignItems: "center", justifyContent: "center",

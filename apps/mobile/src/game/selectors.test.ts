@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cardId, type Card, type GameState } from "@durak/game-core";
-import { getBeatTransferChoice, getHumanView } from "./selectors";
+import { getBeatTransferChoice, getHumanView, getSeatRole } from "./selectors";
 
 function c(rank: Card["rank"], suit: Card["suit"]): Card {
   return { rank, suit, id: cardId(rank, suit) };
@@ -72,5 +72,47 @@ describe("getBeatTransferChoice", () => {
     });
     const view = getHumanView(state, "you");
     expect(getBeatTransferChoice(state, view).active).toBe(false);
+  });
+});
+
+describe("getSeatRole", () => {
+  it("returns taking when defender chose to take", () => {
+    const state = baseState({
+      defenderId: "you",
+      takeInProgress: true,
+      table: [{ attack: c(9, "clubs") }],
+    });
+    expect(getSeatRole(state, "you")).toBe("taking");
+  });
+
+  it("returns defender when not taking", () => {
+    const state = baseState({ defenderId: "you", takeInProgress: false });
+    expect(getSeatRole(state, "you")).toBe("defender");
+  });
+
+  it("returns attacker for primary attacker", () => {
+    const state = baseState({ attackerId: "bot1", defenderId: "you" });
+    expect(getSeatRole(state, "bot1")).toBe("attacker");
+  });
+
+  it("returns null for non-role player", () => {
+    const state = baseState({
+      attackerId: "bot1",
+      defenderId: "you",
+      players: ["bot1", "you", "bot2"],
+    });
+    expect(getSeatRole(state, "bot2")).toBe(null);
+  });
+
+  it("taking overrides defender for the scooping player", () => {
+    const state = baseState({
+      attackerId: "bot1",
+      defenderId: "bot2",
+      takeInProgress: true,
+      hands: { bot1: [], you: [], bot2: [c(6, "hearts")] },
+      table: [{ attack: c(9, "clubs") }],
+    });
+    expect(getSeatRole(state, "bot2")).toBe("taking");
+    expect(getSeatRole(state, "bot1")).toBe("attacker");
   });
 });

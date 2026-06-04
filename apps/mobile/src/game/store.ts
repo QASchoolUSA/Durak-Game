@@ -14,6 +14,7 @@ import {
   undefendedCount,
 } from "@durak/game-core";
 import { safeMoveFor } from "./autoMove";
+import { trigger } from "../feedback/haptics";
 
 export type Screen = "home" | "game" | "result";
 export type Difficulty = "easy" | "medium" | "hard";
@@ -22,7 +23,7 @@ const AI_DELAY: Record<Difficulty, number> = { easy: 1400, medium: 750, hard: 32
 const RETURN_WINDOW_MS = 3000;
 
 const HUMAN_ID: PlayerId = "you";
-const BOT_NAMES = ["Olga", "Ivan", "Dmitri"];
+const BOT_NAMES = ["Olga", "Ivan", "Dmitri", "Maria", "Sergey"];
 
 function buildPlayers(n: number): { ids: PlayerId[]; names: Record<PlayerId, string> } {
   const ids: PlayerId[] = [HUMAN_ID];
@@ -167,7 +168,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     pot: 0,
     buyIn: 100,
 
-    setNumPlayers: (n) => set({ numPlayers: Math.min(4, Math.max(2, n)) }),
+    setNumPlayers: (n) => set({ numPlayers: Math.min(6, Math.max(2, n)) }),
     setVariant: (variant) => set({ variant }),
     setThrowInScope: (throwInScope) => set({ throwInScope }),
     setPlayStyle: (playStyle) => set({ playStyle }),
@@ -213,6 +214,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         const next = applyMove(game, move);
         cancelReturnTimer();
 
+        if (move.type === "TAKE") trigger("takeCards");
+        else if (move.type === "PASS") trigger("confirm");
+        else if (isHumanCardMove(move, humanId)) trigger("cardPlay");
+
         if (next.phase === "gameOver") {
           cancelAi();
           set({
@@ -239,6 +244,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
         afterApply(next);
       } catch {
+        trigger("error");
         // Illegal move (e.g. stale UI). Ignore and let the user try again.
       }
     },

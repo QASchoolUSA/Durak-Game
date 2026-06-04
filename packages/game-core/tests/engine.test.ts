@@ -94,9 +94,17 @@ describe("createGame", () => {
     expect(countAllCards(g)).toBe(36);
   });
 
-  it("rejects fewer than 2 or more than 4 players", () => {
+  it("rejects fewer than 2 or more than 6 players", () => {
     expect(() => createGame(["A"], { seed: 1 })).toThrow();
-    expect(() => createGame(["A", "B", "C", "D", "E"], { seed: 1 })).toThrow();
+    expect(() => createGame(["A", "B", "C", "D", "E", "F", "G"], { seed: 1 })).toThrow();
+  });
+
+  it("deals 6 cards each with an empty deck for 6 players", () => {
+    const g = createGame(["A", "B", "C", "D", "E", "F"], { seed: 42 });
+    expect(g.players).toHaveLength(6);
+    for (const p of g.players) expect(g.hands[p]).toHaveLength(6);
+    expect(g.deck).toHaveLength(0);
+    expect(countAllCards(g)).toBe(36);
   });
 
   it("first attacker holds the lowest trump when one exists", () => {
@@ -303,7 +311,13 @@ describe("game over", () => {
 });
 
 describe("full seeded games via AI", () => {
-  for (const players of [["A", "B"], ["A", "B", "C"], ["A", "B", "C", "D"]]) {
+  for (const players of [
+    ["A", "B"],
+    ["A", "B", "C"],
+    ["A", "B", "C", "D"],
+    ["A", "B", "C", "D", "E"],
+    ["A", "B", "C", "D", "E", "F"],
+  ]) {
     it(`plays a ${players.length}-player game to completion and conserves cards`, () => {
       let s = createGame(players, { seed: players.length * 100 + 1 });
       let steps = 0;

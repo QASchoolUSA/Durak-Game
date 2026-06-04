@@ -6,6 +6,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { colors, radius, shadows, typography } from "../theme";
+import { trigger } from "../feedback/haptics";
 
 const SPRING = { damping: 14, stiffness: 320, mass: 0.6 };
 
@@ -58,6 +59,7 @@ function MenuButtonComponent({
       <Pressable
         onPressIn={() => {
           scale.value = withSpring(0.96, SPRING);
+          trigger("uiTap");
         }}
         onPressOut={() => {
           scale.value = withSpring(1.0, SPRING);
