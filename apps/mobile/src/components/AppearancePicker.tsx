@@ -16,6 +16,7 @@ import {
   type AppearanceMode,
 } from "../theme/appearanceThemes";
 import { getCardTheme } from "../theme/cardThemes";
+import { useUiTheme } from "../theme/UiThemeContext";
 import { colors, radius, spacing, typography } from "../theme";
 import { LinearGradient } from "expo-linear-gradient";
 import { Card } from "./Card";
@@ -44,6 +45,7 @@ function ModeBadge({ mode }: { mode: AppearanceMode }) {
 }
 
 function AppearanceTile({ id }: { id: AppearanceId }) {
+  const ui = useUiTheme();
   const cardDesign = usePreferencesStore((s) => s.cardDesign);
   const setAppearance = usePreferencesStore((s) => s.setAppearance);
   const preset = APPEARANCE_PRESETS[id];
@@ -56,7 +58,13 @@ function AppearanceTile({ id }: { id: AppearanceId }) {
   return (
     <Pressable
       onPress={() => setAppearance(id)}
-      style={[styles.tile, selected && styles.tileSelected]}
+      style={[
+        styles.tile,
+        selected && {
+          borderColor: ui.accent,
+          backgroundColor: ui.accentSoft,
+        },
+      ]}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={`${preset.name} appearance, ${preset.mode}`}
@@ -91,16 +99,25 @@ function AppearanceTile({ id }: { id: AppearanceId }) {
           />
         </View>
       </View>
-      <Text style={[styles.tileName, selected && styles.tileNameSelected]}>
+      <Text
+        style={[
+          styles.tileName,
+          { color: selected ? ui.accent : ui.textMuted },
+        ]}
+      >
         {preset.name}
       </Text>
       <ModeBadge mode={preset.mode} />
-      {selected && <View style={styles.selectedDot} />}
+      {selected && (
+        <View style={[styles.selectedDot, { backgroundColor: ui.accent }]} />
+      )}
     </Pressable>
   );
 }
 
 export function AppearancePicker() {
+  const ui = useUiTheme();
+
   return (
     <View>
       <ScrollView
@@ -112,7 +129,9 @@ export function AppearancePicker() {
           <AppearanceTile key={id} id={id} />
         ))}
       </ScrollView>
-      <Text style={styles.hint}>Dark & Day table colors — gameplay only</Text>
+      <Text style={[styles.hint, { color: ui.textFaint }]}>
+        Dark & Day table colors — gameplay only
+      </Text>
     </View>
   );
 }
@@ -132,10 +151,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "transparent",
     backgroundColor: "rgba(0,0,0,0.12)",
-  },
-  tileSelected: {
-    borderColor: colors.gold,
-    backgroundColor: "rgba(231,192,103,0.10)",
   },
   swatch: {
     borderRadius: radius.sm,
@@ -170,12 +185,8 @@ const styles = StyleSheet.create({
   },
   tileName: {
     ...typography.caption,
-    color: colors.textMuted,
     fontWeight: "700",
     textAlign: "center",
-  },
-  tileNameSelected: {
-    color: colors.gold,
   },
   modeBadge: {
     marginTop: 4,
@@ -205,12 +216,10 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.gold,
     marginTop: 4,
   },
   hint: {
     ...typography.caption,
-    color: colors.textFaint,
     marginTop: spacing.sm,
     marginLeft: 4,
   },

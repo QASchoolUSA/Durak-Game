@@ -41,6 +41,9 @@
         "projectId": "f8c6d0c7-6ad7-42dd-a4ec-9a50bba3910c"
       }
     },
-    "owner": "kedrov"
+    "owner": "kedrov",
+    "plugins": [
+      "expo-audio"
+    ]
   }
 }

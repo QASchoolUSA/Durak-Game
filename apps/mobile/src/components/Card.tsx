@@ -23,7 +23,7 @@ export interface CardProps {
   highlighted?: boolean;
   /** Override active card theme (e.g. design picker previews). */
   themeOverride?: CardTheme;
-  style?: ViewStyle;
+  style?: ViewStyle | ViewStyle[];
 }
 
 function CornerBracket({

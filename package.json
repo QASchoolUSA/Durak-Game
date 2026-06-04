@@ -5,7 +5,9 @@
   "description": "Durak (Podkidnoy) mobile card game - monorepo root",
   "scripts": {
     "test": "pnpm --filter @durak/game-core test && pnpm --filter @durak/mobile test",
-    "mobile": "pnpm --filter @durak/mobile start"
+    "start": "pnpm --filter @durak/mobile start",
+    "mobile": "pnpm --filter @durak/mobile start",
+    "mobile:clear": "pnpm --filter @durak/mobile exec expo start -c"
   },
   "devDependencies": {
     "typescript": "^5.5.4"

@@ -10,6 +10,10 @@ const mocks = vi.hoisted(() => {
   return { impactAsync, notificationAsync, selectionAsync, platformState, preferencesState };
 });
 
+vi.mock("./sounds", () => ({
+  playSound: vi.fn(),
+}));
+
 vi.mock("expo-haptics", () => ({
   ImpactFeedbackStyle: {
     Light: "light",

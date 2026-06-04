@@ -17,9 +17,12 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { colors, radius, spacing } from "../theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { radius, spacing } from "../theme";
+import { useTableTheme } from "../theme/TableThemeContext";
+import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
-import { DOCK_ROW_HEIGHT, dockPillStyles } from "./dockPill";
+import { DOCK_ROW_HEIGHT, useDockPillStyles } from "./dockPill";
 
 const REACTIONS = [
   { emoji: "\u{1F44D}", label: "Nice" },
@@ -44,8 +47,16 @@ interface Burst {
 }
 
 function ReactionsBarComponent() {
+  const ui = useUiTheme();
+  const tableTheme = useTableTheme();
+  const dockPillStyles = useDockPillStyles();
   const insets = useSafeAreaInsets();
   const sheetH = SHEET_HEIGHT + insets.bottom;
+
+  const sheetGradient = tableTheme.backgroundGradient ?? [
+    tableTheme.backgroundColor,
+    ui.feltEdge,
+  ];
 
   const [bursts, setBursts] = useState<Burst[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -175,20 +186,50 @@ function ReactionsBarComponent() {
             <Pressable style={StyleSheet.absoluteFill} onPress={closeDrawer} />
           </Animated.View>
 
-          <Animated.View style={[styles.sheet, { height: sheetH }, aSheet]}>
+          <Animated.View
+            style={[
+              styles.sheet,
+              {
+                height: sheetH,
+                borderColor: ui.accentMuted,
+              },
+              aSheet,
+            ]}
+          >
+            <LinearGradient
+              colors={sheetGradient}
+              style={StyleSheet.absoluteFill}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+            />
+
             <GestureDetector gesture={swipeDown}>
               <View style={styles.handleZone}>
-                <View style={styles.handle} />
-                <Text style={styles.handleHint}>Swipe down to close</Text>
+                <View style={[styles.handle, { backgroundColor: ui.accentMuted }]} />
+                <Text style={[styles.handleHint, { color: ui.textMuted }]}>
+                  Swipe down to close
+                </Text>
               </View>
             </GestureDetector>
 
-            <Text style={styles.sheetTitle}>Pick a reaction</Text>
+            <Text style={[styles.sheetTitle, { color: ui.textPrimary }]}>
+              Pick a reaction
+            </Text>
             <View style={[styles.grid, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
               {REACTIONS.map(({ emoji, label }) => (
-                <Pressable key={emoji} style={styles.option} onPress={() => pickReaction(emoji)}>
+                <Pressable
+                  key={emoji}
+                  style={[
+                    styles.option,
+                    {
+                      backgroundColor: ui.panelBg,
+                      borderColor: ui.accentMuted,
+                    },
+                  ]}
+                  onPress={() => pickReaction(emoji)}
+                >
                   <Text style={styles.optionEmoji}>{emoji}</Text>
-                  <Text style={styles.optionLabel}>{label}</Text>
+                  <Text style={[styles.optionLabel, { color: ui.textMuted }]}>{label}</Text>
                 </Pressable>
               ))}
             </View>
@@ -233,13 +274,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: colors.feltBottom,
     borderTopLeftRadius: radius.panel + 6,
     borderTopRightRadius: radius.panel + 6,
     borderWidth: 1,
     borderBottomWidth: 0,
-    borderColor: colors.goldDim,
     paddingHorizontal: spacing.md,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOpacity: 0.28,
     shadowRadius: 16,
@@ -255,16 +295,13 @@ const styles = StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: 3,
-    backgroundColor: colors.goldDim,
     marginBottom: 4,
   },
   handleHint: {
-    color: colors.textMuted,
     fontSize: 10,
     fontWeight: "600",
   },
   sheetTitle: {
-    color: colors.textLight,
     fontSize: 14,
     fontWeight: "800",
     textAlign: "center",
@@ -280,15 +317,13 @@ const styles = StyleSheet.create({
     width: "22%",
     minWidth: 68,
     alignItems: "center",
-    backgroundColor: colors.panel,
     borderRadius: radius.panel,
     borderWidth: 1,
-    borderColor: colors.goldDim,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xs,
   },
   optionEmoji: { fontSize: 26, marginBottom: 2 },
-  optionLabel: { color: colors.textMuted, fontSize: 10, fontWeight: "600" },
+  optionLabel: { fontSize: 10, fontWeight: "600" },
 });
 
 export const ReactionsBar = React.memo(ReactionsBarComponent);

@@ -26,7 +26,9 @@ import type { Card as CardModel, Suit } from "@durak/game-core";
 import { Card } from "./Card";
 import { sortHandForDisplay } from "../game/handSort";
 import { useCardTheme } from "../theme/CardThemeContext";
-import { CARD_ASPECT, colors, layoutFor, radius, spacing, typography } from "../theme";
+import { useTableTheme } from "../theme/TableThemeContext";
+import { useUiTheme } from "../theme/UiThemeContext";
+import { CARD_ASPECT, layoutFor, radius, spacing, typography } from "../theme";
 
 const SPRING_IN = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
@@ -155,6 +157,12 @@ function FlippableRevealCard({
 }
 
 export function RevealSheet({ visible, onClose, trumpSuit, opponents }: RevealSheetProps) {
+  const ui = useUiTheme();
+  const tableTheme = useTableTheme();
+  const sheetGradient = tableTheme.backgroundGradient ?? [
+    tableTheme.backgroundColor,
+    tableTheme.backgroundColor,
+  ];
   const { width: screenW, height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const drawerH = Math.round(screenH * DRAWER_HEIGHT_RATIO);
@@ -373,29 +381,29 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents }: RevealSh
         <GestureDetector gesture={swipeDown}>
           <Animated.View style={[styles.sheet, { height: drawerH }, aSheet]}>
             <LinearGradient
-              colors={[colors.feltMid, colors.feltBottom]}
+              colors={sheetGradient}
               style={StyleSheet.absoluteFill}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
             />
-            <View style={styles.topAccent} />
+            <View style={[styles.topAccent, { backgroundColor: ui.panelBorder }]} />
 
             <View style={styles.topBar}>
               <View style={styles.handleWrap}>
-                <View style={styles.handle} />
+                <View style={[styles.handle, { backgroundColor: ui.accentMuted }]} />
               </View>
               <View style={styles.header}>
                 {step === "pickCard" && snapshotOpponents.length > 1 && (
                   <Pressable onPress={handleBackToPlayers} hitSlop={12} style={styles.backBtn}>
-                    <Text style={styles.backBtnText}>← Players</Text>
+                    <Text style={[styles.backBtnText, { color: ui.accent }]}>← Players</Text>
                   </Pressable>
                 )}
-                <Text style={styles.title}>{headerTitle}</Text>
-                <Text style={styles.headerSub}>{headerSub}</Text>
+                <Text style={[styles.title, { color: ui.accent }]}>{headerTitle}</Text>
+                <Text style={[styles.headerSub, { color: ui.textFaint }]}>{headerSub}</Text>
               </View>
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: ui.panelBorderSoft }]} />
 
             <View
               style={[
@@ -409,18 +417,24 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents }: RevealSh
                   {snapshotOpponents.map((opp) => (
                     <Pressable
                       key={opp.id}
-                      style={styles.playerRow}
+                      style={[
+                        styles.playerRow,
+                        {
+                          backgroundColor: ui.panelBg,
+                          borderColor: ui.panelBorderSoft,
+                        },
+                      ]}
                       onPress={() => handleSelectPlayer(opp.id)}
                       accessibilityRole="button"
                       accessibilityLabel={`Reveal card from ${opp.name}, ${opp.cards.length} cards`}
                     >
                       <View style={styles.playerInfo}>
-                        <Text style={styles.playerName}>{opp.name}</Text>
-                        <Text style={styles.playerCount}>
+                        <Text style={[styles.playerName, { color: ui.textPrimary }]}>{opp.name}</Text>
+                        <Text style={[styles.playerCount, { color: ui.textMuted }]}>
                           {opp.cards.length} cards
                         </Text>
                       </View>
-                      <Text style={styles.playerChevron}>›</Text>
+                      <Text style={[styles.playerChevron, { color: ui.accent }]}>›</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -483,7 +497,6 @@ const styles = StyleSheet.create({
     right: 44,
     height: 1,
     borderRadius: 1,
-    backgroundColor: "rgba(231,192,103,0.38)",
   },
   topBar: {},
   handleWrap: { alignItems: "center", paddingTop: 14, paddingBottom: 8 },
@@ -491,7 +504,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.20)",
   },
   header: {
     paddingHorizontal: spacing.lg,
@@ -501,23 +513,19 @@ const styles = StyleSheet.create({
   backBtn: { marginBottom: spacing.xs },
   backBtnText: {
     ...typography.caption,
-    color: colors.gold,
     fontWeight: "700",
   },
   title: {
     ...typography.title,
-    color: colors.gold,
     letterSpacing: 3,
   },
   headerSub: {
     ...typography.caption,
-    color: colors.textFaint,
     marginTop: 3,
     letterSpacing: 0.4,
   },
   divider: {
     height: 1,
-    backgroundColor: "rgba(231,192,103,0.12)",
     marginHorizontal: spacing.lg,
     marginTop: spacing.xs,
   },
@@ -542,24 +550,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: colors.panel,
     borderRadius: radius.panel,
     borderWidth: 1,
-    borderColor: colors.separator,
     padding: spacing.md,
   },
   playerInfo: { gap: 2 },
   playerName: {
     ...typography.heading,
-    color: colors.textLight,
     fontSize: 16,
   },
   playerCount: {
     ...typography.caption,
-    color: colors.textMuted,
   },
   playerChevron: {
-    color: colors.gold,
     fontSize: 24,
     fontWeight: "300",
   },

@@ -21,7 +21,9 @@ import type { GameVariant, ThrowInScope, PlayStyle } from "@durak/game-core";
 import type { Difficulty } from "../game/store";
 import { useGameStore } from "../game/store";
 import { MenuButton } from "./MenuButton";
-import { colors, radius, shadows, spacing, typography } from "../theme";
+import { colors, radius, spacing, typography } from "../theme";
+import { useTableTheme } from "../theme/TableThemeContext";
+import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
 
 // ── Static config ─────────────────────────────────────────────────────────────
@@ -86,6 +88,12 @@ export interface GameConfigDrawerProps {
 }
 
 export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
+  const ui = useUiTheme();
+  const tableTheme = useTableTheme();
+  const sheetGradient = tableTheme.backgroundGradient ?? [
+    tableTheme.backgroundColor,
+    tableTheme.backgroundColor,
+  ];
   const { height: screenH } = useWindowDimensions();
   const insets  = useSafeAreaInsets();
   const drawerH = Math.round(screenH * 0.88);
@@ -208,25 +216,25 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
 
             {/* Gradient background */}
             <LinearGradient
-              colors={[colors.feltMid, colors.feltBottom]}
+              colors={sheetGradient}
               style={StyleSheet.absoluteFill}
               start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
             />
-            {/* Thin gold accent line along the top edge */}
-            <View style={styles.topAccent} />
+            <View style={[styles.topAccent, { backgroundColor: ui.panelBorder }]} />
 
-            {/* ── Drag handle + header (visual cue for swipe) ── */}
             <View style={styles.topBar}>
               <View style={styles.handleWrap}>
-                <View style={styles.handle} />
+                <View style={[styles.handle, { backgroundColor: ui.accentMuted }]} />
               </View>
               <View style={styles.header}>
-                <Text style={styles.headerTitle}>NEW GAME</Text>
-                <Text style={styles.headerSub}>Swipe down to cancel</Text>
+                <Text style={[styles.headerTitle, { color: ui.accent }]}>NEW GAME</Text>
+                <Text style={[styles.headerSub, { color: ui.textFaint }]}>
+                  Swipe down to cancel
+                </Text>
               </View>
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: ui.panelBorderSoft }]} />
 
             {/* ── Non-scrollable sections ── */}
             <View style={styles.sections}>
@@ -250,7 +258,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                 </View>
               </View>
 
-              <View style={styles.sectionSep} />
+              <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
 
               {/* Game Mode */}
               <View style={styles.section}>
@@ -273,7 +281,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                 </View>
               </View>
 
-              <View style={styles.sectionSep} />
+              <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
 
               {/* Play Style */}
               <View style={styles.section}>
@@ -294,7 +302,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                 </View>
               </View>
 
-              <View style={styles.sectionSep} />
+              <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
 
               {/* Throw-in */}
               <View style={[styles.section, numPlayers <= 2 && styles.sectionLocked]}>
@@ -319,7 +327,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                 </View>
               </View>
 
-              <View style={styles.sectionSep} />
+              <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
 
               {/* AI Difficulty */}
               <View style={styles.section}>
@@ -346,7 +354,16 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
             </View>
 
             {/* ── START GAME footer ── */}
-            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+            <View
+              style={[
+                styles.footer,
+                {
+                  paddingBottom: Math.max(insets.bottom, spacing.md),
+                  backgroundColor: ui.panelBg,
+                  borderTopColor: ui.panelBorderSoft,
+                },
+              ]}
+            >
               <MenuButton label="START GAME" variant="primary" onPress={handleStart} icon="▶" />
             </View>
 
@@ -360,12 +377,18 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function SectionLabel({ label, badge }: { label: string; badge?: string }) {
+  const ui = useUiTheme();
   return (
     <View style={styles.sectionLabelRow}>
-      <Text style={styles.sectionLabelText}>{label}</Text>
+      <Text style={[styles.sectionLabelText, { color: ui.textFaint }]}>{label}</Text>
       {badge && (
-        <View style={styles.badgePill}>
-          <Text style={styles.badgePillText}>{badge}</Text>
+        <View
+          style={[
+            styles.badgePill,
+            { borderColor: ui.panelBorderSoft, backgroundColor: ui.accentSoft },
+          ]}
+        >
+          <Text style={[styles.badgePillText, { color: ui.textFaint }]}>{badge}</Text>
         </View>
       )}
     </View>
@@ -375,11 +398,48 @@ function SectionLabel({ label, badge }: { label: string; badge?: string }) {
 function PlayerBtn({ count, hint, active, onPress }: {
   count: number; hint: string; active: boolean; onPress: () => void;
 }) {
+  const ui = useUiTheme();
   return (
-    <Pressable style={[styles.playerBtn, active && styles.playerBtnOn]} onPress={onPress}>
-      <Text style={[styles.playerNum,  active && styles.playerNumOn]}>{count}</Text>
-      <Text style={[styles.playerHint, active && styles.playerHintOn]}>{hint}</Text>
-      {active && <View style={styles.playerActiveDot} />}
+    <Pressable
+      style={[
+        styles.playerBtn,
+        {
+          borderColor: ui.panelBorderSoft,
+          backgroundColor: ui.panelBg,
+        },
+        active && {
+          borderColor: ui.accent,
+          backgroundColor: ui.accentSoft,
+          shadowColor: ui.accent,
+          shadowOpacity: 0.70,
+          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 0 },
+          elevation: 12,
+        },
+      ]}
+      onPress={onPress}
+    >
+      <Text
+        style={[
+          styles.playerNum,
+          { color: ui.textFaint },
+          active && { color: ui.accent },
+        ]}
+      >
+        {count}
+      </Text>
+      <Text
+        style={[
+          styles.playerHint,
+          { color: ui.textFaint },
+          active && { color: ui.accentMuted },
+        ]}
+      >
+        {hint}
+      </Text>
+      {active && (
+        <View style={[styles.playerActiveDot, { backgroundColor: ui.accent }]} />
+      )}
     </Pressable>
   );
 }
@@ -388,6 +448,7 @@ function ModeCard({ icon, label, tag, desc, active, onPress }: {
   icon: string; label: string; tag: string; desc: string;
   active: boolean; onPress: () => void;
 }) {
+  const ui = useUiTheme();
   const scale = useSharedValue(1);
   const aStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -400,29 +461,101 @@ function ModeCard({ icon, label, tag, desc, active, onPress }: {
       onPressOut={() => { scale.value = withSpring(1.00, { damping: 14, stiffness: 300 }); }}
       onPress={onPress}
     >
-      <Animated.View style={[styles.modeCard, active && styles.modeCardOn, aStyle]}>
-
-        {/* ── Icon badge ── */}
-        <View style={[styles.modeIconBadge, active && styles.modeIconBadgeOn]}>
-          <Text style={[styles.modeIcon, active && styles.modeIconOn]}>{icon}</Text>
+      <Animated.View
+        style={[
+          styles.modeCard,
+          {
+            borderColor: ui.panelBorderSoft,
+            backgroundColor: ui.panelBg,
+          },
+          active && {
+            borderColor: ui.accent,
+            backgroundColor: ui.accentSoft,
+            shadowColor: ui.accent,
+            shadowOpacity: 0.70,
+            shadowRadius: 20,
+            shadowOffset: { width: 0, height: 0 },
+            elevation: 12,
+          },
+          aStyle,
+        ]}
+      >
+        <View
+          style={[
+            styles.modeIconBadge,
+            active && {
+              backgroundColor: ui.accentSoft,
+              borderColor: ui.panelBorder,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.modeIcon,
+              { color: ui.textMuted },
+              active && { color: ui.accent },
+            ]}
+          >
+            {icon}
+          </Text>
         </View>
 
-        {/* ── Name + description ── */}
         <View style={styles.modeBody}>
           <View style={styles.modeNameRow}>
-            <Text style={[styles.modeName, active && styles.modeNameOn]}>{label}</Text>
-            <View style={[styles.modeTagPill, active && styles.modeTagPillOn]}>
-              <Text style={[styles.modeTagText, active && styles.modeTagTextOn]}>{tag}</Text>
+            <Text
+              style={[
+                styles.modeName,
+                { color: ui.textPrimary },
+                active && { color: ui.accent },
+              ]}
+            >
+              {label}
+            </Text>
+            <View
+              style={[
+                styles.modeTagPill,
+                active && {
+                  backgroundColor: ui.accentSoft,
+                  borderColor: ui.panelBorder,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.modeTagText,
+                  { color: ui.textFaint },
+                  active && { color: ui.accent },
+                ]}
+              >
+                {tag}
+              </Text>
             </View>
           </View>
-          <Text style={[styles.modeDesc, active && styles.modeDescOn]} numberOfLines={2}>{desc}</Text>
+          <Text
+            style={[
+              styles.modeDesc,
+              { color: ui.textMuted },
+              active && { color: ui.textPrimary },
+            ]}
+            numberOfLines={2}
+          >
+            {desc}
+          </Text>
         </View>
 
-        {/* ── Selection indicator ── */}
-        <View style={[styles.modeRadio, active && styles.modeRadioOn]}>
-          {active && <Text style={styles.modeCheckText}>✓</Text>}
+        <View
+          style={[
+            styles.modeRadio,
+            active && {
+              borderColor: ui.accent,
+              backgroundColor: ui.accent,
+            },
+          ]}
+        >
+          {active && (
+            <Text style={[styles.modeCheckText, { color: ui.badgeText }]}>✓</Text>
+          )}
         </View>
-
       </Animated.View>
     </Pressable>
   );
@@ -431,15 +564,43 @@ function ModeCard({ icon, label, tag, desc, active, onPress }: {
 function ToggleBtn({ label, desc, active, disabled, onPress }: {
   label: string; desc: string; active: boolean; disabled?: boolean; onPress: () => void;
 }) {
+  const ui = useUiTheme();
   return (
     <Pressable
-      style={[styles.toggleBtn, active && styles.toggleBtnOn]}
+      style={[
+        styles.toggleBtn,
+        {
+          borderColor: ui.panelBorderSoft,
+          backgroundColor: ui.panelBg,
+        },
+        active && {
+          borderColor: ui.accent,
+          backgroundColor: ui.accentSoft,
+          shadowColor: ui.accent,
+          shadowOpacity: 0.70,
+          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 0 },
+          elevation: 12,
+        },
+      ]}
       onPress={onPress}
       disabled={disabled}
     >
-      <Text style={[styles.toggleLabel, active && styles.toggleLabelOn]}>{label}</Text>
       <Text
-        style={[styles.toggleDesc, active && styles.toggleDescOn]}
+        style={[
+          styles.toggleLabel,
+          { color: ui.textMuted },
+          active && { color: ui.accent },
+        ]}
+      >
+        {label}
+      </Text>
+      <Text
+        style={[
+          styles.toggleDesc,
+          { color: ui.textFaint },
+          active && { color: ui.accentMuted },
+        ]}
         numberOfLines={2}
       >
         {desc}
@@ -452,266 +613,209 @@ function DiffBtn({ label, desc, pips, color, activeBg, active, onPress }: {
   label: string; desc: string; pips: number; color: string;
   activeBg: string; active: boolean; onPress: () => void;
 }) {
+  const ui = useUiTheme();
   return (
     <Pressable
-      style={[styles.diffBtn, active && { borderColor: color, backgroundColor: activeBg }]}
+      style={[
+        styles.diffBtn,
+        {
+          borderColor: ui.panelBorderSoft,
+          backgroundColor: ui.panelBg,
+        },
+        active && { borderColor: color, backgroundColor: activeBg },
+      ]}
       onPress={onPress}
     >
       <View style={styles.pipRow}>
         {Array.from({ length: 5 }).map((_, i) => (
-          <View key={i} style={[styles.pip, { backgroundColor: i < pips ? color : "rgba(255,255,255,0.10)" }]} />
+          <View key={i} style={[styles.pip, { backgroundColor: i < pips ? color : ui.panelBorderSoft }]} />
         ))}
       </View>
-      <Text style={[styles.diffLabel, active && { color }]}>{label}</Text>
-      <Text style={styles.diffDesc}>{desc}</Text>
+      <Text style={[styles.diffLabel, { color: ui.textMuted }, active && { color }]}>{label}</Text>
+      <Text style={[styles.diffDesc, { color: ui.textFaint }]}>{desc}</Text>
     </Pressable>
   );
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const IDLE_BORDER  = "rgba(231,192,103,0.18)";
-const IDLE_BG      = "rgba(9,46,31,0.65)";
-
 const styles = StyleSheet.create({
   gestureRoot: { flex: 1 },
-
-  // ── Backdrop ──────────────────────────────────────────────────────────────
   backdrop: { backgroundColor: "rgba(4,14,9,1)" },
-
-  // ── Sheet ─────────────────────────────────────────────────────────────────
   sheet: {
-    position:             "absolute",
-    left: 0, right: 0, bottom: 0,
-    borderTopLeftRadius:  24,
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    overflow:             "hidden",
-    flexDirection:        "column",
+    overflow: "hidden",
+    flexDirection: "column",
   },
   topAccent: {
-    position: "absolute", top: 0, left: 44, right: 44,
-    height: 1, borderRadius: 1,
-    backgroundColor: "rgba(231,192,103,0.38)",
+    position: "absolute",
+    top: 0,
+    left: 44,
+    right: 44,
+    height: 1,
+    borderRadius: 1,
   },
-
-  // ── Handle + Header (swipeable top bar) ───────────────────────────────────
   topBar: {},
   handleWrap: { alignItems: "center", paddingTop: 14, paddingBottom: 8 },
-  handle:     { width: 40, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.20)" },
+  handle: { width: 40, height: 4, borderRadius: 2 },
   header: {
     paddingHorizontal: spacing.lg,
-    paddingTop:        spacing.xs,
-    paddingBottom:     spacing.sm,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
   },
-  headerTitle: { ...typography.title, color: colors.gold, letterSpacing: 2.5 },
-  headerSub:   { ...typography.caption, color: colors.textFaint, marginTop: 3, letterSpacing: 0.4 },
+  headerTitle: { ...typography.title, letterSpacing: 2.5 },
+  headerSub: { ...typography.caption, marginTop: 3, letterSpacing: 0.4 },
   divider: {
     height: 1,
-    backgroundColor: "rgba(231,192,103,0.12)",
     marginHorizontal: spacing.lg,
     marginTop: spacing.xs,
   },
-
-  // ── Non-scrollable sections ────────────────────────────────────────────────
   sections: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingTop:        spacing.sm,
-    paddingBottom:     spacing.xs,
-    gap:               spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
+    gap: spacing.sm,
   },
-  section:       {},
+  section: {},
   sectionLocked: { opacity: 0.36 },
-  // Full-bleed separator — negative horizontal margin cancels the sections padding
   sectionSep: {
-    height:           1,
+    height: 1,
     marginHorizontal: -spacing.lg,
-    backgroundColor:  "rgba(231,192,103,0.10)",
   },
   sectionLabelRow: {
-    flexDirection: "row", alignItems: "center",
-    gap: spacing.sm, marginBottom: spacing.xs,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
   },
   sectionLabelText: {
     ...typography.label,
-    color: colors.textFaint, letterSpacing: 1.5,
+    letterSpacing: 1.5,
   },
   badgePill: {
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderRadius: radius.pill, borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-    paddingHorizontal: 7, paddingVertical: 2,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
   },
-  badgePillText: { ...typography.label, color: colors.textFaint, letterSpacing: 0.4 },
-
-  // ── Footer ────────────────────────────────────────────────────────────────
+  badgePillText: { ...typography.label, letterSpacing: 0.4 },
   footer: {
-    backgroundColor: "rgba(9,46,31,0.88)",
     borderTopWidth: 1,
-    borderTopColor: "rgba(231,192,103,0.14)",
-    paddingTop:    spacing.md,
+    paddingTop: spacing.md,
     paddingHorizontal: spacing.lg,
   },
-
-  // ── Player buttons ─────────────────────────────────────────────────────────
   playerRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   playerBtn: {
-    flexGrow: 1, flexBasis: "30%", minWidth: 96, height: 66,
-    borderRadius: radius.panel, borderWidth: 1.5,
-    borderColor: IDLE_BORDER, backgroundColor: IDLE_BG,
-    alignItems: "center", justifyContent: "center",
+    flexGrow: 1,
+    flexBasis: "30%",
+    minWidth: 96,
+    height: 66,
+    borderRadius: radius.panel,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
     paddingBottom: 14,
     gap: 2,
   },
-  playerBtnOn: {
-    borderColor: colors.gold,
-    backgroundColor: "rgba(231,192,103,0.10)",
-    ...shadows.goldGlow,
-  },
-  playerNum:       { fontSize: 30, fontWeight: "900", color: colors.textFaint, lineHeight: 34 },
-  playerNumOn:     { color: colors.gold },
-  playerHint:      { ...typography.label, color: colors.textFaint, letterSpacing: 0.4 },
-  playerHintOn:    { color: colors.goldDim },
+  playerNum: { fontSize: 30, fontWeight: "900", lineHeight: 34 },
+  playerHint: { ...typography.label, letterSpacing: 0.4 },
   playerActiveDot: {
-    position: "absolute", bottom: 6,
-    width: 6, height: 6, borderRadius: 3,
-    backgroundColor: colors.gold,
+    position: "absolute",
+    bottom: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
-
-  // ── Mode rows (full-width, stacked) ────────────────────────────────────────
   modePair: { gap: spacing.sm },
-
   modeCardOuter: { width: "100%" },
   modeCard: {
-    flexDirection:   "row",
-    alignItems:      "center",
-    borderRadius:    radius.panel,
-    borderWidth:     1.5,
-    borderColor:     IDLE_BORDER,
-    backgroundColor: IDLE_BG,
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: radius.panel,
+    borderWidth: 1.5,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    gap:             spacing.md,
-    minHeight:       66,
+    gap: spacing.md,
+    minHeight: 66,
   },
-  modeCardOn: {
-    borderColor:     colors.gold,
-    backgroundColor: "rgba(231,192,103,0.10)",
-    ...shadows.goldGlow,
-  },
-
-  // Square icon badge on the left
   modeIconBadge: {
-    width:           42,
-    height:          42,
-    borderRadius:    radius.sm + 4,
-    alignItems:      "center",
-    justifyContent:  "center",
+    width: 42,
+    height: 42,
+    borderRadius: radius.sm + 4,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.05)",
-    borderWidth:     1,
-    borderColor:     "rgba(255,255,255,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
   },
-  modeIconBadgeOn: {
-    backgroundColor: "rgba(231,192,103,0.16)",
-    borderColor:     "rgba(231,192,103,0.40)",
-  },
-  modeIcon:   { fontSize: 22, lineHeight: 26, color: colors.textMuted },
-  modeIconOn: { color: colors.gold },
-
-  // Text column
-  modeBody:    { flex: 1, gap: 3 },
+  modeIcon: { fontSize: 22, lineHeight: 26 },
+  modeBody: { flex: 1, gap: 3 },
   modeNameRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-
-  // Mode name
   modeName: {
     ...typography.heading,
-    color:      colors.textLight,
     fontWeight: "800",
   },
-  modeNameOn: { color: colors.gold },
-
-  // Tag pill (CLASSIC / TRANSFER)
   modeTagPill: {
     paddingHorizontal: 7,
-    paddingVertical:   2,
-    borderRadius:      radius.pill,
-    backgroundColor:   "rgba(255,255,255,0.05)",
-    borderWidth:       1,
-    borderColor:       "rgba(255,255,255,0.10)",
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
   },
-  modeTagPillOn: {
-    backgroundColor: "rgba(231,192,103,0.14)",
-    borderColor:     "rgba(231,192,103,0.35)",
-  },
-  modeTagText:   { ...typography.micro, color: colors.textFaint, letterSpacing: 1.0 },
-  modeTagTextOn: { color: colors.goldBright },
-
-  // Short description
+  modeTagText: { ...typography.micro, letterSpacing: 1.0 },
   modeDesc: {
     ...typography.caption,
-    fontWeight:    "500",
-    color:         colors.textMuted,
-    lineHeight:    16,
+    fontWeight: "500",
+    lineHeight: 16,
     letterSpacing: 0.1,
   },
-  modeDescOn: { color: colors.textLight },
-
-  // Radio / check indicator on the right
   modeRadio: {
-    width:        22,
-    height:       22,
+    width: 22,
+    height: 22,
     borderRadius: 11,
-    borderWidth:  1.5,
-    borderColor:  "rgba(255,255,255,0.20)",
-    alignItems:     "center",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.20)",
+    alignItems: "center",
     justifyContent: "center",
   },
-  modeRadioOn: {
-    borderColor:     colors.gold,
-    backgroundColor: colors.gold,
-  },
   modeCheckText: {
-    color:      colors.feltBottom,
-    fontSize:   12,
+    fontSize: 12,
     fontWeight: "900",
     lineHeight: 14,
   },
-
-  // ── Toggle buttons ──────────────────────────────────────────────────────────
   toggleRow: { flexDirection: "row", gap: spacing.sm },
   toggleBtn: {
     flex: 1,
     minHeight: 54,
     borderRadius: radius.panel,
     borderWidth: 1.5,
-    borderColor: IDLE_BORDER,
-    backgroundColor: IDLE_BG,
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
   },
-  toggleBtnOn: {
-    borderColor: colors.gold,
-    backgroundColor: "rgba(231,192,103,0.10)",
-    ...shadows.goldGlow,
-  },
-  toggleLabel:   { ...typography.body,  color: colors.textMuted, fontWeight: "800", textAlign: "center" },
-  toggleLabelOn: { color: colors.gold },
-  toggleDesc:    { ...typography.label, color: colors.textFaint, letterSpacing: 0.3, textAlign: "center" },
-  toggleDescOn:  { color: colors.goldDim },
-
-  // ── Difficulty buttons ──────────────────────────────────────────────────────
+  toggleLabel: { ...typography.body, fontWeight: "800", textAlign: "center" },
+  toggleDesc: { ...typography.label, letterSpacing: 0.3, textAlign: "center" },
   diffRow: { flexDirection: "row", gap: spacing.sm },
   diffBtn: {
-    flex: 1, height: 64,
-    borderRadius: radius.panel, borderWidth: 1.5,
-    borderColor: IDLE_BORDER, backgroundColor: IDLE_BG,
-    alignItems: "center", justifyContent: "center", gap: 4,
+    flex: 1,
+    height: 64,
+    borderRadius: radius.panel,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
   },
-  pipRow:    { flexDirection: "row", gap: 4 },
-  pip:       { width: 6, height: 6, borderRadius: 3 },
-  diffLabel: { ...typography.caption, color: colors.textMuted, fontWeight: "800" },
-  diffDesc:  { ...typography.label, color: colors.textFaint, letterSpacing: 0.3 },
+  pipRow: { flexDirection: "row", gap: 4 },
+  pip: { width: 6, height: 6, borderRadius: 3 },
+  diffLabel: { ...typography.caption, fontWeight: "800" },
+  diffDesc: { ...typography.label, letterSpacing: 0.3 },
 });

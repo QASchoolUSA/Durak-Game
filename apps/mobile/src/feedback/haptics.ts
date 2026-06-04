@@ -7,6 +7,7 @@ import {
   selectionAsync,
 } from "expo-haptics";
 import { usePreferencesStore } from "../game/preferencesStore";
+import { playSound } from "./sounds";
 
 export type HapticEvent =
   | "uiTap"
@@ -53,8 +54,9 @@ async function playEvent(event: HapticEvent): Promise<void> {
   }
 }
 
-/** Fire a haptic event if enabled and supported on this platform. */
+/** Fire haptic and sound feedback if enabled and supported on this platform. */
 export function trigger(event: HapticEvent): void {
+  playSound(event);
   if (Platform.OS === "web") return;
   if (!usePreferencesStore.getState().hapticsEnabled) return;
 

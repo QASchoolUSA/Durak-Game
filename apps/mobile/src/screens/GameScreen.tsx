@@ -22,8 +22,10 @@ import {
   type TableAreaHandle,
   type TableExitKind,
 } from "../components/TableArea";
-import { TurnTimer } from "../components/TurnTimer";
+import { YourTurnBanner } from "../components/YourTurnBanner";
+import { GameCoachOverlay, type CoachStep } from "../components/GameCoachOverlay";
 import { useGameStore } from "../game/store";
+import { usePreferencesStore } from "../game/preferencesStore";
 import {
   canReveal,
   getHumanView,
@@ -38,10 +40,31 @@ import {
   type DropZoneKind,
   resolveDropFromBounds,
 } from "../game/dropZones";
-import { colors, radius, shadows, spacing, timing, typography } from "../theme";
+import { colors, radius, shadows, spacing, typography } from "../theme";
+import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
 
 const TABLE_EXIT_RESET_MS = 450;
+
+const STANDARD_COACH_STEPS: CoachStep[] = [
+  {
+    title: "Play your cards",
+    body: "When it's your turn, a YOUR TURN banner appears above your hand. Drag or tap a highlighted card to attack or defend.",
+  },
+  {
+    title: "Take or pass",
+    body: "As defender, beat every attack or press TAKE. Attackers press DONE when finished throwing in.",
+  },
+  {
+    title: "Beat the clock",
+    body: "Each turn is timed. If time runs out, you automatically Take (as defender) or press Done (as attacker). When opening the attack, your lowest card is played. Otherwise you must still play manually.",
+  },
+];
+
+const ABILITIES_COACH_STEP: CoachStep = {
+  title: "Abilities",
+  body: "Return undoes your last play for 3 seconds. Graveyard shows discarded cards; Reveal lets you peek at an opponent's hand.",
+};
 
 function activePlayer(game: GameState): PlayerId {
   if (!game.takeInProgress && undefendedCount(game) > 0) return game.defenderId;
@@ -70,8 +93,37 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const submitHuman = useGameStore((s) => s.submitHuman);
   const autoPlayHuman = useGameStore((s) => s.autoPlayHuman);
   const goHome = useGameStore((s) => s.goHome);
+  const ui = useUiTheme();
   const pauseForOverlay = useGameStore((s) => s.pauseForOverlay);
   const resumeFromOverlay = useGameStore((s) => s.resumeFromOverlay);
+  const turnSeconds = usePreferencesStore((s) => s.turnSeconds);
+  const tutorialCompleted = usePreferencesStore((s) => s.tutorialCompleted);
+  const setTutorialCompleted = usePreferencesStore((s) => s.setTutorialCompleted);
+  const prefsHydrated = usePreferencesStore((s) => s.hydrated);
+
+  const coachSteps = useMemo(
+    () =>
+      game?.rules.playStyle === "abilities"
+        ? [...STANDARD_COACH_STEPS, ABILITIES_COACH_STEP]
+        : STANDARD_COACH_STEPS,
+    [game?.rules.playStyle],
+  );
+  const [coachVisible, setCoachVisible] = useState(false);
+  const [coachStepIndex, setCoachStepIndex] = useState(0);
+
+  useEffect(() => {
+    if (prefsHydrated && !tutorialCompleted) {
+      setCoachVisible(true);
+      setCoachStepIndex(0);
+    } else {
+      setCoachVisible(false);
+    }
+  }, [prefsHydrated, tutorialCompleted]);
+
+  const dismissCoach = useCallback(() => {
+    setCoachVisible(false);
+    setTutorialCompleted(true);
+  }, [setTutorialCompleted]);
 
   const view = useMemo(() => (game ? getHumanView(game, humanId) : null), [game, humanId]);
   const beatTransferChoice = useMemo(
@@ -81,7 +133,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   /** Dual beat/transfer slot signs on the table (Perevodnoy opening defend). */
   const showBeatTransferChoice = beatTransferChoice.active;
 
-  const [remaining, setRemaining] = useState(timing.turnSeconds);
+  const [remaining, setRemaining] = useState<number>(turnSeconds || 12);
   const [takeConfirmOpen, setTakeConfirmOpen] = useState(false);
   const [graveyardOpen, setGraveyardOpen] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
@@ -97,7 +149,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const pendingReaimRef = useRef(false);
   const tableAreaRef = useRef<TableAreaHandle>(null);
   const firedRef = useRef(false);
-  const prevRemainingRef = useRef(timing.turnSeconds);
+  const prevRemainingRef = useRef<number>(turnSeconds || 12);
   const prevGameRef = useRef<GameState | null>(null);
   const exitResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -373,15 +425,14 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
 
   useEffect(() => {
     firedRef.current = false;
-    prevRemainingRef.current = timing.turnSeconds;
-    // Beat/transfer choice needs a deliberate drag — no timer auto-play.
-    if (!view?.mustAct || showBeatTransferChoice || revealOpen) {
-      setRemaining(timing.turnSeconds);
+    prevRemainingRef.current = turnSeconds;
+    if (turnSeconds === 0 || !view?.mustAct || showBeatTransferChoice || revealOpen) {
+      setRemaining(turnSeconds);
       return;
     }
     const start = lastMoveAt || Date.now();
     const tick = () => {
-      const r = Math.max(0, timing.turnSeconds - (Date.now() - start) / 1000);
+      const r = Math.max(0, turnSeconds - (Date.now() - start) / 1000);
       const prevR = prevRemainingRef.current;
       if (prevR > 4 && r <= 4) trigger("timerWarning");
       if (prevR > 1 && r <= 1) trigger("timerCritical");
@@ -396,7 +447,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     tick();
     const iv = setInterval(tick, 100);
     return () => clearInterval(iv);
-  }, [view?.mustAct, showBeatTransferChoice, revealOpen, lastMoveAt, autoPlayHuman]);
+  }, [view?.mustAct, showBeatTransferChoice, revealOpen, lastMoveAt, autoPlayHuman, turnSeconds]);
 
   const revealEnabled = game && view ? canReveal(game, humanId, view) : false;
   const revealOpponents = useMemo(() => {
@@ -437,12 +488,26 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
 
           <View style={styles.headerActions}>
             {onOpenSettings && (
-              <Pressable style={styles.headerBtn} onPress={onOpenSettings} hitSlop={10}>
-                <Text style={styles.headerBtnText}>⚙</Text>
+              <Pressable
+                style={[
+                  styles.headerBtn,
+                  { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
+                ]}
+                onPress={onOpenSettings}
+                hitSlop={10}
+              >
+                <Text style={[styles.headerBtnText, { color: ui.textMuted }]}>⚙</Text>
               </Pressable>
             )}
-            <Pressable style={styles.headerBtn} onPress={goHome} hitSlop={10}>
-              <Text style={styles.headerBtnText}>✕</Text>
+            <Pressable
+              style={[
+                styles.headerBtn,
+                { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
+              ]}
+              onPress={goHome}
+              hitSlop={10}
+            >
+              <Text style={[styles.headerBtnText, { color: ui.textMuted }]}>✕</Text>
             </Pressable>
           </View>
         </View>
@@ -493,10 +558,11 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         <View style={styles.bottom}>
           <View style={styles.timerRow}>
             {view.mustAct && (
-              <TurnTimer
-                progress={remaining / timing.turnSeconds}
-                seconds={remaining}
+              <YourTurnBanner
                 label={turnLabel}
+                role={seatRoleForFinished(game, humanId)}
+                seconds={turnSeconds > 0 ? remaining : undefined}
+                totalSeconds={turnSeconds > 0 ? turnSeconds : undefined}
               />
             )}
           </View>
@@ -577,6 +643,14 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
           opponents={revealOpponents}
         />
       )}
+
+      <GameCoachOverlay
+        visible={coachVisible}
+        steps={coachSteps}
+        stepIndex={coachStepIndex}
+        onNext={() => setCoachStepIndex((i) => i + 1)}
+        onDismiss={dismissCoach}
+      />
     </Background>
   );
 }
@@ -596,13 +670,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.panel,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(231, 192, 103, 0.20)",
   },
-  headerBtnText: { color: colors.textMuted, fontSize: 13, fontWeight: "700" },
+  headerBtnText: { fontSize: 13, fontWeight: "700" },
   opponents: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -631,7 +703,7 @@ const styles = StyleSheet.create({
   },
   bottom:    { paddingBottom: spacing.xs, overflow: "visible" },
   timerRow:  {
-    height: 42,
+    minHeight: 72,
     alignItems: "stretch",
     justifyContent: "center",
     paddingHorizontal: spacing.xl,

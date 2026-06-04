@@ -5,7 +5,8 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { colors, radius, shadows, typography } from "../theme";
+import { radius, typography } from "../theme";
+import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
 
 const SPRING = { damping: 14, stiffness: 320, mass: 0.6 };
@@ -27,6 +28,7 @@ function MenuButtonComponent({
   disabled = false,
   icon,
 }: MenuButtonProps) {
+  const ui = useUiTheme();
   const scale = useSharedValue(1);
 
   const aStyle = useAnimatedStyle(() => ({
@@ -35,23 +37,31 @@ function MenuButtonComponent({
 
   const bg =
     variant === "primary"
-      ? colors.gold
+      ? ui.accent
       : variant === "secondary"
-        ? "rgba(9, 46, 31, 0.85)"
+        ? ui.panelBg
         : "transparent";
 
   const borderColor =
     variant === "primary"
       ? "transparent"
       : variant === "secondary"
-        ? colors.goldDim
-        : "rgba(231, 192, 103, 0.35)";
+        ? ui.panelBorder
+        : ui.panelBorderSoft;
 
   const textColor =
-    variant === "primary" ? colors.feltBottom : colors.textLight;
+    variant === "primary" ? ui.badgeText : ui.textPrimary;
 
   const extraShadow =
-    variant === "primary" ? shadows.goldGlow : undefined;
+    variant === "primary"
+      ? {
+          shadowColor: ui.accent,
+          shadowOpacity: 0.70,
+          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 0 },
+          elevation: 12,
+        }
+      : undefined;
 
   return (
     <View style={[styles.wrap, extraShadow]}>

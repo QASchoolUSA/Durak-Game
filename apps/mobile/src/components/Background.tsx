@@ -11,12 +11,12 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { colors } from "../theme";
 import { useTableTheme } from "../theme/TableThemeContext";
+import { useUiTheme } from "../theme/UiThemeContext";
 
 export interface BackgroundProps {
   children: React.ReactNode;
-  /** `home` — fixed app chrome; `game` — themed playing-area color. */
+  /** `home` — themed app chrome; `game` — themed playing-area color. */
   variant?: "home" | "game";
 }
 
@@ -45,7 +45,7 @@ function buildSparkles(count: number): SparkleSpec[] {
   }));
 }
 
-function Sparkle({ spec }: { spec: SparkleSpec }) {
+function Sparkle({ spec, color }: { spec: SparkleSpec; color: string }) {
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -81,6 +81,7 @@ function Sparkle({ spec }: { spec: SparkleSpec }) {
           width: spec.size,
           height: spec.size,
           borderRadius: spec.size / 2,
+          backgroundColor: color,
         },
         aStyle,
       ]}
@@ -141,21 +142,29 @@ function PulsingRing({
   );
 }
 
-function HomeDecorShapes() {
+function HomeDecorShapes({
+  ringFaint,
+  ring,
+  diamond,
+  line,
+}: {
+  ringFaint: string;
+  ring: string;
+  diamond: string;
+  line: string;
+}) {
   const { width, height } = useWindowDimensions();
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {/* Large corner arcs */}
-      <View style={[styles.cornerArc, styles.cornerArcTL]} />
-      <View style={[styles.cornerArc, styles.cornerArcBR]} />
+      <View style={[styles.cornerArc, styles.cornerArcTL, { borderColor: ringFaint }]} />
+      <View style={[styles.cornerArc, styles.cornerArcBR, { borderColor: ringFaint }]} />
 
-      {/* Floating rings */}
       <PulsingRing
         size={width * 0.92}
         left={width * 0.04 - width * 0.46}
         top={height * 0.06}
-        borderColor={colors.homeDecor.ringFaint}
+        borderColor={ringFaint}
         borderWidth={1}
         duration={9000}
       />
@@ -163,54 +172,60 @@ function HomeDecorShapes() {
         size={width * 0.62}
         left={width * 0.72 - width * 0.31}
         top={height * 0.58}
-        borderColor={colors.homeDecor.ring}
+        borderColor={ring}
         borderWidth={1.5}
         duration={7200}
       />
 
-      {/* Diamond accents */}
-      <View style={[styles.diamond, { top: height * 0.14, right: width * 0.08 }]} />
-      <View style={[styles.diamond, styles.diamondSm, { bottom: height * 0.22, left: width * 0.06 }]} />
-      <View style={[styles.diamond, styles.diamondSm, { top: height * 0.72, right: width * 0.14 }]} />
+      <View style={[styles.diamond, { top: height * 0.14, right: width * 0.08, borderColor: diamond }]} />
+      <View style={[styles.diamond, styles.diamondSm, { bottom: height * 0.22, left: width * 0.06, borderColor: diamond }]} />
+      <View style={[styles.diamond, styles.diamondSm, { top: height * 0.72, right: width * 0.14, borderColor: diamond }]} />
 
-      {/* Horizontal accent lines */}
-      <View style={[styles.accentLine, { top: "18%", width: width * 0.28, left: width * 0.04 }]} />
-      <View style={[styles.accentLine, { top: "76%", width: width * 0.22, right: width * 0.06 }]} />
+      <View style={[styles.accentLine, { top: "18%", width: width * 0.28, left: width * 0.04, backgroundColor: line }]} />
+      <View style={[styles.accentLine, { top: "76%", width: width * 0.22, right: width * 0.06, backgroundColor: line }]} />
     </View>
   );
 }
 
 function HomeAmbience() {
+  const ui = useUiTheme();
   const sparkles = useMemo(() => buildSparkles(18), []);
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <HomeDecorShapes />
+      <HomeDecorShapes
+        ringFaint={ui.panelBorderSoft}
+        ring={ui.panelBorder}
+        diamond={ui.panelBorderSoft}
+        line={ui.panelBorderSoft}
+      />
 
-      {/* Soft gold spotlight from above */}
       <LinearGradient
-        colors={[colors.homeDecor.spotlight, colors.homeDecor.spotlightFade, "transparent"]}
+        colors={[ui.accentSoft, "transparent", "transparent"]}
         locations={[0, 0.4, 0.75]}
         style={styles.spotlightTop}
       />
 
       {sparkles.map((s) => (
-        <Sparkle key={s.id} spec={s} />
+        <Sparkle key={s.id} spec={s} color={ui.accent} />
       ))}
     </View>
   );
 }
 
 export function Background({ children, variant = "home" }: BackgroundProps) {
-  const isGame = variant === "game";
   const tableTheme = useTableTheme();
+  const ui = useUiTheme();
+  const grad = tableTheme.backgroundGradient ?? [
+    tableTheme.backgroundColor,
+    ui.feltEdge,
+  ];
 
-  if (isGame) {
-    const grad = tableTheme.backgroundGradient;
-    if (grad) {
+  if (variant === "game") {
+    if (tableTheme.backgroundGradient) {
       return (
         <LinearGradient
-          colors={grad}
+          colors={tableTheme.backgroundGradient}
           style={styles.fill}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
@@ -228,14 +243,16 @@ export function Background({ children, variant = "home" }: BackgroundProps) {
 
   return (
     <LinearGradient
-      colors={[colors.homeBg.top, colors.homeBg.mid, colors.homeBg.bottom, colors.homeBg.edge]}
-      locations={[0, 0.35, 0.72, 1]}
+      colors={grad.length >= 2 ? grad : [grad[0]!, ui.feltEdge]}
+      locations={grad.length >= 4 ? [0, 0.35, 0.72, 1] : undefined}
       style={styles.fill}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
     >
       <HomeAmbience />
 
-      <View style={[styles.vignetteTop, styles.vignetteTopHome]} pointerEvents="none" />
-      <View style={[styles.vignetteBottom, styles.vignetteBottomHome]} pointerEvents="none" />
+      <View style={[styles.vignetteTop, { backgroundColor: ui.activeTint }]} pointerEvents="none" />
+      <View style={[styles.vignetteBottom, { backgroundColor: ui.urgentBg }]} pointerEvents="none" />
 
       {children}
     </LinearGradient>
@@ -253,7 +270,6 @@ const styles = StyleSheet.create({
   },
   sparkle: {
     position: "absolute",
-    backgroundColor: colors.homeDecor.sparkle,
   },
   decorRing: {
     position: "absolute",
@@ -263,7 +279,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 120,
     height: 120,
-    borderColor: colors.homeDecor.ringFaint,
     backgroundColor: "transparent",
   },
   cornerArcTL: {
@@ -285,7 +300,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderWidth: 1,
-    borderColor: colors.homeDecor.diamond,
     backgroundColor: "transparent",
     transform: [{ rotate: "45deg" }],
   },
@@ -297,32 +311,21 @@ const styles = StyleSheet.create({
   accentLine: {
     position: "absolute",
     height: 1,
-    backgroundColor: colors.homeDecor.line,
   },
   vignetteTop: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: "35%",
-    backgroundColor: "rgba(6, 26, 18, 0.28)",
-    pointerEvents: "none",
-  },
-  vignetteTopHome: {
     height: "38%",
-    backgroundColor: colors.homeDecor.vignetteSoft,
+    pointerEvents: "none",
   },
   vignetteBottom: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    height: "40%",
-    backgroundColor: "rgba(6, 26, 18, 0.35)",
-    pointerEvents: "none",
-  },
-  vignetteBottomHome: {
     height: "42%",
-    backgroundColor: colors.homeDecor.vignette,
+    pointerEvents: "none",
   },
 });

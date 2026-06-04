@@ -1,27 +1,30 @@
 import React, { useEffect, useRef } from "react";
 import { Animated as RNAnimated, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeInDown, ZoomIn } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated";
 import { Background } from "../components/Background";
 import { Confetti } from "../components/Confetti";
 import { MenuButton } from "../components/MenuButton";
+import { useReduceMotion } from "../hooks/useReduceMotion";
 import { useGameStore } from "../game/store";
 import { trigger } from "../feedback/haptics";
 import { layoutFor, colors, radius, shadows, spacing, typography } from "../theme";
+import { useUiTheme } from "../theme/UiThemeContext";
 
 // ── Rank badges ──────────────────────────────────────────────────────────────
 
 const RANK_MEDALS = ["🥇", "🥈", "🥉", "4️⃣"];
 
-function rankBadge(rank: number, total: number, isLoser: boolean) {
+function rankBadge(rank: number, total: number, isLoser: boolean, accent: string) {
   if (isLoser) return { emoji: "🃏", label: "DURAK", color: colors.lose };
-  if (rank === 1) return { emoji: RANK_MEDALS[0]!, label: "WINNER", color: colors.gold };
+  if (rank === 1) return { emoji: RANK_MEDALS[0]!, label: "WINNER", color: accent };
   return { emoji: RANK_MEDALS[rank - 1] ?? `${rank}`, label: "FINISHED", color: colors.textMuted };
 }
 
 // ── Animated prize counter ───────────────────────────────────────────────────
 
 function PrizeCounter({ amount }: { amount: number }) {
+  const ui = useUiTheme();
   const animVal = useRef(new RNAnimated.Value(0)).current;
 
   useEffect(() => {
@@ -42,7 +45,7 @@ function PrizeCounter({ amount }: { amount: number }) {
           outputRange: [`+0`, `+${amount}`],
         })}
       </RNAnimated.Text>
-      <Text style={styles.prizeLabel}> credits</Text>
+      <Text style={[styles.prizeLabel, { color: ui.textMuted }]}> credits</Text>
     </View>
   );
 }
@@ -64,17 +67,27 @@ function RankingRow({
   isLoser: boolean;
   delay:   number;
 }) {
-  const badge = rankBadge(rank, total, isLoser);
+  const ui = useUiTheme();
+  const badge = rankBadge(rank, total, isLoser, ui.accent);
 
   return (
     <Animated.View
       entering={FadeInDown.delay(delay).duration(320)}
-      style={[styles.rankRow, isHuman && styles.rankRowHuman]}
+      style={[
+        styles.rankRow,
+        { borderBottomColor: ui.panelBorderSoft },
+        isHuman && {
+          backgroundColor: ui.accentSoft,
+          borderBottomColor: ui.panelBorderSoft,
+        },
+      ]}
     >
       <Text style={styles.rankMedal}>{badge.emoji}</Text>
       <View style={styles.rankInfo}>
-        <Text style={[styles.rankName, isHuman && styles.rankNameHuman]}>{name}</Text>
-        {isHuman && <Text style={styles.rankYou}>(you)</Text>}
+        <Text style={[styles.rankName, { color: ui.textPrimary }, isHuman && { color: ui.accent }]}>
+          {name}
+        </Text>
+        {isHuman && <Text style={[styles.rankYou, { color: ui.accentMuted }]}>(you)</Text>}
       </View>
       <View style={[styles.rankBadge, { borderColor: badge.color }]}>
         <Text style={[styles.rankBadgeText, { color: badge.color }]}>{badge.label}</Text>
@@ -86,6 +99,8 @@ function RankingRow({
 // ── Main screen ──────────────────────────────────────────────────────────────
 
 export function ResultScreen() {
+  const ui = useUiTheme();
+  const reduceMotion = useReduceMotion();
   const game       = useGameStore((s) => s.game);
   const humanId    = useGameStore((s) => s.humanId);
   const names      = useGameStore((s) => s.names);
@@ -118,7 +133,7 @@ export function ResultScreen() {
     ? { headline: "DRAW",     emoji: "🤝", headlineColor: colors.textMuted }
     : humanLost
       ? { headline: "DURAK!",   emoji: "🃏", headlineColor: colors.lose }
-      : { headline: "VICTORY!", emoji: "🏆", headlineColor: colors.gold };
+      : { headline: "VICTORY!", emoji: "🏆", headlineColor: ui.accent };
 
   const humanWon = !humanLost && !isDraw;
 
@@ -129,30 +144,51 @@ export function ResultScreen() {
 
   return (
     <Background variant="game">
-      {humanWon && <Confetti />}
+      {humanWon && !reduceMotion && <Confetti />}
       <SafeAreaView style={styles.safe}>
         <View style={[styles.content, { maxWidth: lay.maxContent }]}>
 
           {/* ── Hero section ── */}
-          <Animated.View entering={ZoomIn.springify().damping(14)} style={styles.hero}>
+          <Animated.View
+            entering={reduceMotion ? FadeIn.duration(300) : ZoomIn.springify().damping(14)}
+            style={styles.hero}
+          >
             <Text style={styles.heroEmoji}>{emoji}</Text>
             <Text style={[styles.heroTitle, { color: headlineColor }]}>{headline}</Text>
             {humanWon && (
-              <Text style={styles.heroSub}>
+              <Text style={[styles.heroSub, { color: ui.textMuted }]}>
                 {names[loser!] ?? loser} is the fool!
               </Text>
             )}
             {humanLost && (
-              <Text style={styles.heroSub}>Better luck next round.</Text>
+              <Text style={[styles.heroSub, { color: ui.textMuted }]}>Better luck next round.</Text>
             )}
             {isDraw && (
-              <Text style={styles.heroSub}>Everyone ran out together.</Text>
+              <Text style={[styles.heroSub, { color: ui.textMuted }]}>Everyone ran out together.</Text>
             )}
           </Animated.View>
 
-          {/* ── Rankings ── */}
-          <Animated.View entering={FadeInDown.delay(250).duration(350)} style={styles.rankingCard}>
-            <Text style={styles.rankingHeader}>FINAL STANDINGS</Text>
+          <Animated.View
+            entering={FadeInDown.delay(250).duration(350)}
+            style={[
+              styles.rankingCard,
+              {
+                backgroundColor: ui.panelBg,
+                borderColor: ui.panelBorderSoft,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.rankingHeader,
+                {
+                  color: ui.textFaint,
+                  borderBottomColor: ui.panelBorderSoft,
+                },
+              ]}
+            >
+              FINAL STANDINGS
+            </Text>
             {rankings.map((r, idx) => (
               <RankingRow
                 key={r.id}
@@ -161,7 +197,7 @@ export function ResultScreen() {
                 total={rankings.length}
                 isHuman={r.id === humanId}
                 isLoser={r.isLoser}
-                delay={300 + idx * 80}
+                delay={reduceMotion ? 0 : 300 + idx * 80}
               />
             ))}
           </Animated.View>
@@ -213,24 +249,20 @@ const styles = StyleSheet.create({
   hero:      { alignItems: "center", gap: spacing.xs },
   heroEmoji: { fontSize: 64, marginBottom: spacing.xs },
   heroTitle: { ...typography.display, textAlign: "center" },
-  heroSub:   { ...typography.body, color: colors.textMuted, textAlign: "center" },
+  heroSub:   { ...typography.body, textAlign: "center" },
 
   // Rankings
   rankingCard: {
-    backgroundColor: colors.panel,
     borderRadius: radius.panel,
     borderWidth: 1,
-    borderColor: "rgba(231, 192, 103, 0.20)",
     overflow: "hidden",
     ...shadows.panel,
   },
   rankingHeader: {
     ...typography.label,
-    color: colors.textFaint,
     textAlign: "center",
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(231, 192, 103, 0.12)",
   },
   rankRow: {
     flexDirection: "row",
@@ -239,16 +271,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm + 2,
     gap: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(231, 192, 103, 0.08)",
-  },
-  rankRowHuman: {
-    backgroundColor: "rgba(231, 192, 103, 0.08)",
   },
   rankMedal: { fontSize: 22, width: 28 },
   rankInfo:  { flex: 1, flexDirection: "row", alignItems: "center", gap: 6 },
-  rankName:  { ...typography.body, color: colors.textLight, fontWeight: "700" },
-  rankNameHuman: { color: colors.gold },
-  rankYou:   { ...typography.caption, color: colors.goldDim },
+  rankName:  { ...typography.body, fontWeight: "700" },
+  rankYou:   { ...typography.caption },
   rankBadge: {
     borderWidth: 1,
     borderRadius: radius.pill,
@@ -265,7 +292,7 @@ const styles = StyleSheet.create({
     ...typography.title,
     color: colors.success,
   },
-  prizeLabel: { ...typography.body, color: colors.textMuted },
+  prizeLabel: { ...typography.body },
 
   // Actions
   actions: { gap: spacing.sm },

@@ -20,7 +20,10 @@ import { Background } from "../components/Background";
 import { CardFan } from "../components/CardFan";
 import { GameConfigDrawer } from "../components/GameConfigDrawer";
 import { MenuButton } from "../components/MenuButton";
-import { colors, layoutFor, radius, spacing, typography } from "../theme";
+import { useTableTheme } from "../theme/TableThemeContext";
+import { useUiTheme } from "../theme/UiThemeContext";
+import { layoutFor, radius, spacing, typography } from "../theme";
+import { useReduceMotion } from "../hooks/useReduceMotion";
 
 export interface HomeScreenProps {
   onOpenSettings: () => void;
@@ -34,6 +37,8 @@ const MENU_ITEMS = [
 ];
 
 export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
+  const ui = useUiTheme();
+  const reduceMotion = useReduceMotion();
   const { width }  = useWindowDimensions();
   const lay        = layoutFor(width);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -48,21 +53,25 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
     <Background variant="home">
       <SafeAreaView style={styles.safe}>
         <View style={[styles.content, { paddingHorizontal: lay.hPad }]}>
-
-          {/* ── Hero: cards + title on dark panel (not green) ── */}
-          <HeroPanel maxWidth={lay.maxContent}>
-            <Animated.View entering={FadeIn.duration(700)} style={styles.fanWrap}>
+          <HeroPanel maxWidth={lay.maxContent} reduceMotion={reduceMotion}>
+            <Animated.View
+              entering={reduceMotion ? undefined : FadeIn.duration(700)}
+              style={styles.fanWrap}
+            >
               <CardFan />
             </Animated.View>
-            <GlowTitle />
+            <GlowTitle reduceMotion={reduceMotion} />
           </HeroPanel>
 
-          {/* ── Menu buttons ── */}
           <View style={[styles.menu, { maxWidth: lay.maxContent }]}>
             {MENU_ITEMS.map((item, i) => (
               <Animated.View
                 key={item.label}
-                entering={FadeInDown.delay(280 + i * 120).duration(480).easing(Easing.out(Easing.cubic))}
+                entering={
+                  reduceMotion
+                    ? undefined
+                    : FadeInDown.delay(280 + i * 120).duration(480).easing(Easing.out(Easing.cubic))
+                }
               >
                 <MenuButton
                   label={item.label}
@@ -74,10 +83,9 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
             ))}
           </View>
 
-          {/* ── Footer ── */}
           <Animated.Text
-            entering={FadeInUp.delay(720).duration(500)}
-            style={styles.version}
+            entering={reduceMotion ? undefined : FadeInUp.delay(720).duration(500)}
+            style={[styles.version, { color: ui.textFaint }]}
           >
             v1.0 · Durak Card Game
           </Animated.Text>
@@ -92,30 +100,55 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   );
 }
 
-// ── Dark hero panel behind cards + title ─────────────────────────────────────
+function HeroPanel({
+  children,
+  maxWidth,
+  reduceMotion,
+}: {
+  children: React.ReactNode;
+  maxWidth: number;
+  reduceMotion: boolean;
+}) {
+  const ui = useUiTheme();
+  const tableTheme = useTableTheme();
+  const panelGrad = tableTheme.backgroundGradient ?? [
+    ui.panelBg,
+    ui.feltEdge,
+    ui.feltEdge,
+  ];
 
-function HeroPanel({ children, maxWidth }: { children: React.ReactNode; maxWidth: number }) {
   return (
     <Animated.View
-      entering={FadeInDown.duration(600)}
+      entering={reduceMotion ? undefined : FadeInDown.duration(600)}
       style={[styles.heroPanelWrap, { maxWidth, width: "100%" }]}
     >
-      <View style={styles.heroRingOuter} pointerEvents="none" />
-      <View style={styles.heroRingInner} pointerEvents="none" />
+      <View
+        style={[styles.heroRingOuter, { borderColor: ui.panelBorderSoft }]}
+        pointerEvents="none"
+      />
+      <View
+        style={[styles.heroRingInner, { borderColor: ui.panelBorderSoft }]}
+        pointerEvents="none"
+      />
 
       <LinearGradient
-        colors={[colors.homeDecor.panelBg, colors.homeDecor.panelBgDeep, colors.homeDecor.panelBgDeep]}
+        colors={
+          panelGrad.length >= 3
+            ? panelGrad
+            : [ui.panelBg, ui.feltEdge, ui.feltEdge]
+        }
         locations={[0, 0.55, 1]}
-        style={styles.heroPanel}
+        style={[styles.heroPanel, { borderColor: ui.panelBorder }]}
       >
-        <View style={styles.heroPanelBorder} pointerEvents="none" />
+        <View
+          style={[styles.heroPanelBorder, { borderColor: ui.panelBorderSoft }]}
+          pointerEvents="none"
+        />
         {children}
       </LinearGradient>
     </Animated.View>
   );
 }
-
-// ── Animated title ──────────────────────────────────────────────────────────
 
 const TITLE_LETTERS = ["D", "U", "R", "A", "K"] as const;
 
@@ -123,14 +156,21 @@ function TitleLetter({
   char,
   index,
   glow,
+  accent,
+  accentMuted,
+  reduceMotion,
 }: {
   char: string;
   index: number;
   glow: SharedValue<number>;
+  accent: string;
+  accentMuted: string;
+  reduceMotion: boolean;
 }) {
   const wave = useSharedValue(0);
 
   useEffect(() => {
+    if (reduceMotion) return;
     wave.value = withDelay(
       index * 140,
       withRepeat(
@@ -142,7 +182,7 @@ function TitleLetter({
         false,
       ),
     );
-  }, [wave, index]);
+  }, [wave, index, reduceMotion]);
 
   const letterStyle = useAnimatedStyle(() => ({
     transform: [
@@ -159,20 +199,38 @@ function TitleLetter({
 
   return (
     <Animated.View
-      entering={FadeInDown.delay(index * 70).duration(420).easing(Easing.out(Easing.back(1.4)))}
+      entering={
+        reduceMotion
+          ? undefined
+          : FadeInDown.delay(index * 70).duration(420).easing(Easing.out(Easing.back(1.4)))
+      }
       style={styles.letterWrap}
     >
-      <Animated.Text style={[styles.heroTitleShadow, shadowStyle]}>{char}</Animated.Text>
-      <Animated.Text style={[styles.heroTitle, letterStyle]}>{char}</Animated.Text>
+      <Animated.Text
+        style={[styles.heroTitleShadow, { color: accentMuted }, shadowStyle]}
+      >
+        {char}
+      </Animated.Text>
+      <Animated.Text
+        style={[
+          styles.heroTitle,
+          { color: accent, textShadowColor: accent },
+          letterStyle,
+        ]}
+      >
+        {char}
+      </Animated.Text>
     </Animated.View>
   );
 }
 
-function GlowTitle() {
-  const glow = useSharedValue(0);
-  const ornament = useSharedValue(0);
+function GlowTitle({ reduceMotion }: { reduceMotion: boolean }) {
+  const ui = useUiTheme();
+  const glow = useSharedValue(reduceMotion ? 1 : 0);
+  const ornament = useSharedValue(reduceMotion ? 1 : 0);
 
   useEffect(() => {
+    if (reduceMotion) return;
     glow.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.sin) }),
@@ -189,7 +247,7 @@ function GlowTitle() {
       -1,
       false,
     );
-  }, [glow, ornament]);
+  }, [glow, ornament, reduceMotion]);
 
   const lineStyle = useAnimatedStyle(() => ({
     width: interpolate(ornament.value, [0, 1], [32, 56]),
@@ -208,19 +266,38 @@ function GlowTitle() {
     <View style={styles.titleBlock}>
       <View style={styles.titleRow}>
         {TITLE_LETTERS.map((char, i) => (
-          <TitleLetter key={char} char={char} index={i} glow={glow} />
+          <TitleLetter
+            key={char}
+            char={char}
+            index={i}
+            glow={glow}
+            accent={ui.accent}
+            accentMuted={ui.accentMuted}
+            reduceMotion={reduceMotion}
+          />
         ))}
       </View>
       <View style={styles.titleOrnament}>
-        <Animated.View style={[styles.ornamentLine, lineStyle]} />
-        <Animated.View style={[styles.ornamentDiamond, diamondStyle]} />
-        <Animated.View style={[styles.ornamentLine, lineStyle]} />
+        <Animated.View
+          style={[styles.ornamentLine, { backgroundColor: ui.accent }, lineStyle]}
+        />
+        <Animated.View
+          style={[
+            styles.ornamentDiamond,
+            {
+              backgroundColor: ui.accent,
+              borderColor: ui.accentMuted,
+            },
+            diamondStyle,
+          ]}
+        />
+        <Animated.View
+          style={[styles.ornamentLine, { backgroundColor: ui.accent }, lineStyle]}
+        />
       </View>
     </View>
   );
 }
-
-// ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   safe:    { flex: 1 },
@@ -242,7 +319,6 @@ const styles = StyleSheet.create({
     maxWidth:        340,
     borderRadius:    999,
     borderWidth:     1,
-    borderColor:     colors.homeDecor.panelBorderInner,
     backgroundColor: "transparent",
   },
   heroRingInner: {
@@ -253,14 +329,12 @@ const styles = StyleSheet.create({
     maxWidth:        280,
     borderRadius:    999,
     borderWidth:     1,
-    borderColor:     colors.homeDecor.ringFaint,
     backgroundColor: "transparent",
   },
   heroPanel: {
     width:          "100%",
     borderRadius:   radius.panel,
     borderWidth:    1,
-    borderColor:    colors.homeDecor.panelBorder,
     paddingTop:     spacing.lg,
     paddingBottom:  spacing.xl,
     paddingHorizontal: spacing.lg,
@@ -275,7 +349,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderRadius: radius.panel,
     borderWidth:  1,
-    borderColor:  colors.homeDecor.panelBorderInner,
     margin:       6,
   },
   fanWrap: {
@@ -301,8 +374,6 @@ const styles = StyleSheet.create({
     fontSize:        62,
     fontWeight:      "900",
     letterSpacing:   2,
-    color:           colors.goldBright,
-    textShadowColor: colors.gold,
     textShadowOffset:{ width: 0, height: 0 },
     textShadowRadius: 20,
   },
@@ -313,7 +384,6 @@ const styles = StyleSheet.create({
     fontSize:        62,
     fontWeight:      "900",
     letterSpacing:   2,
-    color:           colors.goldDeep,
   },
   titleOrnament: {
     flexDirection:  "row",
@@ -325,14 +395,11 @@ const styles = StyleSheet.create({
   ornamentLine: {
     height:          1.5,
     borderRadius:    1,
-    backgroundColor: colors.gold,
   },
   ornamentDiamond: {
     width:           7,
     height:          7,
-    backgroundColor: colors.goldBright,
     borderWidth:     1,
-    borderColor:     colors.gold,
   },
   menu: {
     width:      "100%",
@@ -341,7 +408,6 @@ const styles = StyleSheet.create({
   },
   version: {
     ...typography.caption,
-    color:     colors.homeDecor.textFaint,
     marginTop: spacing.xl,
   },
 });

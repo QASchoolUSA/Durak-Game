@@ -6,10 +6,10 @@ import Animated, {
   withDelay,
   withTiming,
 } from "react-native-reanimated";
-import { MENU_CARD_THEME } from "../theme/cardThemes";
+import { useCardTheme } from "../theme/CardThemeContext";
+import { useUiTheme } from "../theme/UiThemeContext";
 import { colors } from "../theme";
 
-// Deterministic "random" from seed — no Math.random() in hot paths
 function sr(seed: number): number {
   const x = Math.sin(seed + 1) * 10000;
   return x - Math.floor(x);
@@ -77,19 +77,20 @@ function Particle({ p }: { p: Particle }) {
 }
 
 export function Confetti() {
-  const theme = MENU_CARD_THEME;
+  const ui = useUiTheme();
+  const cardTheme = useCardTheme();
   const particles = useMemo(
     () =>
       buildParticles([
-        colors.gold,
-        colors.goldBright,
+        ui.accent,
+        ui.accentMuted,
         colors.success,
-        theme.face,
-        theme.suitRed,
-        "#7BCFB8",
+        cardTheme.face,
+        cardTheme.suitRed,
+        cardTheme.backAccent,
         "#F2A65A",
       ]),
-    [theme.face, theme.suitRed],
+    [ui.accent, ui.accentMuted, cardTheme.face, cardTheme.suitRed, cardTheme.backAccent],
   );
 
   return (

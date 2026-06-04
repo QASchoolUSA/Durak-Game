@@ -9,8 +9,9 @@ import {
   isRed,
 } from "@durak/game-core";
 import { useCardTheme } from "../theme/CardThemeContext";
+import { useUiTheme } from "../theme/UiThemeContext";
 import { Card } from "./Card";
-import { colors, cardSize, radius, shadows } from "../theme";
+import { cardSize, radius } from "../theme";
 
 export interface DeckPileProps {
   deckCount: number;
@@ -20,6 +21,7 @@ export interface DeckPileProps {
 
 function DeckPileComponent({ deckCount, trumpCard, trumpSuit }: DeckPileProps) {
   const theme = useCardTheme();
+  const ui = useUiTheme();
   const { w, h } = cardSize.small;
   const suitColor = isRed(trumpSuit) ? theme.suitRed : theme.suitBlack;
   const rank = RANK_LABELS[trumpCard.rank];
@@ -28,7 +30,6 @@ function DeckPileComponent({ deckCount, trumpCard, trumpSuit }: DeckPileProps) {
   return (
     <Animated.View entering={FadeIn.duration(400)} style={styles.column}>
 
-      {/* ── Deck stack ── */}
       <View style={[styles.stack, { width: w + 6, height: h + 6 }]}>
         {deckCount > 0 ? (
           <>
@@ -37,21 +38,46 @@ function DeckPileComponent({ deckCount, trumpCard, trumpSuit }: DeckPileProps) {
             <Card faceDown width={w} height={h} />
           </>
         ) : (
-          <View style={[styles.emptyDeck, { width: w, height: h }]}>
-            <Text style={styles.emptyText}>–</Text>
+          <View
+            style={[
+              styles.emptyDeck,
+              {
+                width: w,
+                height: h,
+                backgroundColor: ui.feltEdge,
+                borderColor: ui.panelBorderSoft,
+              },
+            ]}
+          >
+            <Text style={[styles.emptyText, { color: ui.textFaint }]}>–</Text>
           </View>
         )}
 
-        {/* Trump badge — top-left corner of stack */}
-        <View style={[styles.trumpBadge, { backgroundColor: theme.face }]}>
+        <View
+          style={[
+            styles.trumpBadge,
+            {
+              backgroundColor: theme.face,
+              borderColor: ui.accent,
+              shadowColor: ui.accent,
+            },
+          ]}
+        >
           <Text style={[styles.trumpRank, { color: suitColor }]}>{rank}</Text>
           <Text style={[styles.trumpSuit, { color: suitColor }]}>{symbol}</Text>
         </View>
 
-        {/* Deck count ring — bottom-right */}
         {deckCount > 0 && (
-          <View style={styles.countRing}>
-            <Text style={styles.countText}>{deckCount}</Text>
+          <View
+            style={[
+              styles.countRing,
+              {
+                backgroundColor: ui.badgeBg,
+                shadowColor: ui.accent,
+              },
+            ]}
+          >
+            <Text style={[styles.countText, { color: ui.badgeText }]}>{deckCount}</Text>
           </View>
         )}
       </View>
@@ -69,35 +95,30 @@ const styles = StyleSheet.create({
   },
   emptyDeck: {
     borderRadius: radius.card,
-    backgroundColor: colors.feltEdge,
     borderWidth: 1,
-    borderColor: "rgba(231,192,103,0.20)",
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
-    color: colors.textFaint,
     fontSize: 18,
     fontWeight: "300",
   },
-
-  // Trump corner badge
   trumpBadge: {
     position: "absolute",
     top: -5,
     left: -5,
     borderRadius: 7,
     borderWidth: 1.5,
-    borderColor: colors.gold,
     paddingHorizontal: 5,
     paddingVertical: 3,
     alignItems: "center",
-    ...shadows.goldGlow,
+    shadowOpacity: 0.70,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 12,
   },
   trumpRank: { fontSize: 11, fontWeight: "900", lineHeight: 12 },
   trumpSuit: { fontSize: 10, fontWeight: "800", lineHeight: 11 },
-
-  // Deck count ring
   countRing: {
     position: "absolute",
     bottom: -7,
@@ -105,13 +126,14 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: colors.gold,
     alignItems: "center",
     justifyContent: "center",
-    ...shadows.goldGlow,
+    shadowOpacity: 0.70,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 12,
   },
   countText: {
-    color: colors.feltBottom,
     fontWeight: "900",
     fontSize: 10,
     lineHeight: 12,

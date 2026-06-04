@@ -1,6 +1,7 @@
 import React from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radius, shadows, spacing, typography } from "../theme";
+import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
 
 export interface ConfirmDialogProps {
@@ -22,27 +23,43 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const ui = useUiTheme();
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.backdrop}>
-        <View style={styles.card}>
-          {/* Warning icon */}
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: ui.panelBg,
+              borderColor: "rgba(229, 72, 77, 0.35)",
+            },
+          ]}
+        >
           <View style={styles.iconWrap}>
             <Text style={styles.icon}>!</Text>
           </View>
 
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
+          <Text style={[styles.title, { color: ui.textPrimary }]}>{title}</Text>
+          <Text style={[styles.message, { color: ui.textMuted }]}>{message}</Text>
 
           <View style={styles.actions}>
             <Pressable
-              style={[styles.btn, styles.cancelBtn]}
+              style={[
+                styles.btn,
+                styles.cancelBtn,
+                {
+                  backgroundColor: ui.feltEdge,
+                  borderColor: ui.panelBorderSoft,
+                },
+              ]}
               onPress={() => {
                 trigger("uiTap");
                 onCancel();
               }}
             >
-              <Text style={styles.cancelText}>{cancelLabel}</Text>
+              <Text style={[styles.cancelText, { color: ui.textPrimary }]}>{cancelLabel}</Text>
             </Pressable>
             <Pressable
               style={[styles.btn, styles.confirmBtn]}
@@ -71,17 +88,13 @@ const styles = StyleSheet.create({
   card: {
     width: "100%",
     maxWidth: 320,
-    backgroundColor: colors.feltMid,
     borderRadius: radius.panel,
     borderWidth: 1,
-    borderColor: "rgba(229, 72, 77, 0.35)",
     padding: spacing.xl,
     alignItems: "center",
     gap: spacing.sm,
     ...shadows.panel,
   },
-
-  // Warning icon
   iconWrap: {
     width: 40,
     height: 40,
@@ -99,15 +112,12 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     lineHeight: 22,
   },
-
   title: {
     ...typography.heading,
-    color: colors.textLight,
     textAlign: "center",
   },
   message: {
     ...typography.body,
-    color: colors.textMuted,
     lineHeight: 21,
     textAlign: "center",
     marginBottom: spacing.xs,
@@ -125,9 +135,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cancelBtn: {
-    backgroundColor: colors.panel,
     borderWidth: 1,
-    borderColor: "rgba(231, 192, 103, 0.25)",
   },
   confirmBtn: {
     backgroundColor: colors.danger,
@@ -135,7 +143,6 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     ...typography.body,
-    color: colors.textLight,
     fontWeight: "700",
   },
   confirmText: {

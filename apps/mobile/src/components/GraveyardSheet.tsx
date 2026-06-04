@@ -23,6 +23,8 @@ import { SUIT_SYMBOLS, isRed } from "@durak/game-core";
 import { Card } from "./Card";
 import { sortHandForDisplay } from "../game/handSort";
 import { CARD_ASPECT, colors, layoutFor, radius, spacing, typography } from "../theme";
+import { useTableTheme } from "../theme/TableThemeContext";
+import { useUiTheme } from "../theme/UiThemeContext";
 
 const SPRING_IN = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
@@ -55,6 +57,7 @@ function GraveyardSummary({
   cards: CardModel[];
   trumpSuit: Suit;
 }) {
+  const ui = useUiTheme();
   const counts = useMemo(() => {
     const tally: Record<Suit, number> = {
       clubs: 0,
@@ -75,7 +78,8 @@ function GraveyardSummary({
           key={suit}
           style={[
             styles.summaryItem,
-            suit === trumpSuit && styles.summaryTrump,
+            { color: ui.textMuted },
+            suit === trumpSuit && { color: ui.accent },
           ]}
         >
           {SUIT_SYMBOLS[suit]}
@@ -97,25 +101,46 @@ function SuitPanel({
   trumpSuit: Suit;
   columns: number;
 }) {
+  const ui = useUiTheme();
   const isTrump = suit === trumpSuit;
   const pipColor = isRed(suit) ? colors.suitRed : colors.suitBlack;
 
   return (
-    <View style={[styles.suitPanel, isTrump && styles.suitPanelTrump]}>
+    <View
+      style={[
+        styles.suitPanel,
+        {
+          backgroundColor: ui.panelBg,
+          borderColor: ui.panelBorderSoft,
+        },
+        isTrump && {
+          borderColor: ui.panelBorder,
+          backgroundColor: ui.accentSoft,
+        },
+      ]}
+    >
       <View style={styles.suitPanelHeader}>
         <View style={styles.suitTitleRow}>
           <Text style={[styles.suitSymbol, { color: pipColor }]}>
             {SUIT_SYMBOLS[suit]}
           </Text>
-          <Text style={styles.suitName}>{SUIT_NAMES[suit]}</Text>
+          <Text style={[styles.suitName, { color: ui.textPrimary }]}>{SUIT_NAMES[suit]}</Text>
           {isTrump && (
-            <View style={styles.trumpBadge}>
-              <Text style={styles.trumpBadgeText}>Trump</Text>
+            <View
+              style={[
+                styles.trumpBadge,
+                {
+                  backgroundColor: ui.accentSoft,
+                  borderColor: ui.panelBorder,
+                },
+              ]}
+            >
+              <Text style={[styles.trumpBadgeText, { color: ui.accent }]}>Trump</Text>
             </View>
           )}
         </View>
         <View style={styles.countBadge}>
-          <Text style={styles.countBadgeText}>{suitCards.length}</Text>
+          <Text style={[styles.countBadgeText, { color: ui.accent }]}>{suitCards.length}</Text>
         </View>
       </View>
 
@@ -140,6 +165,12 @@ function SuitPanel({
 }
 
 export function GraveyardSheet({ visible, onClose, cards, trumpSuit }: GraveyardSheetProps) {
+  const ui = useUiTheme();
+  const tableTheme = useTableTheme();
+  const sheetGradient = tableTheme.backgroundGradient ?? [
+    tableTheme.backgroundColor,
+    tableTheme.backgroundColor,
+  ];
   const { width: screenW, height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const drawerH = Math.round(screenH * 0.72);
@@ -238,21 +269,21 @@ export function GraveyardSheet({ visible, onClose, cards, trumpSuit }: Graveyard
 
         <Animated.View style={[styles.sheet, { height: drawerH }, aSheet]}>
           <LinearGradient
-            colors={[colors.feltMid, colors.feltBottom]}
+            colors={sheetGradient}
             style={StyleSheet.absoluteFill}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
           />
-          <View style={styles.topAccent} />
+          <View style={[styles.topAccent, { backgroundColor: ui.panelBorder }]} />
 
           <GestureDetector gesture={swipeDown}>
             <View style={styles.topBar}>
               <View style={styles.handleWrap}>
-                <View style={styles.handle} />
+                <View style={[styles.handle, { backgroundColor: ui.accentMuted }]} />
               </View>
               <View style={styles.header}>
-                <Text style={styles.title}>GRAVEYARD</Text>
-                <Text style={styles.headerSub}>
+                <Text style={[styles.title, { color: ui.accent }]}>GRAVEYARD</Text>
+                <Text style={[styles.headerSub, { color: ui.textFaint }]}>
                   {cards.length === 0
                     ? "No cards out of play yet"
                     : `${cards.length} card${cards.length === 1 ? "" : "s"} out of play`}
@@ -264,7 +295,7 @@ export function GraveyardSheet({ visible, onClose, cards, trumpSuit }: Graveyard
             </View>
           </GestureDetector>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: ui.panelBorderSoft }]} />
 
           <ScrollView
             style={styles.scroll}
@@ -275,7 +306,7 @@ export function GraveyardSheet({ visible, onClose, cards, trumpSuit }: Graveyard
             showsVerticalScrollIndicator={false}
           >
             {cards.length === 0 ? (
-              <Text style={styles.empty}>
+              <Text style={[styles.empty, { color: ui.textMuted }]}>
                 No cards yet — beaten pairs appear here after each successful defense.
               </Text>
             ) : (
@@ -316,7 +347,6 @@ const styles = StyleSheet.create({
     right: 44,
     height: 1,
     borderRadius: 1,
-    backgroundColor: "rgba(231,192,103,0.38)",
   },
   topBar: {},
   handleWrap: { alignItems: "center", paddingTop: 14, paddingBottom: 8 },
@@ -324,7 +354,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.20)",
   },
   header: {
     paddingHorizontal: spacing.lg,
@@ -333,12 +362,10 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.title,
-    color: colors.gold,
     letterSpacing: 3,
   },
   headerSub: {
     ...typography.caption,
-    color: colors.textFaint,
     marginTop: 3,
     letterSpacing: 0.4,
   },
@@ -350,16 +377,11 @@ const styles = StyleSheet.create({
   },
   summaryItem: {
     ...typography.caption,
-    color: colors.textMuted,
     fontWeight: "700",
     fontSize: 14,
   },
-  summaryTrump: {
-    color: colors.gold,
-  },
   divider: {
     height: 1,
-    backgroundColor: "rgba(231,192,103,0.12)",
     marginHorizontal: spacing.lg,
     marginTop: spacing.xs,
   },
@@ -371,23 +393,16 @@ const styles = StyleSheet.create({
   },
   empty: {
     ...typography.body,
-    color: colors.textMuted,
     textAlign: "center",
     lineHeight: 22,
     marginTop: spacing.xl,
   },
   suitPanel: {
     width: "100%",
-    backgroundColor: colors.panel,
     borderRadius: radius.panel,
     borderWidth: 1,
-    borderColor: colors.separator,
     padding: spacing.md,
     marginBottom: spacing.sm,
-  },
-  suitPanelTrump: {
-    borderColor: "rgba(231, 192, 103, 0.45)",
-    backgroundColor: "rgba(231, 192, 103, 0.08)",
   },
   suitPanelHeader: {
     flexDirection: "row",
@@ -407,20 +422,16 @@ const styles = StyleSheet.create({
   },
   suitName: {
     ...typography.heading,
-    color: colors.textLight,
     fontSize: 16,
   },
   trumpBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: radius.pill,
-    backgroundColor: "rgba(231, 192, 103, 0.2)",
     borderWidth: 1,
-    borderColor: colors.goldDim,
   },
   trumpBadgeText: {
     ...typography.micro,
-    color: colors.gold,
     fontWeight: "800",
     letterSpacing: 0.5,
   },
@@ -435,7 +446,6 @@ const styles = StyleSheet.create({
   },
   countBadgeText: {
     ...typography.caption,
-    color: colors.gold,
     fontWeight: "800",
   },
   grid: {

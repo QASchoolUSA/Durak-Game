@@ -159,7 +159,7 @@ export const cardSize = {
 };
 
 export const timing = {
-  /** Seconds a player has to act before the safe move is auto-played. */
+  /** Default turn timer length (overridden by Settings preference). */
   turnSeconds: 12,
 };
 

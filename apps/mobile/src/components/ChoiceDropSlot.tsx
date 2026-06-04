@@ -31,10 +31,6 @@ const CFG = {
     fillAvail: "rgba(70, 167, 88, 0.08)",
     fillActive: "rgba(70, 167, 88, 0.20)",
     labelColor: "#72D084",
-    icon: "✓",
-    badge: colors.success,
-    iconDim: colors.goldDim,
-    iconBright: colors.gold,
   },
   transfer: {
     label: "TRANSFER",
@@ -195,8 +191,6 @@ function ChoiceDropSlotComponent({
   const bgColor = isActive ? cfg.fillActive : isAvail ? cfg.fillAvail : "transparent";
 
   const iconSize  = Math.round(width * 0.38);
-  const badgeSize = Math.round(width * 0.28);
-  const badgeFont = Math.round(badgeSize * 0.55);
 
   return (
     <Animated.View style={[{ width, height }, aSlot]}>
@@ -252,26 +246,14 @@ function ChoiceDropSlotComponent({
                 {
                   fontSize: iconSize,
                   lineHeight: iconSize,
-                  color: isActive ? cfg.iconBright : cfg.iconDim,
+                  color: isActive ? CFG.transfer.iconBright : CFG.transfer.iconDim,
                 },
               ]}
             >
-              {cfg.icon}
+              {CFG.transfer.icon}
             </Text>
           ) : (
-            <>
-              <View style={styles.beatContent}>{children}</View>
-              <View
-                style={[
-                  styles.badge,
-                  { width: badgeSize, height: badgeSize, borderRadius: badgeSize / 2, backgroundColor: cfg.badge },
-                ]}
-              >
-                <Text style={[styles.badgeIcon, { fontSize: badgeFont, lineHeight: badgeFont }]}>
-                  {cfg.icon}
-                </Text>
-              </View>
-            </>
+            <View style={styles.beatContent}>{children}</View>
           )}
         </View>
       </Animated.View>
@@ -315,25 +297,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
-  },
-  badge: {
-    position: "absolute",
-    top: 4,
-    right: 4,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.30,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 3,
-  },
-  badgeIcon: {
-    color: colors.textLight,
-    fontWeight: "800",
-    textAlign: "center",
-    includeFontPadding: false,
   },
   centerIcon: {
     fontWeight: "700",

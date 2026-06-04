@@ -12,7 +12,7 @@ import Animated, {
 import type { Card as CardModel } from "@durak/game-core";
 import { Card } from "./Card";
 import { cardSize } from "../theme";
-import { MENU_CARD_THEME } from "../theme/cardThemes";
+import { useCardTheme } from "../theme/CardThemeContext";
 
 // Decorative cards for the fan — fixed suit/rank combos for visual appeal
 const FAN_CARDS: CardModel[] = [
@@ -57,6 +57,7 @@ function FanCard({
   spread: SharedValue<number>;
   isTrump: boolean;
 }) {
+  const cardTheme = useCardTheme();
   const transformStyle = useAnimatedStyle(() => {
     const spreadT = spread.value;
     const totalRot = (rotate * spreadT) + sway.value * (rotate === 0 ? 0.4 : Math.sign(rotate) * 0.8);
@@ -79,7 +80,7 @@ function FanCard({
           width={w}
           height={h}
           trump={isTrump}
-          themeOverride={MENU_CARD_THEME}
+          themeOverride={cardTheme}
         />
       </Animated.View>
     </View>

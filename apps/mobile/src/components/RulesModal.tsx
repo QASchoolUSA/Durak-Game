@@ -18,7 +18,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors, spacing, typography } from "../theme";
+import { spacing, typography } from "../theme";
+import { useTableTheme } from "../theme/TableThemeContext";
+import { useUiTheme } from "../theme/UiThemeContext";
 
 const SPRING_IN  = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
@@ -69,6 +71,12 @@ export interface RulesModalProps {
 }
 
 export function RulesModal({ visible, onClose }: RulesModalProps) {
+  const ui = useUiTheme();
+  const tableTheme = useTableTheme();
+  const sheetGradient = tableTheme.backgroundGradient ?? [
+    tableTheme.backgroundColor,
+    tableTheme.backgroundColor,
+  ];
   const { height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const drawerH = Math.round(screenH * 0.90);
@@ -149,26 +157,28 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
 
         <Animated.View style={[styles.sheet, { height: drawerH }, aSheet]}>
           <LinearGradient
-            colors={[colors.feltMid, colors.feltBottom]}
+            colors={sheetGradient}
             style={StyleSheet.absoluteFill}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
           />
-          <View style={styles.topAccent} />
+          <View style={[styles.topAccent, { backgroundColor: ui.panelBorder }]} />
 
           <GestureDetector gesture={swipeDown}>
             <View style={styles.topBar}>
               <View style={styles.handleWrap}>
-                <View style={styles.handle} />
+                <View style={[styles.handle, { backgroundColor: ui.accentMuted }]} />
               </View>
               <View style={styles.header}>
-                <Text style={styles.title}>HOW TO PLAY</Text>
-                <Text style={styles.headerSub}>Swipe down to close</Text>
+                <Text style={[styles.title, { color: ui.accent }]}>HOW TO PLAY</Text>
+                <Text style={[styles.headerSub, { color: ui.textFaint }]}>
+                  Swipe down to close
+                </Text>
               </View>
             </View>
           </GestureDetector>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: ui.panelBorderSoft }]} />
 
           <ScrollView
             style={styles.scroll}
@@ -178,7 +188,7 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
             ]}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.intro}>
+            <Text style={[styles.intro, { color: ui.textMuted }]}>
               Durak (Дурак) is one of Russia's most beloved card games. Simple to
               learn, rich in strategy — the last player with cards is the fool.
             </Text>
@@ -186,16 +196,16 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
             {SECTIONS.map((s) => (
               <View key={s.title} style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <View style={styles.dot} />
-                  <Text style={styles.sectionTitle}>{s.title}</Text>
+                  <View style={[styles.dot, { backgroundColor: ui.accent }]} />
+                  <Text style={[styles.sectionTitle, { color: ui.accent }]}>{s.title}</Text>
                 </View>
-                <Text style={styles.sectionBody}>{s.body}</Text>
+                <Text style={[styles.sectionBody, { color: ui.textMuted }]}>{s.body}</Text>
               </View>
             ))}
 
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>
-                🃏 Good luck — and don't be the Durak!
+            <View style={[styles.footer, { borderTopColor: ui.panelBorderSoft }]}>
+              <Text style={[styles.footerText, { color: ui.textFaint }]}>
+                Good luck — and don't be the Durak!
               </Text>
             </View>
           </ScrollView>
@@ -226,7 +236,6 @@ const styles = StyleSheet.create({
     right: 44,
     height: 1,
     borderRadius: 1,
-    backgroundColor: "rgba(231,192,103,0.38)",
   },
 
   topBar: {},
@@ -235,7 +244,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.20)",
   },
   header: {
     paddingHorizontal: spacing.lg,
@@ -244,18 +252,15 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.title,
-    color: colors.gold,
     letterSpacing: 3,
   },
   headerSub: {
     ...typography.caption,
-    color: colors.textFaint,
     marginTop: 3,
     letterSpacing: 0.4,
   },
   divider: {
     height: 1,
-    backgroundColor: "rgba(231,192,103,0.12)",
     marginHorizontal: spacing.lg,
     marginTop: spacing.xs,
   },
@@ -264,7 +269,6 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg },
   intro: {
     ...typography.body,
-    color: colors.textMuted,
     textAlign: "center",
     lineHeight: 22,
     marginBottom: spacing.xl,
@@ -283,15 +287,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.gold,
   },
   sectionTitle: {
     ...typography.heading,
-    color: colors.gold,
   },
   sectionBody: {
     ...typography.body,
-    color: colors.textMuted,
     lineHeight: 22,
     paddingLeft: spacing.md,
   },
@@ -300,10 +301,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: colors.separator,
   },
   footerText: {
     ...typography.body,
-    color: colors.textFaint,
   },
 });

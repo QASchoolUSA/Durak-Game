@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useGameStore } from "../game/store";
 import { trigger } from "../feedback/haptics";
-import { DOCK_ROW_HEIGHT, dockPillStyles } from "./dockPill";
+import { DOCK_ROW_HEIGHT, useDockPillStyles } from "./dockPill";
 import { spacing } from "../theme";
 
 function ReturnPill() {
+  const dockPillStyles = useDockPillStyles();
   const returnSnapshot = useGameStore((s) => s.returnSnapshot);
   const returnExpiresAt = useGameStore((s) => s.returnExpiresAt);
   const returnLastCard = useGameStore((s) => s.returnLastCard);
@@ -54,6 +55,8 @@ function RevealPill({
   canReveal: boolean;
   onPress: () => void;
 }) {
+  const dockPillStyles = useDockPillStyles();
+
   return (
     <Pressable
       style={[dockPillStyles.pill, !canReveal && dockPillStyles.pillDisabled]}
@@ -80,6 +83,8 @@ function GraveyardPill({
   discardCount: number;
   onPress: () => void;
 }) {
+  const dockPillStyles = useDockPillStyles();
+
   return (
     <Pressable
       style={dockPillStyles.pill}

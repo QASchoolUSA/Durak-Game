@@ -9,7 +9,8 @@ import Animated, {
 import type { SeatRole } from "../game/selectors";
 import { TakeSpeechBubble } from "./TakeSpeechBubble";
 import { useCardTheme } from "../theme/CardThemeContext";
-import { colors, radius, cardSize, shadows } from "../theme";
+import { useUiTheme } from "../theme/UiThemeContext";
+import { radius, cardSize } from "../theme";
 
 export type { SeatRole };
 
@@ -70,6 +71,7 @@ function PlayerSeatComponent({
   const isDefender = role === "defender";
   const isTaking = role === "taking";
   const expanded = (active || isTaking) && !finished;
+  const ui = useUiTheme();
 
   const scale = useSharedValue(expanded ? 1 : 0.94);
   const seatOpacity = useSharedValue(expanded ? 1 : 0.88);
@@ -116,20 +118,23 @@ function PlayerSeatComponent({
           entering={FadeIn.duration(350)}
           style={[
             styles.container,
-            active && expanded && styles.active,
+            { backgroundColor: ui.panelBg },
+            active && expanded && [styles.active, { borderColor: ui.accent, shadowColor: ui.accent }],
             isTaking && expanded && !active && styles.taking,
             isTaking && !finished && styles.containerTaking,
             finished && styles.finished,
           ]}
         >
-          {active && expanded && <View style={styles.activeTint} pointerEvents="none" />}
+          {active && expanded && (
+            <View style={[styles.activeTint, { backgroundColor: ui.activeTint }]} pointerEvents="none" />
+          )}
 
           <View style={[styles.body, expanded ? styles.bodyExpanded : styles.bodyCompact]}>
             {expanded ? (
               <View style={styles.topRow}>
                 {avatarEl}
                 <Text
-                  style={[styles.name, styles.nameExpanded, styles.nameSingleLine]}
+                  style={[styles.name, styles.nameExpanded, styles.nameSingleLine, { color: ui.textPrimary }]}
                   numberOfLines={1}
                 >
                   {name}
@@ -139,7 +144,7 @@ function PlayerSeatComponent({
               <View style={styles.compactHeader}>
                 {avatarEl}
                 <Text
-                  style={[styles.name, styles.nameCompact, styles.nameSingleLine]}
+                  style={[styles.name, styles.nameCompact, styles.nameSingleLine, { color: ui.textPrimary }]}
                   numberOfLines={1}
                 >
                   {name}
@@ -151,10 +156,12 @@ function PlayerSeatComponent({
               {expanded ? (
                 <>
                   <MiniFan count={cardCount} />
-                  <Text style={styles.cardCount}>{cardCount}</Text>
+                  <Text style={[styles.cardCount, { color: ui.textPrimary }]}>{cardCount}</Text>
                 </>
               ) : (
-                <Text style={styles.cardCountCompact}>{cardCount} cards</Text>
+                <Text style={[styles.cardCountCompact, { color: ui.textPrimary }]}>
+                  {cardCount} cards
+                </Text>
               )}
             </View>
           </View>
@@ -174,7 +181,7 @@ function PlayerSeatComponent({
 
           {finished && (
             <View style={styles.roleBarFinished}>
-              <Text style={styles.roleTextFinished}>FINISHED</Text>
+              <Text style={[styles.roleTextFinished, { color: ui.textFaint }]}>FINISHED</Text>
             </View>
           )}
         </Animated.View>
@@ -193,14 +200,15 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     minWidth: 112,
     borderRadius: radius.panel,
-    backgroundColor: colors.panel,
     borderWidth: 1.5,
     borderColor: "transparent",
     overflow: "hidden",
   },
   active: {
-    borderColor: colors.gold,
-    ...shadows.goldGlow,
+    shadowOpacity: 0.70,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 12,
   },
   taking: {
     borderColor: "rgba(221, 208, 245, 0.45)",
@@ -214,7 +222,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(231, 192, 103, 0.05)",
     zIndex: 0,
   },
   finished: { opacity: 0.45 },
@@ -253,7 +260,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
   name: {
-    color: colors.textLight,
     fontWeight: "700",
   },
   nameSingleLine: {
@@ -277,12 +283,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   cardCount: {
-    color: colors.textLight,
     fontSize: 13,
     fontWeight: "800",
   },
   cardCountCompact: {
-    color: colors.textLight,
     fontSize: 12,
     fontWeight: "800",
   },
@@ -312,7 +316,7 @@ const styles = StyleSheet.create({
   },
   roleTextAttack: { color: "#FFCED0" },
   roleTextDefend: { color: "#FFE9A0" },
-  roleTextFinished: { color: colors.textFaint, fontSize: 9, fontWeight: "700", letterSpacing: 0.8 },
+  roleTextFinished: { fontSize: 9, fontWeight: "700", letterSpacing: 0.8 },
 });
 
 export const PlayerSeat = React.memo(PlayerSeatComponent);

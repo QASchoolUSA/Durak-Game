@@ -13,8 +13,13 @@ import {
   pickMove,
   undefendedCount,
 } from "@durak/game-core";
-import { safeMoveFor } from "./autoMove";
+import { timeoutMoveFor } from "./autoMove";
 import { trigger } from "../feedback/haptics";
+import {
+  getStoredGameConfig,
+  setStoredGameConfig,
+  type StoredGameConfig,
+} from "./gameConfigStorage";
 
 export type Screen = "home" | "game" | "result";
 export type Difficulty = "easy" | "medium" | "hard";
@@ -24,6 +29,16 @@ const RETURN_WINDOW_MS = 3000;
 
 const HUMAN_ID: PlayerId = "you";
 const BOT_NAMES = ["Olga", "Ivan", "Dmitri", "Maria", "Sergey"];
+
+function persistConfig(state: Pick<GameStore, "numPlayers" | "variant" | "throwInScope" | "playStyle" | "difficulty">) {
+  void setStoredGameConfig({
+    numPlayers: state.numPlayers,
+    variant: state.variant,
+    throwInScope: state.throwInScope,
+    playStyle: state.playStyle,
+    difficulty: state.difficulty,
+  });
+}
 
 function buildPlayers(n: number): { ids: PlayerId[]; names: Record<PlayerId, string> } {
   const ids: PlayerId[] = [HUMAN_ID];
@@ -138,7 +153,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       for (const p of game.players) {
         if (p === humanId) continue;
-        const move = pickMove(game, p);
+        const move = pickMove(game, p, get().difficulty);
         if (move) {
           try {
             const next = applyMove(game, move);
@@ -168,11 +183,27 @@ export const useGameStore = create<GameStore>((set, get) => {
     pot: 0,
     buyIn: 100,
 
-    setNumPlayers: (n) => set({ numPlayers: Math.min(6, Math.max(2, n)) }),
-    setVariant: (variant) => set({ variant }),
-    setThrowInScope: (throwInScope) => set({ throwInScope }),
-    setPlayStyle: (playStyle) => set({ playStyle }),
-    setDifficulty: (difficulty) => set({ difficulty }),
+    setNumPlayers: (n) => {
+      const numPlayers = Math.min(6, Math.max(2, n));
+      set({ numPlayers });
+      persistConfig({ ...get(), numPlayers });
+    },
+    setVariant: (variant) => {
+      set({ variant });
+      persistConfig(get());
+    },
+    setThrowInScope: (throwInScope) => {
+      set({ throwInScope });
+      persistConfig(get());
+    },
+    setPlayStyle: (playStyle) => {
+      set({ playStyle });
+      persistConfig(get());
+    },
+    setDifficulty: (difficulty) => {
+      set({ difficulty });
+      persistConfig(get());
+    },
 
     startGame: (n) => {
       cancelAi();
@@ -192,6 +223,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         lastMoveAt: Date.now(),
         pot: get().buyIn * count,
       });
+      persistConfig(get());
       scheduleAi();
     },
 
@@ -252,7 +284,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     autoPlayHuman: () => {
       const { game, humanId } = get();
       if (!game || game.phase !== "playing") return;
-      const move = safeMoveFor(game, humanId);
+      const move = timeoutMoveFor(game, humanId);
       if (move) {
         get().submitHuman(move);
       }
@@ -287,3 +319,21 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
   };
 });
+
+export async function loadGameConfig(): Promise<void> {
+  try {
+    const stored = await getStoredGameConfig();
+    if (!stored) return;
+    useGameStore.setState({
+      numPlayers: stored.numPlayers,
+      variant: stored.variant,
+      throwInScope: stored.throwInScope,
+      playStyle: stored.playStyle,
+      difficulty: stored.difficulty,
+    });
+  } catch {
+    // Fall through to defaults
+  }
+}
+
+export type { StoredGameConfig };
