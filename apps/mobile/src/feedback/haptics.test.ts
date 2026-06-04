@@ -108,6 +108,23 @@ describe("trigger", () => {
     expect(mocks.impactAsync).toHaveBeenCalledWith(ImpactFeedbackStyle.Light);
   });
 
+  it("maps roundClear to light impact", () => {
+    trigger("roundClear");
+    expect(mocks.impactAsync).toHaveBeenCalledWith(ImpactFeedbackStyle.Light);
+  });
+
+  it("maps turnStart to light impact", () => {
+    trigger("turnStart");
+    expect(mocks.impactAsync).toHaveBeenCalledWith(ImpactFeedbackStyle.Light);
+  });
+
+  it("maps deal to sound only (no haptic)", () => {
+    trigger("deal");
+    expect(mocks.impactAsync).not.toHaveBeenCalled();
+    expect(mocks.selectionAsync).not.toHaveBeenCalled();
+    expect(mocks.notificationAsync).not.toHaveBeenCalled();
+  });
+
   it("maps timerCritical to medium impact", () => {
     trigger("timerCritical");
     expect(mocks.impactAsync).toHaveBeenCalledWith(ImpactFeedbackStyle.Medium);

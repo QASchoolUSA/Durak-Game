@@ -2,7 +2,6 @@ import React, { forwardRef, useCallback, useImperativeHandle, useRef } from "rea
 import { StyleSheet, View } from "react-native";
 import Animated, {
   FadeIn,
-  ZoomIn,
   withDelay,
   withTiming,
 } from "react-native-reanimated";
@@ -21,6 +20,48 @@ import { cardSize, spacing } from "../theme";
 export type TableExitKind = "toHand" | "toOpponent" | "toDiscard";
 
 const EXIT_DURATION = 360;
+const ATTACK_ENTER_MS = 220;
+const DEFENSE_ENTER_MS = 200;
+
+function makeAttackEnter() {
+  return () => {
+    "worklet";
+    const duration = ATTACK_ENTER_MS;
+    return {
+      initialValues: {
+        opacity: 0,
+        transform: [{ translateY: 12 }, { scale: 0.96 }],
+      },
+      animations: {
+        opacity: withTiming(1, { duration }),
+        transform: [
+          { translateY: withTiming(0, { duration }) },
+          { scale: withTiming(1, { duration }) },
+        ],
+      },
+    };
+  };
+}
+
+function makeDefenseEnter() {
+  return () => {
+    "worklet";
+    const duration = DEFENSE_ENTER_MS;
+    return {
+      initialValues: {
+        opacity: 0,
+        transform: [{ translateY: 8 }, { scale: 0.94 }],
+      },
+      animations: {
+        opacity: withTiming(1, { duration }),
+        transform: [
+          { translateY: withTiming(0, { duration }) },
+          { scale: withTiming(1, { duration }) },
+        ],
+      },
+    };
+  };
+}
 
 type ExitTarget = {
   translateX: number;
@@ -109,6 +150,7 @@ export interface TableAreaProps {
   hoverTransferIndex?: number | null;
   /** True while the player is dragging — show zones as available targets. */
   dragActive?: boolean;
+  reduceMotion?: boolean;
   remeasureKey?: number;
   onDropZoneLayout?: (zone: DropZone) => void;
   onDropZoneRemoved?: (tableIndex: number, kind: DropZoneKind) => void;
@@ -125,6 +167,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
       hoverDefendIndex = null,
       hoverTransferIndex = null,
       dragActive = false,
+      reduceMotion = false,
       remeasureKey = 0,
       onDropZoneLayout,
       onDropZoneRemoved,
@@ -151,6 +194,9 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
         }
       },
     }));
+
+    const attackEnter = reduceMotion ? FadeIn.duration(120) : makeAttackEnter();
+    const defenseEnter = reduceMotion ? FadeIn.duration(120) : makeDefenseEnter();
 
     return (
       <View style={styles.container}>
@@ -201,7 +247,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
           return (
             <Animated.View
               key={pair.attack.id}
-              entering={FadeIn.duration(180)}
+              entering={attackEnter}
               exiting={makeTableExit(exitKind, i)}
             >
               <View style={[styles.pair, { width: pairW, height: pairH }]}>
@@ -249,7 +295,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
                 )}
 
                 {pair.defense && (
-                  <Animated.View entering={ZoomIn.duration(200)}>
+                  <Animated.View entering={defenseEnter}>
                     <View style={styles.defense}>
                       <Card
                         card={pair.defense}

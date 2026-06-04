@@ -238,6 +238,8 @@ export interface HandProps {
   /** Fired when a drag starts so the table can refresh drop-zone measurements. */
   onDragBegin?: () => void;
   onDragActive?: (cardId: string | null) => void;
+  /** Fired once when a batch of new cards appears in the hand. */
+  onCardsDealt?: (count: number) => void;
 }
 
 function HandComponent({
@@ -250,6 +252,7 @@ function HandComponent({
   onDragMove,
   onDragBegin,
   onDragActive,
+  onCardsDealt,
 }: HandProps) {
   const { width } = useWindowDimensions();
   const { w, h } = cardSize.hand;
@@ -274,6 +277,17 @@ function HandComponent({
   useEffect(() => {
     prevIdsRef.current = new Set(sortedCards.map((c) => c.id));
   }, [sortedCards]);
+
+  const dealtFiredRef = useRef(false);
+  useEffect(() => {
+    if (newIdSet.size === 0) {
+      dealtFiredRef.current = false;
+      return;
+    }
+    if (dealtFiredRef.current || !onCardsDealt) return;
+    dealtFiredRef.current = true;
+    onCardsDealt(newIdSet.size);
+  }, [newIdSet, onCardsDealt]);
 
   const total = sortedCards.length;
   const { spacing, rotPerSlot } = computeHandLayout(width, w, h, total);

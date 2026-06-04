@@ -26,6 +26,7 @@ export type Difficulty = "easy" | "medium" | "hard";
 
 const AI_DELAY: Record<Difficulty, number> = { easy: 1400, medium: 750, hard: 320 };
 const RETURN_WINDOW_MS = 3000;
+const RESULT_DELAY_MS = 400;
 
 const HUMAN_ID: PlayerId = "you";
 const BOT_NAMES = ["Olga", "Ivan", "Dmitri", "Maria", "Sergey"];
@@ -56,6 +57,14 @@ function isHumanCardMove(move: Move, humanId: PlayerId): boolean {
     move.player === humanId &&
     (move.type === "ATTACK" || move.type === "DEFEND" || move.type === "TRANSFER")
   );
+}
+
+function triggerMoveFeedback(move: Move): void {
+  if (move.type === "TAKE") trigger("takeCards");
+  else if (move.type === "PASS") trigger("confirm");
+  else if (move.type === "ATTACK" || move.type === "DEFEND" || move.type === "TRANSFER") {
+    trigger("cardPlay");
+  }
 }
 
 interface GameStore {
@@ -90,6 +99,7 @@ interface GameStore {
 
 let aiTimer: ReturnType<typeof setTimeout> | null = null;
 let returnTimer: ReturnType<typeof setTimeout> | null = null;
+let resultTimer: ReturnType<typeof setTimeout> | null = null;
 
 function cancelAi() {
   if (aiTimer) {
@@ -105,18 +115,43 @@ function cancelReturnTimer() {
   }
 }
 
+function cancelResultTimer() {
+  if (resultTimer) {
+    clearTimeout(resultTimer);
+    resultTimer = null;
+  }
+}
+
 export const useGameStore = create<GameStore>((set, get) => {
   function clearReturnWindow() {
     cancelReturnTimer();
     set({ returnSnapshot: null, returnExpiresAt: 0 });
   }
 
+  function finishGameOver(next: GameState) {
+    cancelAi();
+    cancelResultTimer();
+    const delay = next.table.length === 0 ? RESULT_DELAY_MS : 0;
+    set({
+      game: next,
+      lastMoveAt: Date.now(),
+      returnSnapshot: null,
+      returnExpiresAt: 0,
+      ...(delay === 0 ? { screen: "result" as const } : {}),
+    });
+    if (delay > 0) {
+      resultTimer = setTimeout(() => {
+        resultTimer = null;
+        set({ screen: "result" });
+      }, delay);
+    }
+  }
+
   function afterApply(next: GameState) {
     clearReturnWindow();
 
     if (next.phase === "gameOver") {
-      cancelAi();
-      set({ game: next, lastMoveAt: Date.now(), screen: "result" });
+      finishGameOver(next);
       return;
     }
     set({ game: next, lastMoveAt: Date.now() });
@@ -157,6 +192,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         if (move) {
           try {
             const next = applyMove(game, move);
+            triggerMoveFeedback(move);
             afterApply(next);
           } catch {
             /* ignore */
@@ -208,6 +244,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     startGame: (n) => {
       cancelAi();
       clearReturnWindow();
+      cancelResultTimer();
       const count = n ?? get().numPlayers;
       const { variant, throwInScope, playStyle } = get();
       const { ids, names } = buildPlayers(count);
@@ -230,6 +267,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     goHome: () => {
       cancelAi();
       clearReturnWindow();
+      cancelResultTimer();
       set({ screen: "home", game: null });
     },
 
@@ -251,14 +289,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         else if (isHumanCardMove(move, humanId)) trigger("cardPlay");
 
         if (next.phase === "gameOver") {
-          cancelAi();
-          set({
-            game: next,
-            lastMoveAt: Date.now(),
-            screen: "result",
-            returnSnapshot: null,
-            returnExpiresAt: 0,
-          });
+          finishGameOver(next);
           return;
         }
 

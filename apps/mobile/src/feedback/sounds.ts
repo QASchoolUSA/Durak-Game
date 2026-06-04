@@ -10,7 +10,10 @@ type SoundKey =
   | "gameStart"
   | "success"
   | "failure"
-  | "tick";
+  | "tick"
+  | "roundClear"
+  | "deal"
+  | "turnStart";
 
 type AudioPlayer = import("expo-audio").AudioPlayer;
 
@@ -21,6 +24,9 @@ const EVENT_SOUND: Partial<Record<HapticEvent, SoundKey>> = {
   cardPlay: "cardPlay",
   takeCards: "take",
   gameStart: "gameStart",
+  roundClear: "roundClear",
+  deal: "deal",
+  turnStart: "turnStart",
   timerWarning: "tick",
   timerCritical: "tick",
   timerExpired: "confirm",
@@ -38,6 +44,16 @@ const SOURCES: Record<SoundKey, number> = {
   success: require("../../assets/sounds/success.wav"),
   failure: require("../../assets/sounds/failure.wav"),
   tick: require("../../assets/sounds/tick.wav"),
+  roundClear: require("../../assets/sounds/round-clear.wav"),
+  deal: require("../../assets/sounds/deal.wav"),
+  turnStart: require("../../assets/sounds/turn-start.wav"),
+};
+
+/** Per-clip volume — new moment sounds stay quieter than core UI feedback. */
+const KEY_VOLUME: Partial<Record<SoundKey, number>> = {
+  roundClear: 0.55,
+  deal: 0.6,
+  turnStart: 0.45,
 };
 
 type AudioModule = typeof import("expo-audio");
@@ -73,7 +89,7 @@ async function playKey(key: SoundKey): Promise<void> {
   let player = playerPool.get(key);
   if (!player) {
     player = mod.createAudioPlayer(SOURCES[key]);
-    player.volume = 0.85;
+    player.volume = KEY_VOLUME[key] ?? 0.85;
     playerPool.set(key, player);
   }
 

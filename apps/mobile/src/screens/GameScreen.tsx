@@ -43,8 +43,10 @@ import {
 import { colors, radius, shadows, spacing, typography } from "../theme";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
+import { useReduceMotion } from "../hooks/useReduceMotion";
 
 const TABLE_EXIT_RESET_MS = 450;
+const ROUND_CLEAR_DELAY_MS = 120;
 
 const STANDARD_COACH_STEPS: CoachStep[] = [
   {
@@ -94,6 +96,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const autoPlayHuman = useGameStore((s) => s.autoPlayHuman);
   const goHome = useGameStore((s) => s.goHome);
   const ui = useUiTheme();
+  const reduceMotion = useReduceMotion();
   const pauseForOverlay = useGameStore((s) => s.pauseForOverlay);
   const resumeFromOverlay = useGameStore((s) => s.resumeFromOverlay);
   const turnSeconds = usePreferencesStore((s) => s.turnSeconds);
@@ -152,6 +155,12 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const prevRemainingRef = useRef<number>(turnSeconds || 12);
   const prevGameRef = useRef<GameState | null>(null);
   const exitResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const roundClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevMustActRef = useRef(false);
+
+  const handleCardsDealt = useCallback(() => {
+    trigger("deal");
+  }, []);
 
   const scheduleExitKindReset = useCallback(() => {
     if (exitResetTimerRef.current) clearTimeout(exitResetTimerRef.current);
@@ -400,6 +409,13 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
           : "toDiscard";
         setTableExitKind(kind);
         scheduleExitKindReset();
+        if (!prev.takeInProgress) {
+          if (roundClearTimerRef.current) clearTimeout(roundClearTimerRef.current);
+          roundClearTimerRef.current = setTimeout(() => {
+            roundClearTimerRef.current = null;
+            trigger("roundClear");
+          }, ROUND_CLEAR_DELAY_MS);
+        }
       } else if (
         !prev.takeInProgress &&
         game.takeInProgress &&
@@ -415,9 +431,21 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   useEffect(
     () => () => {
       if (exitResetTimerRef.current) clearTimeout(exitResetTimerRef.current);
+      if (roundClearTimerRef.current) clearTimeout(roundClearTimerRef.current);
     },
     [],
   );
+
+  useEffect(() => {
+    if (!view) return;
+    const blocked = showBeatTransferChoice || revealOpen;
+    const mustAct = view.mustAct && !blocked;
+    const prev = prevMustActRef.current;
+    if (mustAct && !prev) {
+      trigger("turnStart");
+    }
+    prevMustActRef.current = mustAct;
+  }, [view?.mustAct, showBeatTransferChoice, revealOpen]);
 
   useEffect(() => {
     if (!view?.canTake) setTakeConfirmOpen(false);
@@ -541,6 +569,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               hoverDefendIndex={hoverDrop?.kind === "defend" ? hoverDrop.tableIndex : null}
               hoverTransferIndex={hoverDrop?.kind === "transfer" ? hoverDrop.tableIndex : null}
               dragActive={showBeatTransferChoice && !!draggingCardId}
+              reduceMotion={reduceMotion}
               remeasureKey={zoneRemeasureKey}
               onDropZoneLayout={showBeatTransferChoice ? onDropZoneLayout : undefined}
               onDropZoneRemoved={showBeatTransferChoice ? onDropZoneRemoved : undefined}
@@ -601,6 +630,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             onDragMove={showBeatTransferChoice ? updateDragAim : undefined}
             onDragBegin={showBeatTransferChoice ? handleDragBegin : undefined}
             onDragActive={handleDragActive}
+            onCardsDealt={handleCardsDealt}
           />
 
           {abilitiesMode && (

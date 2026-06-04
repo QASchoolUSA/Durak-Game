@@ -16,6 +16,9 @@ export type HapticEvent =
   | "gameStart"
   | "cardPlay"
   | "takeCards"
+  | "roundClear"
+  | "deal"
+  | "turnStart"
   | "timerWarning"
   | "timerCritical"
   | "timerExpired"
@@ -27,6 +30,8 @@ async function playEvent(event: HapticEvent): Promise<void> {
   switch (event) {
     case "uiTap":
     case "timerWarning":
+    case "roundClear":
+    case "turnStart":
       await impactAsync(ImpactFeedbackStyle.Light);
       break;
     case "selection":
