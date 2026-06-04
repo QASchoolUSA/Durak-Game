@@ -24,8 +24,11 @@ import {
   type StoredGameConfig,
 } from "./gameConfigStorage";
 import {
+  generateGuestDisplayName,
+  getStoredNameIsCustom,
   getStoredPlayerName,
-  setStoredPlayerName,
+  setStoredCustomName,
+  setStoredGuestName,
 } from "./playerNameStorage";
 
 export type Screen = "home" | "lobby" | "game" | "result";
@@ -95,7 +98,7 @@ interface GameStore {
   onlineSessionToken: string | null;
   onlineDisplayName: string;
   playerNameHydrated: boolean;
-  hasSavedPlayerName: boolean;
+  hasCustomDisplayName: boolean;
   onlineRoomCode: string | null;
   onlineIsHost: boolean;
   setPlayMode: (mode: PlayMode) => void;
@@ -252,7 +255,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     onlineSessionToken: null,
     onlineDisplayName: "Player",
     playerNameHydrated: false,
-    hasSavedPlayerName: false,
+    hasCustomDisplayName: false,
     onlineRoomCode: null,
     onlineIsHost: false,
 
@@ -261,8 +264,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     setOnlineDisplayName: (onlineDisplayName) => {
       const trimmed = onlineDisplayName.trim().slice(0, 20);
       if (!trimmed) return;
-      set({ onlineDisplayName: trimmed, hasSavedPlayerName: true });
-      void setStoredPlayerName(trimmed);
+      set({ onlineDisplayName: trimmed, hasCustomDisplayName: true });
+      void setStoredCustomName(trimmed);
     },
 
     enterOnlineLobby: ({ roomId, sessionToken, displayName, code, isHost }) => {
@@ -514,15 +517,19 @@ export async function loadPlayerName(): Promise<void> {
   try {
     const stored = await getStoredPlayerName();
     if (stored) {
+      const isCustom = await getStoredNameIsCustom();
       useGameStore.setState({
         onlineDisplayName: stored,
-        hasSavedPlayerName: true,
+        hasCustomDisplayName: isCustom,
         playerNameHydrated: true,
       });
       return;
     }
+    const guest = generateGuestDisplayName();
+    await setStoredGuestName(guest);
     useGameStore.setState({
-      hasSavedPlayerName: false,
+      onlineDisplayName: guest,
+      hasCustomDisplayName: false,
       playerNameHydrated: true,
     });
   } catch {

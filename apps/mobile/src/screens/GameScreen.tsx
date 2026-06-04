@@ -240,7 +240,8 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const transferTargets = beatTransferChoice.transferIndices;
 
   const expectedZoneCount =
-    beatTransferChoice.choiceIndices.length + beatTransferChoice.transferIndices.length;
+    beatTransferChoice.choiceIndices.length +
+    (beatTransferChoice.transferIndices.length > 0 ? 1 : 0);
 
   const reaimFromLastBounds = useCallback(() => {
     const bounds = lastDragBoundsRef.current;

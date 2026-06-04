@@ -24,7 +24,10 @@ import { colors, radius, spacing, typography } from "../theme";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { AppearancePicker } from "./AppearancePicker";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { MenuButton } from "./MenuButton";
 import { trigger } from "../feedback/haptics";
+import { clearAllAppStorage } from "../game/devStorage";
 import { usePreferencesStore } from "../game/preferencesStore";
 import { useGameStore } from "../game/store";
 import {
@@ -66,6 +69,8 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const setOnlineDisplayName = useGameStore((s) => s.setOnlineDisplayName);
   const [nameDraft, setNameDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
+  const [wipeConfirmVisible, setWipeConfirmVisible] = useState(false);
+  const [wiping, setWiping] = useState(false);
 
   useEffect(() => {
     setSound(soundEnabled);
@@ -98,6 +103,26 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     },
     [setHapticsEnabled],
   );
+
+  const handleConfirmWipe = useCallback(async () => {
+    setWipeConfirmVisible(false);
+    setWiping(true);
+    try {
+      await clearAllAppStorage();
+      const { onlineDisplayName: name, soundEnabled: soundOn } = {
+        onlineDisplayName: useGameStore.getState().onlineDisplayName,
+        soundEnabled: usePreferencesStore.getState().soundEnabled,
+      };
+      setNameDraft(name);
+      setNameError(null);
+      setSound(soundOn);
+      trigger("confirm");
+    } catch {
+      trigger("error");
+    } finally {
+      setWiping(false);
+    }
+  }, []);
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(visible);
@@ -226,6 +251,9 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               <Text style={[styles.profileLabel, { color: ui.textFaint }]}>
                 Display name
               </Text>
+              <Text style={[styles.profileHint, { color: ui.textFaint }]}>
+                Used in online games. Change anytime.
+              </Text>
               <TextInput
                 style={[
                   styles.profileInput,
@@ -324,12 +352,46 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               <AppearancePicker />
             </View>
 
+            {__DEV__ && (
+              <>
+                <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textFaint }]}>
+                  TESTING
+                </Text>
+                <View
+                  style={[
+                    styles.card,
+                    styles.devCard,
+                    { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
+                  ]}
+                >
+                  <Text style={[styles.devHint, { color: ui.textFaint }]}>
+                    Clears AsyncStorage and reloads defaults (new guest name, settings reset).
+                  </Text>
+                  <MenuButton
+                    label={wiping ? "CLEARING…" : "CLEAR SAVED DATA"}
+                    variant="ghost"
+                    onPress={() => setWipeConfirmVisible(true)}
+                  />
+                </View>
+              </>
+            )}
+
             <Text style={[styles.version, { color: ui.textFaint }]}>
               Durak · v1.0 · Classic Russian Card Game
             </Text>
           </ScrollView>
         </Animated.View>
       </GestureHandlerRootView>
+
+      <ConfirmDialog
+        visible={wipeConfirmVisible}
+        title="Clear saved data?"
+        message="This wipes all local app storage (name, settings, session). You cannot undo this."
+        confirmLabel="Clear"
+        cancelLabel="Cancel"
+        onConfirm={() => void handleConfirmWipe()}
+        onCancel={() => setWipeConfirmVisible(false)}
+      />
     </Modal>
   );
 }
@@ -410,6 +472,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
     paddingBottom: spacing.xs,
+  },
+  profileHint: {
+    ...typography.caption,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  devCard: {
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  devHint: {
+    ...typography.caption,
+    textAlign: "center",
   },
   profileInput: {
     borderWidth: 1,

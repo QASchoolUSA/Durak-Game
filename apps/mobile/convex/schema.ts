@@ -28,5 +28,7 @@ export default defineSchema({
     gameState: v.optional(v.any()),
     lastMoveAt: v.number(),
     version: v.number(),
-  }).index("by_code", ["code"]),
+  })
+    .index("by_code", ["code"])
+    .index("by_lastMoveAt", ["lastMoveAt"]),
 });

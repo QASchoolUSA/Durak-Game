@@ -111,7 +111,7 @@ export function getBeatTransferChoice(
   }
 
   const choiceIndices: number[] = [];
-  const transferIndices: number[] = [];
+  const transferCandidates: number[] = [];
 
   state.table.forEach((pair, i) => {
     if (pair.defense) return;
@@ -121,9 +121,13 @@ export function getBeatTransferChoice(
       Object.values(view.transferable).some((targets) => targets.includes(i));
     if (canBeat || canXfer) {
       choiceIndices.push(i);
-      if (canXfer) transferIndices.push(i);
+      if (canXfer) transferCandidates.push(i);
     }
   });
+
+  /** One shared transfer drop zone — always anchored to the opening table index. */
+  const transferIndices =
+    transferCandidates.length > 0 ? [Math.min(...transferCandidates)] : [];
 
   return { active: choiceIndices.length > 0, choiceIndices, transferIndices };
 }

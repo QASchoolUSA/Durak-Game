@@ -77,7 +77,7 @@ describe("getBeatTransferChoice", () => {
     const view = getHumanView(state, "you");
     const choice = getBeatTransferChoice(state, view);
     expect(choice.active).toBe(true);
-    expect(choice.transferIndices.length).toBeGreaterThan(0);
+    expect(choice.transferIndices).toEqual([0]);
   });
 
   it("disallows transfer after a throw-in", () => {

@@ -31,6 +31,8 @@ import {
 import { memberNames, sanitizeGameState } from "./lib/views";
 
 const AI_DELAY = { easy: 1400, medium: 750, hard: 320 } as const;
+const INACTIVE_ROOM_MS = 5 * 60 * 1000;
+const CLEANUP_BATCH_SIZE = 100;
 
 const roomConfigValidator = v.object({
   numPlayers: v.number(),
@@ -189,7 +191,11 @@ export const joinRoom = mutation({
       },
     ];
 
-    await ctx.db.patch(room._id, { members, version: room.version + 1 });
+    await ctx.db.patch(room._id, {
+      members,
+      lastMoveAt: Date.now(),
+      version: room.version + 1,
+    });
 
     return { roomId: room._id, sessionToken, seatIndex: seat };
   },
@@ -224,6 +230,7 @@ export const leaveRoom = mutation({
     await ctx.db.patch(args.roomId, {
       members,
       hostSessionToken,
+      lastMoveAt: Date.now(),
       version: room.version + 1,
     });
   },
@@ -280,6 +287,7 @@ export const setLobbyBot = mutation({
 
     await ctx.db.patch(args.roomId, {
       members,
+      lastMoveAt: Date.now(),
       version: room.version + 1,
     });
   },
@@ -302,6 +310,7 @@ export const setRoomDifficulty = mutation({
 
     await ctx.db.patch(args.roomId, {
       config: { ...room.config, difficulty: args.difficulty },
+      lastMoveAt: Date.now(),
       version: room.version + 1,
     });
   },
@@ -435,6 +444,7 @@ export const setReady = mutation({
 
     await ctx.db.patch(args.roomId, {
       members,
+      lastMoveAt: Date.now(),
       version: room.version + 1,
     });
   },
@@ -546,6 +556,23 @@ export const getRoomInternal = internalQuery({
   args: { roomId: v.id("rooms") },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.roomId);
+  },
+});
+
+export const cleanupStaleRooms = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - INACTIVE_ROOM_MS;
+    const stale = await ctx.db
+      .query("rooms")
+      .withIndex("by_lastMoveAt", (q) => q.lt("lastMoveAt", cutoff))
+      .take(CLEANUP_BATCH_SIZE);
+
+    for (const room of stale) {
+      await ctx.db.delete(room._id);
+    }
+
+    return { deleted: stale.length };
   },
 });
 
