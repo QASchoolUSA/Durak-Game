@@ -9,7 +9,11 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://neighborly-blackbird-943.convex.cloud"
+      }
     },
     "production": {
       "autoIncrement": true,
@@ -19,6 +23,11 @@
     }
   },
   "submit": {
+    "preview": {
+      "ios": {
+        "ascAppId": "6776070804"
+      }
+    },
     "production": {
       "ios": {
         "ascAppId": "6776070804"

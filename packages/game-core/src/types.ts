@@ -26,6 +26,8 @@ export type PlayerId = string;
 export interface TablePair {
   attack: Card;
   defense?: Card;
+  /** True when this attack was added by a perevodnoy TRANSFER move. */
+  viaTransfer?: boolean;
 }
 
 export type GamePhase = "playing" | "gameOver";

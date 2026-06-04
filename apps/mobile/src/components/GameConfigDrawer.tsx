@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -17,16 +19,24 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import { useMutation } from "convex/react";
 import type { GameVariant, ThrowInScope, PlayStyle } from "@durak/game-core";
-import type { Difficulty } from "../game/store";
+import { api } from "../../convex/_generated/api";
+import type { Difficulty, PlayMode } from "../game/store";
 import { useGameStore } from "../game/store";
 import { MenuButton } from "./MenuButton";
 import { colors, radius, spacing, typography } from "../theme";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
+import { saveRoomSession } from "../game/onlineSessionStorage";
 
 // ── Static config ─────────────────────────────────────────────────────────────
+
+const PLAY_MODE_OPTIONS: { id: PlayMode; label: string; desc: string }[] = [
+  { id: "solo", label: "Vs AI", desc: "Play locally against bots" },
+  { id: "online", label: "With friends", desc: "Wait in lobby for a friend, or fill with AI" },
+];
 
 const PLAYER_OPTIONS = [
   { count: 2, hint: "1 vs 1"  },
@@ -100,6 +110,13 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(visible);
+  const [displayName, setDisplayName] = useState(
+    () => useGameStore.getState().onlineDisplayName,
+  );
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const createRoom = useMutation(api.rooms.createRoom);
 
   const ty        = useSharedValue(drawerH);
   const backdropO = useSharedValue(0);
@@ -172,19 +189,76 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const throwIn     = useGameStore((s) => s.throwInScope);
   const playStyle   = useGameStore((s) => s.playStyle);
   const difficulty  = useGameStore((s) => s.difficulty);
+  const playMode    = useGameStore((s) => s.playMode);
   const setPlayers  = useGameStore((s) => s.setNumPlayers);
   const setVariant  = useGameStore((s) => s.setVariant);
   const setThrowIn  = useGameStore((s) => s.setThrowInScope);
   const setPlayStyle = useGameStore((s) => s.setPlayStyle);
   const setDiff     = useGameStore((s) => s.setDifficulty);
+  const setPlayMode = useGameStore((s) => s.setPlayMode);
+  const setOnlineDisplayName = useGameStore((s) => s.setOnlineDisplayName);
   const startGame   = useGameStore((s) => s.startGame);
+  const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
 
-  const handleStart = useCallback(() => {
-    trigger("gameStart");
-    setModalVisible(false);
-    onClose();
-    startGame();
-  }, [onClose, startGame]);
+  const handleStart = useCallback(async () => {
+    if (playMode === "solo") {
+      trigger("gameStart");
+      setModalVisible(false);
+      onClose();
+      startGame();
+      return;
+    }
+
+    const name = displayName.trim() || "Host";
+    setCreating(true);
+    setCreateError(null);
+    setOnlineDisplayName(name);
+    try {
+      const result = await createRoom({
+        displayName: name,
+        config: {
+          numPlayers,
+          variant,
+          throwInScope: throwIn,
+          playStyle,
+          difficulty,
+        },
+      });
+      await saveRoomSession({
+        roomId: result.roomId,
+        sessionToken: result.sessionToken,
+        displayName: name,
+      });
+      trigger("gameStart");
+      enterOnlineLobby({
+        roomId: result.roomId,
+        sessionToken: result.sessionToken,
+        displayName: name,
+        code: result.code,
+        isHost: true,
+      });
+      setModalVisible(false);
+      onClose();
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : "Could not create room");
+      trigger("error");
+    } finally {
+      setCreating(false);
+    }
+  }, [
+    playMode,
+    displayName,
+    createRoom,
+    numPlayers,
+    variant,
+    throwIn,
+    playStyle,
+    difficulty,
+    onClose,
+    startGame,
+    enterOnlineLobby,
+    setOnlineDisplayName,
+  ]);
 
   // ── Animated styles ────────────────────────────────────────────────────────
 
@@ -236,26 +310,74 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
 
             <View style={[styles.divider, { backgroundColor: ui.panelBorderSoft }]} />
 
-            {/* ── Non-scrollable sections ── */}
-            <View style={styles.sections}>
+            {/* ── Scrollable sections (footer pinned below) ── */}
+            <ScrollView
+              style={styles.sectionsScroll}
+              contentContainerStyle={styles.sections}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
 
-              {/* Players */}
+              {/* Play mode */}
               <View style={styles.section}>
-                <SectionLabel label="PLAYERS" />
-                <View style={styles.playerRow}>
-                  {PLAYER_OPTIONS.map((p) => (
-                    <PlayerBtn
-                      key={p.count}
-                      count={p.count}
-                      hint={p.hint}
-                      active={numPlayers === p.count}
+                <SectionLabel label="PLAY MODE" />
+                <View style={styles.toggleRow}>
+                  {PLAY_MODE_OPTIONS.map((opt) => (
+                    <ToggleBtn
+                      key={opt.id}
+                      label={opt.label}
+                      desc={opt.desc}
+                      active={playMode === opt.id}
                       onPress={() => {
                         trigger("selection");
-                        setPlayers(p.count);
+                        setPlayMode(opt.id);
                       }}
                     />
                   ))}
                 </View>
+              </View>
+
+              {playMode === "online" && (
+                <>
+                  <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
+                  <View style={styles.section}>
+                    <SectionLabel label="YOUR NAME" />
+                    <TextInput
+                      style={[
+                        styles.nameInput,
+                        {
+                          color: ui.textPrimary,
+                          borderColor: ui.panelBorderSoft,
+                          backgroundColor: ui.panelBg,
+                        },
+                      ]}
+                      value={displayName}
+                      onChangeText={setDisplayName}
+                      placeholder="Display name"
+                      placeholderTextColor={ui.textFaint}
+                      maxLength={20}
+                      autoCapitalize="words"
+                    />
+                  </View>
+                </>
+              )}
+
+              <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
+
+              {/* Players */}
+              <View style={styles.section}>
+                <SectionLabel
+                  label="PLAYERS"
+                  badge={playMode === "online" ? "Max seats" : undefined}
+                />
+                <PlayerCountStrip
+                  value={numPlayers}
+                  playMode={playMode}
+                  onChange={(n) => {
+                    trigger("selection");
+                    setPlayers(n);
+                  }}
+                />
               </View>
 
               <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
@@ -331,7 +453,10 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
 
               {/* AI Difficulty */}
               <View style={styles.section}>
-                <SectionLabel label="AI DIFFICULTY" />
+                <SectionLabel
+                  label="AI DIFFICULTY"
+                  badge={playMode === "online" ? "For AI seats" : undefined}
+                />
                 <View style={styles.diffRow}>
                   {DIFF_OPTIONS.map((d) => (
                     <DiffBtn
@@ -351,7 +476,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                 </View>
               </View>
 
-            </View>
+            </ScrollView>
 
             {/* ── START GAME footer ── */}
             <View
@@ -364,7 +489,21 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                 },
               ]}
             >
-              <MenuButton label="START GAME" variant="primary" onPress={handleStart} icon="▶" />
+              {createError && playMode === "online" && (
+                <Text style={[styles.createError, { color: colors.danger }]}>{createError}</Text>
+              )}
+              <MenuButton
+                label={
+                  playMode === "online"
+                    ? creating
+                      ? "CREATING…"
+                      : "CREATE ROOM"
+                    : "START GAME"
+                }
+                variant="primary"
+                onPress={handleStart}
+                icon="▶"
+              />
             </View>
 
           </Animated.View>
@@ -395,52 +534,64 @@ function SectionLabel({ label, badge }: { label: string; badge?: string }) {
   );
 }
 
-function PlayerBtn({ count, hint, active, onPress }: {
-  count: number; hint: string; active: boolean; onPress: () => void;
+function playerCountHint(count: number, playMode: PlayMode): string {
+  if (playMode === "online") {
+    return `${count} players at the table · empty seats use AI`;
+  }
+  return PLAYER_OPTIONS.find((p) => p.count === count)?.hint ?? "";
+}
+
+function PlayerCountStrip({
+  value,
+  playMode,
+  onChange,
+}: {
+  value: number;
+  playMode: PlayMode;
+  onChange: (n: number) => void;
 }) {
   const ui = useUiTheme();
   return (
-    <Pressable
-      style={[
-        styles.playerBtn,
-        {
-          borderColor: ui.panelBorderSoft,
-          backgroundColor: ui.panelBg,
-        },
-        active && {
-          borderColor: ui.accent,
-          backgroundColor: ui.accentSoft,
-          shadowColor: ui.accent,
-          shadowOpacity: 0.70,
-          shadowRadius: 20,
-          shadowOffset: { width: 0, height: 0 },
-          elevation: 12,
-        },
-      ]}
-      onPress={onPress}
-    >
-      <Text
-        style={[
-          styles.playerNum,
-          { color: ui.textFaint },
-          active && { color: ui.accent },
-        ]}
-      >
-        {count}
+    <View>
+      <View style={styles.playerStripRow}>
+        {PLAYER_OPTIONS.map((p) => {
+          const active = value === p.count;
+          return (
+            <Pressable
+              key={p.count}
+              style={[
+                styles.playerChip,
+                {
+                  borderColor: ui.panelBorderSoft,
+                  backgroundColor: ui.panelBg,
+                },
+                active && {
+                  borderColor: ui.accent,
+                  backgroundColor: ui.accentSoft,
+                },
+              ]}
+              onPress={() => onChange(p.count)}
+            >
+              <Text
+                style={[
+                  styles.playerChipNum,
+                  { color: ui.textFaint },
+                  active && { color: ui.accent },
+                ]}
+              >
+                {p.count}
+              </Text>
+              {active && (
+                <View style={[styles.playerChipDot, { backgroundColor: ui.accent }]} />
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+      <Text style={[styles.playerHintLine, { color: ui.textFaint }]}>
+        {playerCountHint(value, playMode)}
       </Text>
-      <Text
-        style={[
-          styles.playerHint,
-          { color: ui.textFaint },
-          active && { color: ui.accentMuted },
-        ]}
-      >
-        {hint}
-      </Text>
-      {active && (
-        <View style={[styles.playerActiveDot, { backgroundColor: ui.accent }]} />
-      )}
-    </Pressable>
+    </View>
   );
 }
 
@@ -675,12 +826,14 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginTop: spacing.xs,
   },
-  sections: {
+  sectionsScroll: {
     flex: 1,
+  },
+  sections: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xs,
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   section: {},
   sectionLocked: { opacity: 0.36 },
@@ -692,7 +845,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   sectionLabelText: {
     ...typography.label,
@@ -710,27 +863,35 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingHorizontal: spacing.lg,
   },
-  playerRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  playerBtn: {
-    flexGrow: 1,
-    flexBasis: "30%",
-    minWidth: 96,
-    height: 66,
+  playerStripRow: {
+    flexDirection: "row",
+    gap: spacing.xs,
+  },
+  playerChip: {
+    flex: 1,
+    height: 44,
     borderRadius: radius.panel,
     borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
-    paddingBottom: 14,
-    gap: 2,
   },
-  playerNum: { fontSize: 30, fontWeight: "900", lineHeight: 34 },
-  playerHint: { ...typography.label, letterSpacing: 0.4 },
-  playerActiveDot: {
+  playerChipNum: {
+    fontSize: 21,
+    fontWeight: "800",
+    lineHeight: 24,
+  },
+  playerChipDot: {
     position: "absolute",
-    bottom: 6,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    bottom: 5,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  playerHintLine: {
+    ...typography.caption,
+    marginTop: spacing.xs,
+    textAlign: "center",
+    letterSpacing: 0.2,
   },
   modePair: { gap: spacing.sm },
   modeCardOuter: { width: "100%" },
@@ -818,4 +979,16 @@ const styles = StyleSheet.create({
   pip: { width: 6, height: 6, borderRadius: 3 },
   diffLabel: { ...typography.caption, fontWeight: "800" },
   diffDesc: { ...typography.label, letterSpacing: 0.3 },
+  nameInput: {
+    borderWidth: 1,
+    borderRadius: radius.panel,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: 16,
+  },
+  createError: {
+    ...typography.caption,
+    textAlign: "center",
+    marginBottom: spacing.xs,
+  },
 });

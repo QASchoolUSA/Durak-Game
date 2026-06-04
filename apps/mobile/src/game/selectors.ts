@@ -109,8 +109,6 @@ export function getBeatTransferChoice(
   if (!view.isDefender || state.takeInProgress || undefendedCount(state) === 0) {
     return empty;
   }
-  // Transfer is only legal before throw-ins (single attack on table).
-  if (state.table.length !== 1) return empty;
 
   const choiceIndices: number[] = [];
   const transferIndices: number[] = [];

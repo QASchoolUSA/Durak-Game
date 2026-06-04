@@ -192,7 +192,7 @@ export function applyMove(prev: GameState, move: Move): GameState {
       }
       const oldDefender = prev.defenderId;
       state.hands[move.player] = removeCard(handOf(state, move.player), move.card);
-      state.table.push({ attack: move.card });
+      state.table.push({ attack: move.card, viaTransfer: true });
       state.defenderId = seatAfter(state, oldDefender, true);
       state.passed = [];
       break;

@@ -7,7 +7,12 @@
     "test": "pnpm --filter @durak/game-core test && pnpm --filter @durak/mobile test",
     "start": "pnpm --filter @durak/mobile start",
     "mobile": "pnpm --filter @durak/mobile start",
-    "mobile:clear": "pnpm --filter @durak/mobile exec expo start -c"
+    "mobile:clear": "pnpm --filter @durak/mobile exec expo start -c",
+    "convex:dev": "pnpm --filter @durak/mobile exec convex dev",
+    "convex:once": "pnpm --filter @durak/mobile exec convex dev --once",
+    "convex:deploy": "pnpm --filter @durak/mobile exec convex deploy --preview-name dev",
+    "ios:preview": "pnpm --filter @durak/mobile exec eas build --platform ios --profile preview",
+    "ios:preview:submit": "pnpm --filter @durak/mobile exec eas submit --platform ios --profile preview"
   },
   "devDependencies": {
     "typescript": "^5.5.4"

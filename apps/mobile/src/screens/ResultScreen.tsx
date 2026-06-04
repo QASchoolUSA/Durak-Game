@@ -1,15 +1,19 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Animated as RNAnimated, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated";
+import { useMutation } from "convex/react";
 import { Background } from "../components/Background";
 import { Confetti } from "../components/Confetti";
 import { MenuButton } from "../components/MenuButton";
 import { useReduceMotion } from "../hooks/useReduceMotion";
 import { useGameStore } from "../game/store";
 import { trigger } from "../feedback/haptics";
+import { clearRoomSession } from "../game/onlineSessionStorage";
 import { layoutFor, colors, radius, shadows, spacing, typography } from "../theme";
 import { useUiTheme } from "../theme/UiThemeContext";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 // ── Rank badges ──────────────────────────────────────────────────────────────
 
@@ -106,10 +110,59 @@ export function ResultScreen() {
   const names      = useGameStore((s) => s.names);
   const pot        = useGameStore((s) => s.pot);
   const numPlayers = useGameStore((s) => s.numPlayers);
+  const playMode     = useGameStore((s) => s.playMode);
+  const onlineRoomId = useGameStore((s) => s.onlineRoomId);
+  const onlineSessionToken = useGameStore((s) => s.onlineSessionToken);
   const startGame  = useGameStore((s) => s.startGame);
   const goHome     = useGameStore((s) => s.goHome);
   const { width }  = useWindowDimensions();
   const lay        = layoutFor(width);
+
+  const returnToLobby = useMutation(api.rooms.returnToLobby);
+  const leaveRoom = useMutation(api.rooms.leaveRoom);
+  const [returning, setReturning] = useState(false);
+
+  const handlePlayAgain = useCallback(async () => {
+    if (playMode === "online") {
+      if (!onlineRoomId || !onlineSessionToken || returning) return;
+      setReturning(true);
+      trigger("confirm");
+      try {
+        await returnToLobby({
+          roomId: onlineRoomId as Id<"rooms">,
+          sessionToken: onlineSessionToken,
+        });
+      } catch {
+        trigger("error");
+        setReturning(false);
+      }
+      return;
+    }
+    startGame(numPlayers);
+  }, [
+    playMode,
+    onlineRoomId,
+    onlineSessionToken,
+    returning,
+    returnToLobby,
+    startGame,
+    numPlayers,
+  ]);
+
+  const handleMainMenu = useCallback(async () => {
+    if (playMode === "online" && onlineRoomId && onlineSessionToken) {
+      try {
+        await leaveRoom({
+          roomId: onlineRoomId as Id<"rooms">,
+          sessionToken: onlineSessionToken,
+        });
+      } catch {
+        /* ignore */
+      }
+      await clearRoomSession();
+    }
+    goHome();
+  }, [playMode, onlineRoomId, onlineSessionToken, leaveRoom, goHome]);
 
   const loser     = game?.loserId ?? null;
   const humanLost = loser === humanId;
@@ -217,13 +270,14 @@ export function ResultScreen() {
             <MenuButton
               label="PLAY AGAIN"
               variant="primary"
-              onPress={() => startGame(numPlayers)}
+              onPress={handlePlayAgain}
               icon="▶"
+              disabled={returning}
             />
             <MenuButton
               label="MAIN MENU"
               variant="ghost"
-              onPress={goHome}
+              onPress={handleMainMenu}
               icon="⌂"
             />
           </Animated.View>

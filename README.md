@@ -42,6 +42,60 @@ Then scan the QR code with Expo Go (or press `i` / `a` for a simulator/emulator)
 pnpm test              # runs the @durak/game-core vitest suite
 ```
 
+## Test online multiplayer (simulator + iPhone)
+
+Online play uses a **Convex** backend. Configure `apps/mobile/.env.local` with your deployment URL (see `apps/mobile/.env.example`). After changing `convex/` code:
+
+```bash
+pnpm convex:deploy     # deploy to preview (requires CONVEX_DEPLOY_KEY in .env.local)
+pnpm mobile:clear      # restart Expo so env vars reload
+```
+
+- **iOS Simulator:** press `i` in the Expo terminal.
+- **iPhone (Expo Go):** same Wi‑Fi as your Mac, scan the QR code. Game state syncs over the internet via Convex; Wi‑Fi is only needed to load the JS bundle from Metro. If the phone cannot reach Metro, use Expo tunnel (`npx expo start --tunnel`).
+
+**Flow:**
+
+1. Device A: **PLAY** → **With friends** → **CREATE ROOM** → share the 6-digit code.
+2. Device B: **JOIN GAME** → enter code and a display name.
+3. Host alone: lobby shows **Waiting for a friend** and **PLAY WITH AI** (fills empty seats with bots).
+4. Host with a friend: **START GAME** (any remaining seats are filled with AI).
+
+Do not commit `.env.local` (it contains deploy keys).
+
+### Invite friends anywhere (TestFlight)
+
+Multiplayer runs on Convex in the cloud — friends do **not** need to be on your Wi‑Fi. They need a **TestFlight build** of the app (not Expo Go on your Mac’s QR code).
+
+**One-time setup**
+
+1. `eas login` and link your Apple Developer account.
+2. Build an internal iOS app (embeds the preview Convex URL from [`apps/mobile/eas.json`](apps/mobile/eas.json)):
+
+```bash
+pnpm ios:preview
+```
+
+3. Upload to TestFlight:
+
+```bash
+pnpm ios:preview:submit
+```
+
+   Or download the `.ipa` from the EAS dashboard and upload via App Store Connect.
+
+4. In [App Store Connect](https://appstoreconnect.apple.com) → your app → **TestFlight**, add internal or external testers and send invites.
+
+**When you change backend code** (`convex/`): run `pnpm convex:deploy` — testers keep the same app; no new build required.
+
+**When you change the mobile app**: run `pnpm ios:preview` again and distribute a new TestFlight build.
+
+**Play together**
+
+1. Host: **PLAY** → **With friends** → **CREATE ROOM** → share the 6-digit code (text, iMessage, etc.).
+2. Friend: open Durak from TestFlight → **JOIN GAME** → code + display name.
+3. Host starts when ready (**START GAME** with a friend, or **PLAY WITH AI** if alone).
+
 ## How to play (Phase 1)
 
 - Tap **PLAY** on the home screen to open the new-game drawer. Choose **2–6 players**, variant (**Podkidnoy** or **Perevodnoy / Transfer**), throw-in rules, **Standard** or **Abilities** mode, and AI difficulty.

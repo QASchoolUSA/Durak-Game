@@ -71,6 +71,54 @@ describe("perevodnoy transfer", () => {
     expect(state.passed).toHaveLength(0);
   });
 
+  it("allows chained transfer after the first transfer", () => {
+    let state = baseState({
+      hands: {
+        A: [makeCard(9, "hearts"), makeCard(7, "hearts"), makeCard(8, "hearts")],
+        B: [makeCard(9, "diamonds"), makeCard(7, "clubs")],
+        C: [makeCard(9, "spades"), makeCard(8, "clubs")],
+      },
+      table: [{ attack: makeCard(9, "clubs") }],
+    });
+    state = applyMove(state, {
+      type: "TRANSFER",
+      player: "B",
+      card: makeCard(9, "diamonds"),
+      target: 0,
+    });
+    expect(state.defenderId).toBe("C");
+    expect(canTransfer(state, "C")).toBe(true);
+    expect(legalTransfers(state, 0).map((c) => c.id)).toContain(cardId(9, "spades"));
+  });
+
+  it("completes a three-player transfer chain", () => {
+    let state = baseState({
+      hands: {
+        A: [makeCard(9, "hearts"), makeCard(7, "hearts"), makeCard(8, "hearts"), makeCard(10, "hearts")],
+        B: [makeCard(9, "diamonds")],
+        C: [makeCard(9, "spades"), makeCard(6, "diamonds")],
+      },
+      table: [{ attack: makeCard(9, "clubs") }],
+    });
+    state = applyMove(state, {
+      type: "TRANSFER",
+      player: "B",
+      card: makeCard(9, "diamonds"),
+      target: 0,
+    });
+    expect(canTransfer(state, "C")).toBe(true);
+    state = applyMove(state, {
+      type: "TRANSFER",
+      player: "C",
+      card: makeCard(9, "spades"),
+      target: 0,
+    });
+    expect(state.defenderId).toBe("A");
+    expect(state.table).toHaveLength(3);
+    expect(state.table[1]!.viaTransfer).toBe(true);
+    expect(state.table[2]!.viaTransfer).toBe(true);
+  });
+
   it("blocks transfer after a throw-in", () => {
     const state = baseState({
       hands: {

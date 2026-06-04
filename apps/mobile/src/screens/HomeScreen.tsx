@@ -19,6 +19,7 @@ import Animated, {
 import { Background } from "../components/Background";
 import { CardFan } from "../components/CardFan";
 import { GameConfigDrawer } from "../components/GameConfigDrawer";
+import { OnlineJoinDrawer } from "../components/OnlineJoinDrawer";
 import { MenuButton } from "../components/MenuButton";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
@@ -32,6 +33,7 @@ export interface HomeScreenProps {
 
 const MENU_ITEMS = [
   { label: "PLAY",        variant: "primary"   as const, icon: "▶", action: "play"     },
+  { label: "JOIN GAME",   variant: "secondary" as const, icon: "⎘", action: "join"     },
   { label: "SETTINGS",    variant: "secondary" as const, icon: "⚙", action: "settings" },
   { label: "HOW TO PLAY", variant: "ghost"     as const, icon: "?", action: "rules"    },
 ];
@@ -42,9 +44,11 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   const { width }  = useWindowDimensions();
   const lay        = layoutFor(width);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
 
   const handleMenu = (action: string) => {
     if (action === "play") setDrawerOpen(true);
+    if (action === "join") setJoinOpen(true);
     if (action === "settings") onOpenSettings();
     if (action === "rules") onOpenRules();
   };
@@ -95,6 +99,10 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
       <GameConfigDrawer
         visible={drawerOpen}
         onClose={() => setDrawerOpen(false)}
+      />
+      <OnlineJoinDrawer
+        visible={joinOpen}
+        onClose={() => setJoinOpen(false)}
       />
     </Background>
   );

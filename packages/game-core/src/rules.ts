@@ -146,14 +146,27 @@ export function legalDefenses(
   return hand.filter((c) => beats(c, pair.attack, state.trumpSuit));
 }
 
+/** True while defenders may keep passing the attack via matching-rank transfers. */
+export function transferChainActive(state: GameState): boolean {
+  if (state.table.length === 0) return false;
+  if (state.table.some((p) => p.defense)) return false;
+  if (state.table.length === 1) return true;
+  const openingRank = state.table[0]!.attack.rank;
+  for (let i = 1; i < state.table.length; i++) {
+    const p = state.table[i]!;
+    if (!p.viaTransfer || p.attack.rank !== openingRank) return false;
+  }
+  return true;
+}
+
 /**
  * Perevodnoy: defender plays same rank to pass defense to the next seat.
- * Only allowed on the opening attack before any throw-ins.
+ * Allowed on the opening attack or while the chain has only transfer-added cards.
  */
 export function legalTransfers(state: GameState, target: number): Card[] {
   if (state.rules.variant !== "perevodnoy") return [];
   if (state.phase !== "playing" || state.takeInProgress) return [];
-  if (state.table.length !== 1) return [];
+  if (!transferChainActive(state)) return [];
 
   const pair = state.table[target];
   if (!pair || pair.defense) return [];

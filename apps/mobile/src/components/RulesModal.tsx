@@ -49,7 +49,7 @@ const SECTIONS = [
   },
   {
     title: "Perevodnoy — Transfer",
-    body: "In Perevodnoy mode, the defender has a third option: play a card of the same rank as the initial attack. This transfers the entire attack to the next player, who now must defend.\n\nTransfer is only possible on the opening attack (one card on the table) and before any throw-ins.",
+    body: "In Perevodnoy mode, the defender has a third option: play a card of the same rank as the initial attack. This transfers the entire attack to the next player, who now must defend.\n\nDefenders can keep transferring the attack around the table by playing matching-rank cards, until someone beats, takes, or an attacker throws in an extra card.",
   },
   {
     title: "End of Round",
