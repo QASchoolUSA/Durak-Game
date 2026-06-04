@@ -23,6 +23,10 @@ import {
   setStoredGameConfig,
   type StoredGameConfig,
 } from "./gameConfigStorage";
+import {
+  getStoredPlayerName,
+  setStoredPlayerName,
+} from "./playerNameStorage";
 
 export type Screen = "home" | "lobby" | "game" | "result";
 export type Difficulty = "easy" | "medium" | "hard";
@@ -90,6 +94,8 @@ interface GameStore {
   onlineRoomId: string | null;
   onlineSessionToken: string | null;
   onlineDisplayName: string;
+  playerNameHydrated: boolean;
+  hasSavedPlayerName: boolean;
   onlineRoomCode: string | null;
   onlineIsHost: boolean;
   setPlayMode: (mode: PlayMode) => void;
@@ -245,12 +251,19 @@ export const useGameStore = create<GameStore>((set, get) => {
     onlineRoomId: null,
     onlineSessionToken: null,
     onlineDisplayName: "Player",
+    playerNameHydrated: false,
+    hasSavedPlayerName: false,
     onlineRoomCode: null,
     onlineIsHost: false,
 
     setPlayMode: (playMode) => set({ playMode }),
 
-    setOnlineDisplayName: (onlineDisplayName) => set({ onlineDisplayName }),
+    setOnlineDisplayName: (onlineDisplayName) => {
+      const trimmed = onlineDisplayName.trim().slice(0, 20);
+      if (!trimmed) return;
+      set({ onlineDisplayName: trimmed, hasSavedPlayerName: true });
+      void setStoredPlayerName(trimmed);
+    },
 
     enterOnlineLobby: ({ roomId, sessionToken, displayName, code, isHost }) => {
       cancelAi();
@@ -494,6 +507,26 @@ export async function loadGameConfig(): Promise<void> {
     });
   } catch {
     // Fall through to defaults
+  }
+}
+
+export async function loadPlayerName(): Promise<void> {
+  try {
+    const stored = await getStoredPlayerName();
+    if (stored) {
+      useGameStore.setState({
+        onlineDisplayName: stored,
+        hasSavedPlayerName: true,
+        playerNameHydrated: true,
+      });
+      return;
+    }
+    useGameStore.setState({
+      hasSavedPlayerName: false,
+      playerNameHydrated: true,
+    });
+  } catch {
+    useGameStore.setState({ playerNameHydrated: true });
   }
 }
 

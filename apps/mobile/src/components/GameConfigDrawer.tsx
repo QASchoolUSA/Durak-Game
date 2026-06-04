@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -24,6 +23,7 @@ import type { GameVariant, ThrowInScope, PlayStyle } from "@durak/game-core";
 import { api } from "../../convex/_generated/api";
 import type { Difficulty, PlayMode } from "../game/store";
 import { useGameStore } from "../game/store";
+import { DifficultyPicker } from "./DifficultyPicker";
 import { MenuButton } from "./MenuButton";
 import { colors, radius, spacing, typography } from "../theme";
 import { useTableTheme } from "../theme/TableThemeContext";
@@ -75,15 +75,6 @@ const PLAY_STYLE_OPTIONS: { id: PlayStyle; label: string; desc: string }[] = [
   { id: "abilities", label: "With Abilities", desc: "Return, graveyard & reveal a card" },
 ];
 
-const DIFF_OPTIONS: {
-  id: Difficulty; label: string; desc: string;
-  pips: number; color: string; activeBg: string;
-}[] = [
-  { id: "easy",   label: "Easy",   desc: "Relaxed",  pips: 1, color: colors.success, activeBg: "rgba(70,167,88,0.14)"   },
-  { id: "medium", label: "Medium", desc: "Balanced", pips: 3, color: colors.gold,    activeBg: "rgba(231,192,103,0.14)" },
-  { id: "hard",   label: "Hard",   desc: "Expert",   pips: 5, color: colors.danger,  activeBg: "rgba(229,72,77,0.14)"   },
-];
-
 // ── Animation springs ─────────────────────────────────────────────────────────
 
 const SPRING_IN  = { damping: 26, stiffness: 290, mass: 0.85 };
@@ -110,9 +101,6 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(visible);
-  const [displayName, setDisplayName] = useState(
-    () => useGameStore.getState().onlineDisplayName,
-  );
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -196,7 +184,6 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const setPlayStyle = useGameStore((s) => s.setPlayStyle);
   const setDiff     = useGameStore((s) => s.setDifficulty);
   const setPlayMode = useGameStore((s) => s.setPlayMode);
-  const setOnlineDisplayName = useGameStore((s) => s.setOnlineDisplayName);
   const startGame   = useGameStore((s) => s.startGame);
   const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
 
@@ -209,10 +196,9 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
       return;
     }
 
-    const name = displayName.trim() || "Host";
+    const name = useGameStore.getState().onlineDisplayName.trim() || "Host";
     setCreating(true);
     setCreateError(null);
-    setOnlineDisplayName(name);
     try {
       const result = await createRoom({
         displayName: name,
@@ -247,7 +233,6 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
     }
   }, [
     playMode,
-    displayName,
     createRoom,
     numPlayers,
     variant,
@@ -257,7 +242,6 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
     onClose,
     startGame,
     enterOnlineLobby,
-    setOnlineDisplayName,
   ]);
 
   // ── Animated styles ────────────────────────────────────────────────────────
@@ -336,31 +320,6 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                   ))}
                 </View>
               </View>
-
-              {playMode === "online" && (
-                <>
-                  <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
-                  <View style={styles.section}>
-                    <SectionLabel label="YOUR NAME" />
-                    <TextInput
-                      style={[
-                        styles.nameInput,
-                        {
-                          color: ui.textPrimary,
-                          borderColor: ui.panelBorderSoft,
-                          backgroundColor: ui.panelBg,
-                        },
-                      ]}
-                      value={displayName}
-                      onChangeText={setDisplayName}
-                      placeholder="Display name"
-                      placeholderTextColor={ui.textFaint}
-                      maxLength={20}
-                      autoCapitalize="words"
-                    />
-                  </View>
-                </>
-              )}
 
               <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
 
@@ -449,32 +408,23 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                 </View>
               </View>
 
-              <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
+              {playMode !== "online" && (
+                <>
+                  <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
 
-              {/* AI Difficulty */}
-              <View style={styles.section}>
-                <SectionLabel
-                  label="AI DIFFICULTY"
-                  badge={playMode === "online" ? "For AI seats" : undefined}
-                />
-                <View style={styles.diffRow}>
-                  {DIFF_OPTIONS.map((d) => (
-                    <DiffBtn
-                      key={d.id}
-                      label={d.label}
-                      desc={d.desc}
-                      pips={d.pips}
-                      color={d.color}
-                      activeBg={d.activeBg}
-                      active={difficulty === d.id}
-                      onPress={() => {
+                  {/* AI Difficulty */}
+                  <View style={styles.section}>
+                    <SectionLabel label="AI DIFFICULTY" />
+                    <DifficultyPicker
+                      value={difficulty}
+                      onChange={(d) => {
                         trigger("selection");
-                        setDiff(d.id);
+                        setDiff(d);
                       }}
                     />
-                  ))}
-                </View>
-              </View>
+                  </View>
+                </>
+              )}
 
             </ScrollView>
 
@@ -536,7 +486,7 @@ function SectionLabel({ label, badge }: { label: string; badge?: string }) {
 
 function playerCountHint(count: number, playMode: PlayMode): string {
   if (playMode === "online") {
-    return `${count} players at the table · empty seats use AI`;
+    return `${count} seats at the table · manage AI in the lobby`;
   }
   return PLAYER_OPTIONS.find((p) => p.count === count)?.hint ?? "";
 }
@@ -760,34 +710,6 @@ function ToggleBtn({ label, desc, active, disabled, onPress }: {
   );
 }
 
-function DiffBtn({ label, desc, pips, color, activeBg, active, onPress }: {
-  label: string; desc: string; pips: number; color: string;
-  activeBg: string; active: boolean; onPress: () => void;
-}) {
-  const ui = useUiTheme();
-  return (
-    <Pressable
-      style={[
-        styles.diffBtn,
-        {
-          borderColor: ui.panelBorderSoft,
-          backgroundColor: ui.panelBg,
-        },
-        active && { borderColor: color, backgroundColor: activeBg },
-      ]}
-      onPress={onPress}
-    >
-      <View style={styles.pipRow}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <View key={i} style={[styles.pip, { backgroundColor: i < pips ? color : ui.panelBorderSoft }]} />
-        ))}
-      </View>
-      <Text style={[styles.diffLabel, { color: ui.textMuted }, active && { color }]}>{label}</Text>
-      <Text style={[styles.diffDesc, { color: ui.textFaint }]}>{desc}</Text>
-    </Pressable>
-  );
-}
-
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
@@ -965,20 +887,6 @@ const styles = StyleSheet.create({
   },
   toggleLabel: { ...typography.body, fontWeight: "800", textAlign: "center" },
   toggleDesc: { ...typography.label, letterSpacing: 0.3, textAlign: "center" },
-  diffRow: { flexDirection: "row", gap: spacing.sm },
-  diffBtn: {
-    flex: 1,
-    height: 64,
-    borderRadius: radius.panel,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-  },
-  pipRow: { flexDirection: "row", gap: 4 },
-  pip: { width: 6, height: 6, borderRadius: 3 },
-  diffLabel: { ...typography.caption, fontWeight: "800" },
-  diffDesc: { ...typography.label, letterSpacing: 0.3 },
   nameInput: {
     borderWidth: 1,
     borderRadius: radius.panel,

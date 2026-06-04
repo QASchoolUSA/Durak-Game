@@ -25,6 +25,7 @@ import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { layoutFor, radius, spacing, typography } from "../theme";
 import { useReduceMotion } from "../hooks/useReduceMotion";
+import { useGameStore } from "../game/store";
 
 export interface HomeScreenProps {
   onOpenSettings: () => void;
@@ -43,10 +44,15 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   const reduceMotion = useReduceMotion();
   const { width }  = useWindowDimensions();
   const lay        = layoutFor(width);
+  const hasSavedPlayerName = useGameStore((s) => s.hasSavedPlayerName);
+  const playerNameHydrated = useGameStore((s) => s.playerNameHydrated);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
 
   const handleMenu = (action: string) => {
+    if (action === "play" || action === "join") {
+      if (!playerNameHydrated || !hasSavedPlayerName) return;
+    }
     if (action === "play") setDrawerOpen(true);
     if (action === "join") setJoinOpen(true);
     if (action === "settings") onOpenSettings();

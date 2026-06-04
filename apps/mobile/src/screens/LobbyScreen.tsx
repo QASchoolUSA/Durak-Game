@@ -1,7 +1,8 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -10,15 +11,24 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useMutation, useQuery } from "convex/react";
+import { AddAiSeatSheet } from "../components/AddAiSeatSheet";
 import { Background } from "../components/Background";
 import { MenuButton } from "../components/MenuButton";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { trigger } from "../feedback/haptics";
 import { clearRoomSession } from "../game/onlineSessionStorage";
+import type { Difficulty } from "../game/store";
 import { useGameStore } from "../game/store";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { layoutFor, radius, spacing, typography } from "../theme";
+
+type RoomMemberView = {
+  displayName: string;
+  seatIndex: number;
+  isBot: boolean;
+  isReady?: boolean;
+};
 
 export function LobbyScreen() {
   const ui = useUiTheme();
@@ -29,13 +39,16 @@ export function LobbyScreen() {
   const onlineSessionToken = useGameStore((s) => s.onlineSessionToken);
   const onlineRoomCode = useGameStore((s) => s.onlineRoomCode);
   const onlineIsHost = useGameStore((s) => s.onlineIsHost);
-  const numPlayers = useGameStore((s) => s.numPlayers);
   const onlineDisplayName = useGameStore((s) => s.onlineDisplayName);
   const goHome = useGameStore((s) => s.goHome);
+
+  const [addAiSeat, setAddAiSeat] = useState<number | null>(null);
 
   const startGame = useMutation(api.rooms.startGame);
   const leaveRoom = useMutation(api.rooms.leaveRoom);
   const setReady = useMutation(api.rooms.setReady);
+  const setLobbyBot = useMutation(api.rooms.setLobbyBot);
+  const setRoomDifficulty = useMutation(api.rooms.setRoomDifficulty);
 
   const roomView = useQuery(
     api.rooms.getRoomView,
@@ -52,14 +65,30 @@ export function LobbyScreen() {
   const readyCount = roomView?.readyCount ?? 0;
   const allHumansReady = roomView?.allHumansReady ?? false;
   const code = roomView?.code ?? onlineRoomCode ?? "------";
+  const maxSeats = roomView?.config.numPlayers ?? 2;
+  const roomDifficulty = roomView?.config.difficulty ?? "medium";
+  const joinedCount = members.length;
 
-  const humanMembers = useMemo(
-    () =>
-      members
-        .filter((m) => !m.isBot)
-        .sort((a, b) => a.seatIndex - b.seatIndex),
-    [members],
-  );
+  const seats = useMemo(() => {
+    const slots: { seatIndex: number; member?: RoomMemberView }[] = [];
+    for (let i = 0; i < maxSeats; i++) {
+      slots.push({
+        seatIndex: i,
+        member: members.find((m) => m.seatIndex === i),
+      });
+    }
+    return slots;
+  }, [members, maxSeats]);
+
+  const hasEmptySeat = seats.some((s) => !s.member);
+
+  const canHostStart =
+    onlineIsHost &&
+    ((joinedCount >= 2 && humanCount < 2) ||
+      (humanCount >= 2 && allHumansReady));
+
+  const showStartCompact =
+    canHostStart && humanCount < maxSeats && hasEmptySeat;
 
   const isLocalReady = roomView?.yourIsReady ?? false;
 
@@ -102,25 +131,74 @@ export function LobbyScreen() {
         roomId: onlineRoomId as Id<"rooms">,
         sessionToken: onlineSessionToken,
         soloWithAi: false,
+        autoFillEmptySeats: true,
       });
     } catch {
       trigger("error");
     }
   }, [onlineRoomId, onlineSessionToken, startGame]);
 
-  const handlePlayWithAi = useCallback(async () => {
+  const handleStartCompact = useCallback(async () => {
     if (!onlineRoomId || !onlineSessionToken) return;
     trigger("gameStart");
     try {
       await startGame({
         roomId: onlineRoomId as Id<"rooms">,
         sessionToken: onlineSessionToken,
-        soloWithAi: true,
+        soloWithAi: false,
+        autoFillEmptySeats: false,
       });
     } catch {
       trigger("error");
     }
   }, [onlineRoomId, onlineSessionToken, startGame]);
+
+  const handleLobbyBot = useCallback(
+    async (seatIndex: number, enabled: boolean) => {
+      if (!onlineRoomId || !onlineSessionToken) return;
+      trigger("selection");
+      try {
+        await setLobbyBot({
+          roomId: onlineRoomId as Id<"rooms">,
+          sessionToken: onlineSessionToken,
+          seatIndex,
+          enabled,
+        });
+      } catch {
+        trigger("error");
+      }
+    },
+    [onlineRoomId, onlineSessionToken, setLobbyBot],
+  );
+
+  const handleConfirmAddAi = useCallback(
+    async (difficulty: Difficulty) => {
+      if (!onlineRoomId || !onlineSessionToken || addAiSeat === null) {
+        throw new Error("Missing room");
+      }
+      if (difficulty !== roomDifficulty) {
+        await setRoomDifficulty({
+          roomId: onlineRoomId as Id<"rooms">,
+          sessionToken: onlineSessionToken,
+          difficulty,
+        });
+      }
+      await setLobbyBot({
+        roomId: onlineRoomId as Id<"rooms">,
+        sessionToken: onlineSessionToken,
+        seatIndex: addAiSeat,
+        enabled: true,
+      });
+    },
+    [
+      onlineRoomId,
+      onlineSessionToken,
+      addAiSeat,
+      roomDifficulty,
+      setRoomDifficulty,
+      setLobbyBot,
+    ],
+  );
 
   const handleLeave = useCallback(async () => {
     if (onlineRoomId && onlineSessionToken) {
@@ -155,97 +233,79 @@ export function LobbyScreen() {
             <Text style={[styles.codeHint, { color: ui.textFaint }]}>Tap to share</Text>
           </Pressable>
 
-          <View style={[styles.playerList, { borderColor: ui.panelBorderSoft, backgroundColor: ui.panelBg }]}>
+          <View
+            style={[
+              styles.playerList,
+              { borderColor: ui.panelBorderSoft, backgroundColor: ui.panelBg },
+            ]}
+          >
             <Text style={[styles.listTitle, { color: ui.textFaint }]}>
-              PLAYERS ({humanCount}/{numPlayers})
+              SEATS ({joinedCount}/{maxSeats})
             </Text>
             {!roomView ? (
               <ActivityIndicator color={ui.accent} style={{ marginTop: spacing.md }} />
             ) : (
-              humanMembers.map((m) => {
-                const isYou = m.displayName === onlineDisplayName;
-                const ready = m.isReady === true;
-                return (
-                  <View
-                    key={`${m.seatIndex}-${m.displayName}`}
-                    style={[
-                      styles.playerRow,
-                      { borderBottomColor: ui.panelBorderSoft },
-                      isYou && { backgroundColor: ui.accentSoft },
-                    ]}
-                  >
-                    <View style={[styles.avatar, { backgroundColor: ui.accentSoft }]}>
-                      <Text style={[styles.avatarText, { color: ui.accent }]}>
-                        {m.displayName.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <Text style={[styles.playerName, { color: ui.textPrimary }]}>
-                      {m.displayName}
-                      {isYou ? " (you)" : ""}
-                    </Text>
-                    {humanCount >= 2 && (
-                      <View
-                        style={[
-                          styles.readyBadge,
-                          {
-                            borderColor: ready ? ui.accent : ui.panelBorderSoft,
-                            backgroundColor: ready ? ui.accentSoft : "transparent",
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.readyBadgeText,
-                            { color: ready ? ui.accent : ui.textFaint },
-                          ]}
-                        >
-                          {ready ? "Ready" : "Not ready"}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                );
-              })
-            )}
-            {onlineIsHost && humanCount === 1 && (
-              <Text style={[styles.aiHint, { color: ui.textFaint }]}>
-                Share the code, or play with AI to fill the other seats
-              </Text>
-            )}
-            {onlineIsHost && humanCount >= 2 && humanCount < numPlayers && (
-              <Text style={[styles.aiHint, { color: ui.textFaint }]}>
-                Empty seats will be filled with AI when you start
-              </Text>
+              <ScrollView
+                style={styles.seatScroll}
+                contentContainerStyle={styles.seatScrollContent}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled
+              >
+                {seats.map(({ seatIndex, member }) => (
+                  <SeatRow
+                    key={seatIndex}
+                    seatIndex={seatIndex}
+                    member={member}
+                    isYou={
+                      member != null &&
+                      !member.isBot &&
+                      member.displayName === onlineDisplayName
+                    }
+                    showReady={humanCount >= 2 && member != null && !member.isBot}
+                    canManageBots={onlineIsHost}
+                    onAddBot={() => setAddAiSeat(seatIndex)}
+                    onRemoveBot={() => handleLobbyBot(seatIndex, false)}
+                  />
+                ))}
+                {onlineIsHost && humanCount === 1 && (
+                  <Text style={[styles.aiHint, { color: ui.textFaint }]}>
+                    Add AI to empty seats, or share the code with friends
+                  </Text>
+                )}
+                {onlineIsHost && humanCount >= 2 && hasEmptySeat && (
+                  <Text style={[styles.aiHint, { color: ui.textFaint }]}>
+                    Add AI to empty seats, or start with only joined players
+                  </Text>
+                )}
+              </ScrollView>
             )}
           </View>
 
           <View style={styles.actions}>
-            {onlineIsHost && humanCount === 1 ? (
-              <>
-                <View style={[styles.waitPill, { backgroundColor: ui.accentSoft, borderColor: ui.panelBorderSoft }]}>
-                  <Text style={[styles.waitText, { color: ui.textFaint }]}>
-                    Waiting for a friend to join…
-                  </Text>
-                </View>
-                <MenuButton
-                  label="PLAY WITH AI"
-                  variant="secondary"
-                  icon="🤖"
-                  onPress={handlePlayWithAi}
-                />
-              </>
-            ) : onlineIsHost ? (
-              allHumansReady ? (
-                <MenuButton
-                  label="START GAME"
-                  variant="primary"
-                  icon="▶"
-                  onPress={handleStart}
-                />
+            {onlineIsHost ? (
+              canHostStart ? (
+                <>
+                  <MenuButton
+                    label="START GAME"
+                    variant="primary"
+                    icon="▶"
+                    onPress={handleStart}
+                  />
+                  {showStartCompact && (
+                    <MenuButton
+                      label={`START WITH ${joinedCount} PLAYERS`}
+                      variant="secondary"
+                      icon="▶"
+                      onPress={handleStartCompact}
+                    />
+                  )}
+                </>
               ) : (
                 <View style={[styles.waitPill, { backgroundColor: ui.accentSoft, borderColor: ui.panelBorderSoft }]}>
                   <Text style={[styles.waitText, { color: ui.textFaint }]}>
-                    Waiting for players to ready up ({readyCount}/{humanCount})
+                    {joinedCount < 2
+                      ? "Add AI to a seat or share the code"
+                      : `Waiting for players to ready up (${readyCount}/${humanCount})`}
                   </Text>
                 </View>
               )
@@ -270,7 +330,126 @@ export function LobbyScreen() {
           </View>
         </View>
       </SafeAreaView>
+
+      <AddAiSeatSheet
+        visible={addAiSeat !== null}
+        seatIndex={addAiSeat ?? 0}
+        initialDifficulty={roomDifficulty}
+        onClose={() => setAddAiSeat(null)}
+        onConfirm={handleConfirmAddAi}
+      />
     </Background>
+  );
+}
+
+function SeatRow({
+  seatIndex,
+  member,
+  isYou,
+  showReady,
+  canManageBots,
+  onAddBot,
+  onRemoveBot,
+}: {
+  seatIndex: number;
+  member?: RoomMemberView;
+  isYou: boolean;
+  showReady: boolean;
+  canManageBots: boolean;
+  onAddBot: () => void;
+  onRemoveBot: () => void;
+}) {
+  const ui = useUiTheme();
+
+  if (!member) {
+    return (
+      <View
+        style={[styles.playerRow, { borderBottomColor: ui.panelBorderSoft }]}
+      >
+        <View style={[styles.avatar, { backgroundColor: ui.panelBorderSoft }]}>
+          <Text style={[styles.avatarText, { color: ui.textFaint }]}>—</Text>
+        </View>
+        <Text style={[styles.playerName, { color: ui.textFaint }]}>
+          Seat {seatIndex + 1} · Empty
+        </Text>
+        {canManageBots && (
+          <Pressable
+            style={[styles.seatAction, { borderColor: ui.accent, backgroundColor: ui.accentSoft }]}
+            onPress={onAddBot}
+          >
+            <Text style={[styles.seatActionText, { color: ui.accent }]}>Add AI</Text>
+          </Pressable>
+        )}
+      </View>
+    );
+  }
+
+  if (member.isBot) {
+    return (
+      <View
+        style={[styles.playerRow, { borderBottomColor: ui.panelBorderSoft }]}
+      >
+        <View style={[styles.avatar, { backgroundColor: ui.accentSoft }]}>
+          <Text style={[styles.avatarText, { color: ui.accent }]}>🤖</Text>
+        </View>
+        <Text style={[styles.playerName, { color: ui.textPrimary }]}>
+          {member.displayName}
+          <Text style={{ color: ui.textFaint }}> · AI</Text>
+        </Text>
+        {canManageBots && (
+          <Pressable
+            style={[styles.seatAction, { borderColor: ui.panelBorderSoft }]}
+            onPress={onRemoveBot}
+          >
+            <Text style={[styles.seatActionText, { color: ui.textFaint }]}>
+              Remove
+            </Text>
+          </Pressable>
+        )}
+      </View>
+    );
+  }
+
+  const ready = member.isReady === true;
+
+  return (
+    <View
+      style={[
+        styles.playerRow,
+        { borderBottomColor: ui.panelBorderSoft },
+        isYou && { backgroundColor: ui.accentSoft },
+      ]}
+    >
+      <View style={[styles.avatar, { backgroundColor: ui.accentSoft }]}>
+        <Text style={[styles.avatarText, { color: ui.accent }]}>
+          {member.displayName.charAt(0).toUpperCase()}
+        </Text>
+      </View>
+      <Text style={[styles.playerName, { color: ui.textPrimary }]}>
+        {member.displayName}
+        {isYou ? " (you)" : ""}
+      </Text>
+      {showReady && (
+        <View
+          style={[
+            styles.readyBadge,
+            {
+              borderColor: ready ? ui.accent : ui.panelBorderSoft,
+              backgroundColor: ready ? ui.accentSoft : "transparent",
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.readyBadgeText,
+              { color: ready ? ui.accent : ui.textFaint },
+            ]}
+          >
+            {ready ? "Ready" : "Not ready"}
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -318,12 +497,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.panel,
     padding: spacing.md,
     flex: 1,
-    maxHeight: 280,
+    minHeight: 0,
   },
   listTitle: {
     ...typography.caption,
     letterSpacing: 1,
     marginBottom: spacing.sm,
+  },
+  seatScroll: {
+    flex: 1,
+  },
+  seatScrollContent: {
+    paddingBottom: spacing.xs,
   },
   playerRow: {
     flexDirection: "row",
@@ -355,6 +540,16 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   readyBadgeText: {
+    ...typography.caption,
+    fontWeight: "600",
+  },
+  seatAction: {
+    borderWidth: 1,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  seatActionText: {
     ...typography.caption,
     fontWeight: "600",
   },

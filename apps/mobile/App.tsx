@@ -4,7 +4,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { loadPreferences } from "./src/game/preferencesStore";
-import { loadGameConfig, useGameStore } from "./src/game/store";
+import { loadGameConfig, loadPlayerName, useGameStore } from "./src/game/store";
 import { useOnlineGame } from "./src/game/useOnlineGame";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { LobbyScreen } from "./src/screens/LobbyScreen";
@@ -12,6 +12,7 @@ import { GameScreen } from "./src/screens/GameScreen";
 import { ResultScreen } from "./src/screens/ResultScreen";
 import { SettingsModal } from "./src/components/SettingsModal";
 import { RulesModal } from "./src/components/RulesModal";
+import { PlayerNameModal } from "./src/components/PlayerNameModal";
 import { CardThemeProvider } from "./src/theme/CardThemeContext";
 import { TableThemeProvider } from "./src/theme/TableThemeContext";
 import { UiThemeProvider } from "./src/theme/UiThemeContext";
@@ -28,12 +29,18 @@ function OnlineGameSync() {
 
 export default function App() {
   const screen = useGameStore((s) => s.screen);
+  const playerNameHydrated = useGameStore((s) => s.playerNameHydrated);
+  const hasSavedPlayerName = useGameStore((s) => s.hasSavedPlayerName);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [rulesVisible, setRulesVisible] = useState(false);
+  const [namePromptDismissed, setNamePromptDismissed] = useState(false);
 
   useEffect(() => {
-    void Promise.all([loadPreferences(), loadGameConfig()]);
+    void Promise.all([loadPreferences(), loadGameConfig(), loadPlayerName()]);
   }, []);
+
+  const needsNamePrompt =
+    playerNameHydrated && !hasSavedPlayerName && !namePromptDismissed;
 
   const content = (
     <>
@@ -58,6 +65,10 @@ export default function App() {
       <RulesModal
         visible={rulesVisible}
         onClose={() => setRulesVisible(false)}
+      />
+      <PlayerNameModal
+        visible={needsNamePrompt}
+        onComplete={() => setNamePromptDismissed(true)}
       />
     </>
   );

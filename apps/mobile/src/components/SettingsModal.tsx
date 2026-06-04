@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -19,12 +20,13 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import { radius, spacing, typography } from "../theme";
+import { colors, radius, spacing, typography } from "../theme";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { AppearancePicker } from "./AppearancePicker";
 import { trigger } from "../feedback/haptics";
 import { usePreferencesStore } from "../game/preferencesStore";
+import { useGameStore } from "../game/store";
 import {
   TURN_SECONDS_OPTIONS,
   turnSecondsLabel,
@@ -60,10 +62,26 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const setSoundEnabled = usePreferencesStore((s) => s.setSoundEnabled);
   const turnSeconds = usePreferencesStore((s) => s.turnSeconds);
   const setTurnSeconds = usePreferencesStore((s) => s.setTurnSeconds);
+  const onlineDisplayName = useGameStore((s) => s.onlineDisplayName);
+  const setOnlineDisplayName = useGameStore((s) => s.setOnlineDisplayName);
+  const [nameDraft, setNameDraft] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
 
   useEffect(() => {
     setSound(soundEnabled);
   }, [soundEnabled]);
+
+  const commitDisplayName = useCallback(() => {
+    const trimmed = nameDraft.trim();
+    if (trimmed) {
+      setOnlineDisplayName(trimmed);
+      setNameDraft(trimmed);
+      setNameError(null);
+      return;
+    }
+    setNameDraft(onlineDisplayName);
+    setNameError("Name cannot be empty");
+  }, [nameDraft, onlineDisplayName, setOnlineDisplayName]);
 
   const handleSoundToggle = useCallback(
     (enabled: boolean) => {
@@ -97,20 +115,29 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     [drawerH, ty, backdropO],
   );
 
-  const handleClose = useCallback(() => {
-    animateOut(() => { setModalVisible(false); onClose(); });
-  }, [animateOut, onClose]);
+  const finishClose = useCallback(() => {
+    commitDisplayName();
+    setModalVisible(false);
+    onClose();
+  }, [commitDisplayName, onClose]);
+
+  const requestClose = useCallback(() => {
+    commitDisplayName();
+    animateOut(finishClose);
+  }, [commitDisplayName, animateOut, finishClose]);
 
   useEffect(() => {
     if (visible && !prevVisible.current) {
       ty.value = drawerH; backdropO.value = 0;
       setModalVisible(true);
+      setNameDraft(onlineDisplayName);
+      setNameError(null);
     }
     if (!visible && prevVisible.current && modalVisible) {
       animateOut(() => setModalVisible(false));
     }
     prevVisible.current = visible;
-  }, [visible, drawerH, modalVisible, ty, backdropO, animateOut]);
+  }, [visible, drawerH, modalVisible, ty, backdropO, animateOut, onlineDisplayName]);
 
   const onModalShow = useCallback(() => {
     ty.value        = withSpring(0, SPRING_IN);
@@ -128,8 +155,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     .onEnd((e) => {
       if (e.translationY > 110 || e.velocityY > 650) {
         ty.value = withSpring(drawerHSV.value, SPRING_OUT, () => {
-          runOnJS(setModalVisible)(false);
-          runOnJS(onClose)();
+          runOnJS(finishClose)();
         });
         backdropO.value = withTiming(0, { duration: 210 });
       } else {
@@ -148,11 +174,11 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
       animationType="none"
       statusBarTranslucent
       onShow={onModalShow}
-      onRequestClose={handleClose}
+      onRequestClose={requestClose}
     >
       <GestureHandlerRootView style={styles.gestureRoot}>
         <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, aBackdrop]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={requestClose} />
         </Animated.View>
 
         <Animated.View style={[styles.sheet, { height: drawerH }, aSheet]}>
@@ -189,6 +215,48 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             showsVerticalScrollIndicator={false}
           >
             <Text style={[styles.sectionLabel, { color: ui.textFaint }]}>
+              PROFILE
+            </Text>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
+              ]}
+            >
+              <Text style={[styles.profileLabel, { color: ui.textFaint }]}>
+                Display name
+              </Text>
+              <TextInput
+                style={[
+                  styles.profileInput,
+                  {
+                    color: ui.textPrimary,
+                    borderColor: ui.panelBorderSoft,
+                    backgroundColor: ui.feltEdge,
+                  },
+                ]}
+                value={nameDraft}
+                onChangeText={(t) => {
+                  setNameDraft(t.slice(0, 20));
+                  if (nameError) setNameError(null);
+                }}
+                onEndEditing={commitDisplayName}
+                placeholder="Your nickname"
+                placeholderTextColor={ui.textFaint}
+                maxLength={20}
+                autoCapitalize="words"
+                returnKeyType="done"
+                blurOnSubmit
+                onSubmitEditing={commitDisplayName}
+              />
+              {nameError && (
+                <Text style={[styles.nameError, { color: colors.danger }]}>
+                  {nameError}
+                </Text>
+              )}
+            </View>
+
+            <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textFaint }]}>
               AUDIO & FEEDBACK
             </Text>
             <View
@@ -335,6 +403,27 @@ const styles = StyleSheet.create({
     borderRadius: radius.panel,
     borderWidth: 1,
     overflow: "hidden",
+  },
+  profileLabel: {
+    ...typography.caption,
+    letterSpacing: 0.5,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+  profileInput: {
+    borderWidth: 1,
+    borderRadius: radius.panel,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: 16,
+  },
+  nameError: {
+    ...typography.caption,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
   },
   cardDesignPanel: {
     borderRadius: radius.panel,

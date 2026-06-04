@@ -24,6 +24,7 @@ import {
   humanMemberCount,
   isHost,
   lobbyHumans,
+  memberAtSeat,
   nextOpenSeat,
   readyHumanCount,
 } from "./lib/roomHelpers";
@@ -228,11 +229,90 @@ export const leaveRoom = mutation({
   },
 });
 
+function addBotAtSeat(
+  members: { sessionToken: string; displayName: string; seatIndex: number; isBot: boolean }[],
+  seat: number,
+): void {
+  const botIndex = members.filter((m) => m.isBot).length;
+  members.push({
+    sessionToken: randomSessionToken(),
+    displayName: BOT_NAMES[botIndex] ?? `Bot ${botIndex + 1}`,
+    seatIndex: seat,
+    isBot: true,
+  });
+}
+
+export const setLobbyBot = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    sessionToken: v.string(),
+    seatIndex: v.number(),
+    enabled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    if (!room || room.status !== "lobby") {
+      throw new Error("Cannot change AI seats outside lobby");
+    }
+    if (!isHost(room, args.sessionToken)) {
+      throw new Error("Only the host can manage AI seats");
+    }
+    if (args.seatIndex < 0 || args.seatIndex >= room.config.numPlayers) {
+      throw new Error("Invalid seat");
+    }
+
+    let members = [...room.members];
+    const atSeat = memberAtSeat(members, args.seatIndex);
+
+    if (args.enabled) {
+      if (atSeat) {
+        throw new Error("Seat is not empty");
+      }
+      addBotAtSeat(members, args.seatIndex);
+    } else {
+      if (!atSeat?.isBot) {
+        throw new Error("No AI at this seat");
+      }
+      members = members.filter(
+        (m) => !(m.seatIndex === args.seatIndex && m.isBot),
+      );
+    }
+
+    await ctx.db.patch(args.roomId, {
+      members,
+      version: room.version + 1,
+    });
+  },
+});
+
+export const setRoomDifficulty = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    sessionToken: v.string(),
+    difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
+  },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    if (!room || room.status !== "lobby") {
+      throw new Error("Cannot change difficulty outside lobby");
+    }
+    if (!isHost(room, args.sessionToken)) {
+      throw new Error("Only the host can change AI difficulty");
+    }
+
+    await ctx.db.patch(args.roomId, {
+      config: { ...room.config, difficulty: args.difficulty },
+      version: room.version + 1,
+    });
+  },
+});
+
 export const startGame = mutation({
   args: {
     roomId: v.id("rooms"),
     sessionToken: v.string(),
     soloWithAi: v.optional(v.boolean()),
+    autoFillEmptySeats: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const room = await ctx.db.get(args.roomId);
@@ -247,28 +327,35 @@ export const startGame = mutation({
     }
 
     const humansInRoom = humanMemberCount(room.members);
-    if (humansInRoom < 2 && args.soloWithAi !== true) {
+    if (
+      humansInRoom < 2 &&
+      room.members.length < 2 &&
+      args.soloWithAi !== true
+    ) {
       throw new Error("Waiting for another player");
     }
     if (humansInRoom >= 2 && args.soloWithAi !== true && !allHumansReady(room.members)) {
       throw new Error("Waiting for all players to be ready");
     }
 
-    const humans = room.members
-      .filter((m) => !m.isBot)
-      .sort((a, b) => a.seatIndex - b.seatIndex);
+    const autoFill = args.autoFillEmptySeats !== false;
+    let members = [...room.members];
+    let config = room.config;
 
-    const members = [...humans];
-    let botIndex = 0;
-    for (let seat = 0; seat < room.config.numPlayers; seat++) {
-      if (members.some((m) => m.seatIndex === seat)) continue;
-      members.push({
-        sessionToken: randomSessionToken(),
-        displayName: BOT_NAMES[botIndex] ?? `Bot ${botIndex + 1}`,
-        seatIndex: seat,
-        isBot: true,
-      });
-      botIndex++;
+    if (autoFill || args.soloWithAi === true) {
+      for (let seat = 0; seat < room.config.numPlayers; seat++) {
+        if (!memberAtSeat(members, seat)) {
+          addBotAtSeat(members, seat);
+        }
+      }
+    } else {
+      if (members.length < 2) {
+        throw new Error("Need at least 2 players");
+      }
+      members = members
+        .sort((a, b) => a.seatIndex - b.seatIndex)
+        .map((m, i) => ({ ...m, seatIndex: i }));
+      config = { ...room.config, numPlayers: members.length };
     }
 
     members.sort((a, b) => a.seatIndex - b.seatIndex);
@@ -278,7 +365,7 @@ export const startGame = mutation({
       playerId: playerIds[i]!,
     }));
 
-    const rules = onlineRules(room.config);
+    const rules = onlineRules(config);
     const gameState = createGame(playerIds, {
       seed: (Math.random() * 2 ** 32) >>> 0,
       rules,
@@ -286,6 +373,7 @@ export const startGame = mutation({
 
     await ctx.db.patch(args.roomId, {
       status: "playing",
+      config,
       members: membersWithIds,
       gameState,
       lastMoveAt: Date.now(),
