@@ -1,18 +1,21 @@
-import React, { Suspense, lazy, useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import React, { Component, useEffect, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { ConvexReactClient } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { loadPreferences } from "./src/game/preferencesStore";
 import { loadGameConfig, loadGold, loadPlayerName, useGameStore } from "./src/game/store";
+import { convex, convexEnabled } from "./src/game/convexClient";
 import { convexTokenStorage } from "./src/game/convexTokenStorage";
 import { AuthBootstrap } from "./src/game/useAuthBootstrap";
 import { useGoldWallet } from "./src/game/useGoldWallet";
 import { useOnlineGame } from "./src/game/useOnlineGame";
 import { OnlineStatusBanner } from "./src/components/OnlineStatusBanner";
 import { HomeScreen } from "./src/screens/HomeScreen";
+import { LobbyScreen } from "./src/screens/LobbyScreen";
+import { GameScreen } from "./src/screens/GameScreen";
+import { ResultScreen } from "./src/screens/ResultScreen";
 import { SettingsModal } from "./src/components/SettingsModal";
 import { RulesModal } from "./src/components/RulesModal";
 import { CardThemeProvider } from "./src/theme/CardThemeContext";
@@ -21,27 +24,40 @@ import { UiThemeProvider } from "./src/theme/UiThemeContext";
 import { PerfOverlay } from "./src/dev/PerfOverlay";
 import { colors } from "./src/theme";
 
-const LobbyScreen = lazy(() =>
-  import("./src/screens/LobbyScreen").then((m) => ({ default: m.LobbyScreen })),
-);
-const GameScreen = lazy(() =>
-  import("./src/screens/GameScreen").then((m) => ({ default: m.GameScreen })),
-);
-const ResultScreen = lazy(() =>
-  import("./src/screens/ResultScreen").then((m) => ({ default: m.ResultScreen })),
-);
+type ScreenErrorBoundaryProps = {
+  children: React.ReactNode;
+  screenName: string;
+};
 
-const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
-const convex = convexUrl
-  ? new ConvexReactClient(convexUrl, { unsavedChangesWarning: false })
-  : null;
+type ScreenErrorBoundaryState = {
+  error: Error | null;
+};
 
-function ScreenFallback() {
-  return (
-    <View style={styles.fallback}>
-      <ActivityIndicator size="large" color={colors.gold} />
-    </View>
-  );
+class ScreenErrorBoundary extends Component<
+  ScreenErrorBoundaryProps,
+  ScreenErrorBoundaryState
+> {
+  state: ScreenErrorBoundaryState = { error: null };
+
+  static getDerivedStateFromError(error: Error): ScreenErrorBoundaryState {
+    return { error };
+  }
+
+  componentDidCatch(error: Error): void {
+    console.error(`[${this.props.screenName}]`, error);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <View style={styles.fallback}>
+          <Text style={styles.errorTitle}>Something went wrong</Text>
+          <Text style={styles.errorBody}>{this.state.error.message}</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function OnlineGameSync() {
@@ -52,6 +68,18 @@ function OnlineGameSync() {
 function GoldWalletSync() {
   useGoldWallet();
   return null;
+}
+
+function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
+  if (!convex) return <>{children}</>;
+  return (
+    <ConvexAuthProvider client={convex} storage={convexTokenStorage}>
+      <AuthBootstrap />
+      <OnlineGameSync />
+      <GoldWalletSync />
+      {children}
+    </ConvexAuthProvider>
+  );
 }
 
 export default function App() {
@@ -65,9 +93,6 @@ export default function App() {
 
   const content = (
     <>
-      <AuthBootstrap />
-      <OnlineGameSync />
-      <GoldWalletSync />
       <OnlineStatusBanner />
       <PerfOverlay />
       <StatusBar style="light" />
@@ -77,21 +102,13 @@ export default function App() {
           onOpenRules={() => setRulesVisible(true)}
         />
       )}
-      {screen === "lobby" && (
-        <Suspense fallback={<ScreenFallback />}>
-          <LobbyScreen />
-        </Suspense>
-      )}
+      {screen === "lobby" && <LobbyScreen />}
       {screen === "game" && (
-        <Suspense fallback={<ScreenFallback />}>
+        <ScreenErrorBoundary screenName="GameScreen">
           <GameScreen onOpenSettings={() => setSettingsVisible(true)} />
-        </Suspense>
+        </ScreenErrorBoundary>
       )}
-      {screen === "result" && (
-        <Suspense fallback={<ScreenFallback />}>
-          <ResultScreen />
-        </Suspense>
-      )}
+      {screen === "result" && <ResultScreen />}
 
       <SettingsModal
         visible={settingsVisible}
@@ -110,13 +127,7 @@ export default function App() {
         <TableThemeProvider>
           <UiThemeProvider>
             <CardThemeProvider>
-              {convex ? (
-                <ConvexAuthProvider client={convex} storage={convexTokenStorage}>
-                  {content}
-                </ConvexAuthProvider>
-              ) : (
-                content
-              )}
+              <ConvexOnlineLayer>{content}</ConvexOnlineLayer>
             </CardThemeProvider>
           </UiThemeProvider>
         </TableThemeProvider>
@@ -131,5 +142,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.feltBottom,
+    paddingHorizontal: 24,
+  },
+  errorTitle: {
+    color: colors.gold,
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  errorBody: {
+    color: "#F5F3EC",
+    fontSize: 14,
+    textAlign: "center",
   },
 });

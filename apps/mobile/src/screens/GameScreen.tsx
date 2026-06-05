@@ -1,5 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  InteractionManager,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import Constants from "expo-constants";
 import { useSharedValue } from "react-native-reanimated";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -38,7 +46,7 @@ import {
   type TableExitKind,
 } from "../components/TableArea";
 import { GameCoachOverlay, type CoachStep } from "../components/GameCoachOverlay";
-import { useTurnProgressSV } from "../hooks/useTurnProgressSV";
+import { useTurnProgress } from "../hooks/useTurnProgressSV";
 import { anySeatOnClock, seatOnClockOnline } from "../game/turnClockEngine";
 import { toWorkletZones } from "../game/dropZoneWorklet";
 import { computeTableLayout } from "../game/tableLayout";
@@ -68,6 +76,8 @@ import { useReduceMotion } from "../hooks/useReduceMotion";
 
 const TABLE_EXIT_RESET_MS = 450;
 const ROUND_CLEAR_DELAY_MS = 120;
+const ONLINE_TIMER_DEFER_MS = 800;
+const isExpoGo = Constants.executionEnvironment === "storeClient";
 
 const STANDARD_COACH_STEPS: CoachStep[] = [
   {
@@ -156,6 +166,8 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const setTutorialCompleted = usePreferencesStore((s) => s.setTutorialCompleted);
   const prefsHydrated = usePreferencesStore((s) => s.hydrated);
 
+  const skipInitialTurnStartRef = useRef(playMode === "online");
+
   const coachSteps = useMemo(
     () =>
       game?.rules.playStyle === "abilities"
@@ -167,12 +179,15 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const [coachStepIndex, setCoachStepIndex] = useState(0);
 
   useEffect(() => {
-    if (prefsHydrated && !tutorialCompleted) {
+    if (!prefsHydrated || tutorialCompleted) {
+      setCoachVisible(false);
+      return;
+    }
+    const task = InteractionManager.runAfterInteractions(() => {
       setCoachVisible(true);
       setCoachStepIndex(0);
-    } else {
-      setCoachVisible(false);
-    }
+    });
+    return () => task.cancel();
   }, [prefsHydrated, tutorialCompleted]);
 
   const dismissCoach = useCallback(() => {
@@ -240,9 +255,12 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     [],
   );
 
+  const instantDeal = playMode === "online" || isExpoGo;
+
   const handleCardsDealt = useCallback(() => {
+    if (instantDeal) return;
     trigger("deal");
-  }, []);
+  }, [instantDeal]);
 
   const scheduleExitKindReset = useCallback(() => {
     if (exitResetTimerRef.current) clearTimeout(exitResetTimerRef.current);
@@ -479,7 +497,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   );
 
   useEffect(() => {
-    void prewarmSounds();
+    const task = InteractionManager.runAfterInteractions(() => {
+      void prewarmSounds();
+    });
+    return () => task.cancel();
   }, []);
 
   const confirmTake = useCallback(() => {
@@ -537,10 +558,14 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     const mustAct = view.mustAct && !blocked;
     const prev = prevMustActRef.current;
     if (mustAct && !prev) {
-      trigger("turnStart");
+      if (playMode === "online" && skipInitialTurnStartRef.current) {
+        skipInitialTurnStartRef.current = false;
+      } else {
+        trigger("turnStart");
+      }
     }
     prevMustActRef.current = mustAct;
-  }, [view?.mustAct, showBeatTransferChoice, revealOpen]);
+  }, [view?.mustAct, showBeatTransferChoice, revealOpen, playMode]);
 
   useEffect(() => {
     if (!view?.canTake) setTakeConfirmOpen(false);
@@ -576,6 +601,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       lastMoveAt,
       turnDeadlineAt,
       playMode,
+      frameDeferMs: playMode === "online" ? ONLINE_TIMER_DEFER_MS : 0,
       onTimeout: autoPlayHuman,
     }),
     [
@@ -592,7 +618,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     ],
   );
 
-  const turnProgressSV = useTurnProgressSV(timerClock);
+  const turnProgress = useTurnProgress(timerClock);
 
   const humanHand = useStableHandCards(game?.hands[humanId] ?? []);
 
@@ -858,7 +884,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               indication={oppIndication}
               active={oppOnClock}
               onClock={oppOnClock}
-              turnProgressSV={turnProgressSV}
+              turnProgress={turnProgress}
               timerEnabled={timerEnabled}
               finished={oppFinished}
             />
@@ -935,12 +961,13 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             playableIds={playableIds}
             interactive={handInteractive}
             trumpSuit={game.trumpSuit}
+            instantDeal={instantDeal}
             onPlay={playCard}
             onDropAt={onDropAt}
             onDragMove={showBeatTransferChoice ? updateDragAim : undefined}
             onDragBegin={showBeatTransferChoice ? handleDragBegin : undefined}
             onDragActive={handleDragActive}
-            onCardsDealt={handleCardsDealt}
+            onCardsDealt={instantDeal ? undefined : handleCardsDealt}
             dropZonesSV={showBeatTransferChoice ? dropZonesSV : undefined}
             hoverDefendIndexSV={showBeatTransferChoice ? hoverDefendIndexSV : undefined}
             hoverTransferIndexSV={showBeatTransferChoice ? hoverTransferIndexSV : undefined}
@@ -972,7 +999,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               role={seatRoleForFinished(game, humanId)}
               indication={humanIndication}
               onClock={humanOnClock}
-              turnProgressSV={turnProgressSV}
+              turnProgress={turnProgress}
               timerEnabled={timerEnabled}
               finished={humanFinished}
               onPress={() => {

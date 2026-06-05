@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useFrameCallback } from "react-native-reanimated";
 import { getRenderCounts, resetRenderCounts } from "./renderCount";
 
 /** Dev-only FPS + render-count overlay. Toggle via triple-tap top-left corner. */
@@ -8,12 +7,37 @@ export function PerfOverlay() {
   const [visible, setVisible] = useState(false);
   const [fps, setFps] = useState(0);
   const [renderSnapshot, setRenderSnapshot] = useState("");
+  const lastFrameRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
 
-  useFrameCallback((frame) => {
-    if (!visible || frame.timeSincePreviousFrame == null) return;
-    const instant = 1000 / frame.timeSincePreviousFrame;
-    setFps((prev) => Math.round(prev * 0.85 + instant * 0.15));
-  });
+  useEffect(() => {
+    if (!visible) {
+      lastFrameRef.current = null;
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      return;
+    }
+
+    const loop = (now: number) => {
+      if (lastFrameRef.current != null) {
+        const delta = now - lastFrameRef.current;
+        if (delta > 0) {
+          const instant = 1000 / delta;
+          setFps((prev) => Math.round(prev * 0.85 + instant * 0.15));
+        }
+      }
+      lastFrameRef.current = now;
+      rafRef.current = requestAnimationFrame(loop);
+    };
+
+    rafRef.current = requestAnimationFrame(loop);
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, [visible]);
 
   useEffect(() => {
     if (!visible) return;

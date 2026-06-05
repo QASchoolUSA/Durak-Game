@@ -914,7 +914,7 @@ export const processBotTurns = internalMutation({
     const move = findBotMove(state, bots, room.config.difficulty);
     if (!move) return;
 
-    const delay = AI_DELAY[room.config.difficulty];
+    const delay = Math.max(AI_DELAY[room.config.difficulty], 900);
     await ctx.scheduler.runAfter(delay, internal.rooms.applyBotMove, {
       roomId: args.roomId,
       move,

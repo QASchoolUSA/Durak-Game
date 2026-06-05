@@ -5,7 +5,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  type SharedValue,
 } from "react-native-reanimated";
 import type { SeatIndication, SeatRole } from "../game/selectors";
 import {
@@ -32,8 +31,9 @@ export interface PlayerSeatProps {
   indication: SeatIndication | null;
   active: boolean;
   onClock: boolean;
-  turnProgressSV: SharedValue<number>;
+  turnProgress: number;
   timerEnabled?: boolean;
+  showTimerRing?: boolean;
   finished?: boolean;
 }
 
@@ -75,8 +75,9 @@ function PlayerSeatComponent({
   indication,
   active,
   onClock,
-  turnProgressSV,
+  turnProgress,
   timerEnabled = true,
+  showTimerRing = true,
   finished,
 }: PlayerSeatProps) {
   const isTaking = role === "taking";
@@ -183,12 +184,12 @@ function PlayerSeatComponent({
               </View>
             )}
           </Animated.View>
-          {showBorder && timerEnabled && (
+          {showBorder && timerEnabled && showTimerRing && (
             <TurnTimerRing
               visible={showBorder}
               color={ringColor}
               maxBorderRadius={radius.panel}
-              progressSV={turnProgressSV}
+              progress={turnProgress}
               clockActive={onClock}
               width={ringWidth}
               height={ringHeight}

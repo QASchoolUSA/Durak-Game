@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -123,6 +123,7 @@ interface HandCardProps {
   rotPerSlot: number;
   trump: boolean;
   isNew: boolean;
+  instantDeal: boolean;
   activeSlot: SharedValue<number>;
   gestureMode: SharedValue<number>;
   dragX: SharedValue<number>;
@@ -139,6 +140,7 @@ const HandCard = React.memo(function HandCard({
   rotPerSlot,
   trump,
   isNew,
+  instantDeal,
   activeSlot,
   gestureMode,
   dragX,
@@ -161,6 +163,14 @@ const HandCard = React.memo(function HandCard({
   useEffect(() => {
     if (activeSlot.value === slotIndex) return;
 
+    if (instantDeal) {
+      dealtRef.current = true;
+      tx.value = restX;
+      ty.value = restY;
+      rot.value = restRot;
+      return;
+    }
+
     if (!dealtRef.current && isNew) {
       dealtRef.current = true;
       const stagger = slotIndex * 38;
@@ -176,7 +186,7 @@ const HandCard = React.memo(function HandCard({
     tx.value = withSpring(restX, SPRING);
     ty.value = withSpring(restY, SPRING);
     rot.value = withSpring(restRot, SPRING);
-  }, [restX, restY, restRot, isNew, tx, ty, rot, activeSlot, slotIndex, layoutWidth]);
+  }, [restX, restY, restRot, isNew, instantDeal, tx, ty, rot, activeSlot, slotIndex, layoutWidth]);
 
   useAnimatedReaction(
     () => activeSlot.value,
@@ -265,6 +275,8 @@ export interface HandProps {
   playableIds: Set<string>;
   interactive: boolean;
   trumpSuit: string;
+  /** Skip staggered deal springs (online sync — avoids mount-time Reanimated burst). */
+  instantDeal?: boolean;
   onPlay?: (card: CardModel) => void;
   onDropAt?: (card: CardModel, bounds: DragCardBounds) => void;
   onDragMove?: (bounds: DragCardBounds | null) => void;
@@ -281,6 +293,7 @@ function HandComponent({
   playableIds,
   interactive,
   trumpSuit,
+  instantDeal = false,
   onPlay,
   onDropAt,
   onDragMove,
@@ -296,6 +309,7 @@ function HandComponent({
   const touchLayerRef = useRef<View>(null);
   const layerOriginRef = useRef<{ x: number; y: number } | null>(null);
   const mountedRef = useRef(true);
+  const [gesturesEnabled, setGesturesEnabled] = useState(!instantDeal);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -303,6 +317,16 @@ function HandComponent({
       mountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!instantDeal) {
+      setGesturesEnabled(true);
+      return;
+    }
+    setGesturesEnabled(false);
+    const id = setTimeout(() => setGesturesEnabled(true), 600);
+    return () => clearTimeout(id);
+  }, [instantDeal]);
 
   const sortedCards = useMemo(
     () => sortHandForDisplay(cards, trumpSuit as Suit),
@@ -329,10 +353,10 @@ function HandComponent({
       dealtFiredRef.current = false;
       return;
     }
-    if (dealtFiredRef.current || !onCardsDealt) return;
+    if (instantDeal || dealtFiredRef.current || !onCardsDealt) return;
     dealtFiredRef.current = true;
     onCardsDealt(newIdSet.size);
-  }, [newIdSet, onCardsDealt]);
+  }, [newIdSet, onCardsDealt, instantDeal]);
 
   const total = sortedCards.length;
   const { spacing, rotPerSlot } = computeHandLayout(width, w, h, total);
@@ -547,7 +571,7 @@ function HandComponent({
     const hoverTransferSV = hoverTransferIndexSV;
 
     return Gesture.Pan()
-      .enabled(total > 0)
+      .enabled(total > 0 && gesturesEnabled)
       .minDistance(0)
       .onBegin((e) => {
         const layout = layoutSV.value;
@@ -685,6 +709,7 @@ function HandComponent({
       });
   }, [
     total,
+    gesturesEnabled,
     useWorkletHover,
     dropZonesSV,
     hoverDefendIndexSV,
@@ -730,7 +755,8 @@ function HandComponent({
                 spacing={spacing}
                 rotPerSlot={rotPerSlot}
                 trump={card.suit === trumpSuit}
-                isNew={newIdSet.has(card.id)}
+                isNew={!instantDeal && newIdSet.has(card.id)}
+                instantDeal={instantDeal}
                 activeSlot={activeSlot}
                 gestureMode={gestureMode}
                 dragX={dragX}

@@ -32,6 +32,8 @@ export interface TurnClockConfig {
   turnDeadlineAt: number | null;
   playMode: PlayMode;
   onTimeout: () => void;
+  /** Delay before UI-thread frame callback activates (online mount softening). */
+  frameDeferMs?: number;
 }
 
 export interface TurnClockTickContext {

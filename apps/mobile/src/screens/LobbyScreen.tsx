@@ -124,7 +124,6 @@ export function LobbyScreen() {
 
   const handleStart = useCallback(async () => {
     if (!onlineRoomId || !isAuthenticated) return;
-    trigger("gameStart");
     try {
       await startGame({
         roomId: onlineRoomId as Id<"rooms">,
@@ -138,7 +137,6 @@ export function LobbyScreen() {
 
   const handleStartCompact = useCallback(async () => {
     if (!onlineRoomId || !isAuthenticated) return;
-    trigger("gameStart");
     try {
       await startGame({
         roomId: onlineRoomId as Id<"rooms">,

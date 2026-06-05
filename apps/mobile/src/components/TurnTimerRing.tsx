@@ -1,14 +1,7 @@
 import React, { useMemo } from "react";
 import { StyleSheet } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import Animated, {
-  useAnimatedProps,
-  type SharedValue,
-} from "react-native-reanimated";
 import { roundedRectOutlinePath } from "../game/roundedRectOutline";
-
-/** Expiry haptics (timerWarning / timerCritical) are driven by turnClockEngine, not this ring. */
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 const DEFAULT_STROKE = 2.5;
 
@@ -17,7 +10,8 @@ export interface TurnTimerRingProps {
   color: string;
   maxBorderRadius: number;
   strokeWidth?: number;
-  progressSV: SharedValue<number>;
+  /** 0–1 turn time remaining (1 = full). */
+  progress: number;
   /** When false, ring stays full (e.g. taking animation without live clock). */
   clockActive: boolean;
   width: number;
@@ -29,7 +23,7 @@ function TurnTimerRingComponent({
   color,
   maxBorderRadius,
   strokeWidth = DEFAULT_STROKE,
-  progressSV,
+  progress,
   clockActive,
   width,
   height,
@@ -39,47 +33,27 @@ function TurnTimerRingComponent({
     [width, height, maxBorderRadius, strokeWidth],
   );
 
-  const perimeter = outline?.perimeter ?? 0;
-
-  const animatedProps = useAnimatedProps(
-    () => {
-      "worklet";
-      if (perimeter <= 0) {
-        return { strokeDashoffset: 0, opacity: 0 };
-      }
-
-      const progress = clockActive
-        ? Math.max(0, Math.min(1, progressSV.value))
-        : 1;
-
-      const opacity =
-        clockActive && progress < 0.02 ? 0.35 : 1;
-
-      return {
-        strokeDashoffset: perimeter * (1 - progress),
-        opacity,
-      };
-    },
-    [clockActive, perimeter],
-  );
-
   if (!visible || !outline) return null;
+
+  const perimeter = outline.perimeter;
+  const clamped = clockActive ? Math.max(0, Math.min(1, progress)) : 1;
+  const opacity = clockActive && clamped < 0.02 ? 0.35 : 1;
 
   return (
     <Svg
       width={width}
       height={height}
-      style={[styles.svg, { width, height }]}
+      style={[styles.svg, { width, height, opacity }]}
       pointerEvents="none"
     >
-      <AnimatedPath
-        animatedProps={animatedProps}
+      <Path
         d={outline.d}
         fill="none"
         stroke={color}
         strokeWidth={strokeWidth}
         strokeLinecap="butt"
-        strokeDasharray={outline.perimeter}
+        strokeDasharray={perimeter}
+        strokeDashoffset={perimeter * (1 - clamped)}
       />
     </Svg>
   );

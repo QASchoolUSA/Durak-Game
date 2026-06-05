@@ -9,6 +9,8 @@ import { registerOnlineMoveSubmit, registerOnlineReturn } from "./onlineBridge";
 import { loadRoomSession, saveRoomSession } from "./onlineSessionStorage";
 import { useGameStore } from "./store";
 
+const GAME_START_FEEDBACK_GRACE_MS = 1500;
+
 export function useOnlineGame() {
   const { isAuthenticated } = useConvexAuth();
   const playMode = useGameStore((s) => s.playMode);
@@ -26,6 +28,8 @@ export function useOnlineGame() {
   const reconnectAttemptedRef = useRef(false);
   const ownMovePendingRef = useRef(false);
   const prevLastMoveAtRef = useRef<number | null>(null);
+  const prevRoomStatusRef = useRef<"lobby" | "playing" | "finished" | null>(null);
+  const gameStartAtRef = useRef<number | null>(null);
 
   const roomView = useQuery(
     api.rooms.getRoomView,
@@ -95,10 +99,22 @@ export function useOnlineGame() {
     if (roomView) {
       evictedRef.current = false;
 
+      const prevStatus = prevRoomStatusRef.current;
+      const isGameStart = prevStatus === "lobby" && roomView.status === "playing";
+      if (isGameStart) {
+        gameStartAtRef.current = Date.now();
+      }
+
+      const inStartGrace =
+        gameStartAtRef.current != null &&
+        Date.now() - gameStartAtRef.current < GAME_START_FEEDBACK_GRACE_MS;
+
       if (
         prevLastMoveAtRef.current != null &&
         roomView.lastMoveAt !== prevLastMoveAtRef.current &&
-        !ownMovePendingRef.current
+        !ownMovePendingRef.current &&
+        !isGameStart &&
+        !inStartGrace
       ) {
         trigger("cardPlay");
         playSound("cardPlay");
@@ -109,6 +125,7 @@ export function useOnlineGame() {
       }
 
       prevLastMoveAtRef.current = roomView.lastMoveAt;
+      prevRoomStatusRef.current = roomView.status;
       syncOnlineState(roomView);
     }
   }, [roomView, syncOnlineState]);
