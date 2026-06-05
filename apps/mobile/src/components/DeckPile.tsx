@@ -33,9 +33,9 @@ function DeckPileComponent({ deckCount, trumpCard, trumpSuit }: DeckPileProps) {
       <View style={[styles.stack, { width: w + 6, height: h + 6 }]}>
         {deckCount > 0 ? (
           <>
-            <Card faceDown width={w} height={h} style={{ position: "absolute", top: 5, left: 5 }} />
-            <Card faceDown width={w} height={h} style={{ position: "absolute", top: 2, left: 2 }} />
-            <Card faceDown width={w} height={h} />
+            <Card faceDown compact width={w} height={h} style={{ position: "absolute", top: 5, left: 5 }} />
+            <Card faceDown compact width={w} height={h} style={{ position: "absolute", top: 2, left: 2 }} />
+            <Card faceDown compact width={w} height={h} />
           </>
         ) : (
           <View

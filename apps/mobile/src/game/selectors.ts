@@ -14,10 +14,33 @@ import {
 
 export type SeatRole = "attacker" | "defender" | "taking" | null;
 
+export type SeatIndication = "play" | "defend";
+
 export function getSeatRole(state: GameState, playerId: PlayerId): SeatRole {
   if (state.takeInProgress && playerId === state.defenderId) return "taking";
   if (playerId === state.defenderId) return "defender";
   if (playerId === state.attackerId) return "attacker";
+  return null;
+}
+
+/** Green = play/attack/throw-in; red = beat/transfer/take. */
+export function getSeatIndication(
+  state: GameState,
+  playerId: PlayerId,
+  opts?: { mustAct?: boolean; isDefender?: boolean },
+): SeatIndication | null {
+  const role = getSeatRole(state, playerId);
+
+  if (role === "taking") return "defend";
+
+  if (opts?.mustAct !== undefined) {
+    if (!opts.mustAct) return null;
+    if (opts.isDefender || role === "defender") return "defend";
+    return "play";
+  }
+
+  if (role === "defender") return "defend";
+  if (role === "attacker") return "play";
   return null;
 }
 

@@ -23,7 +23,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { MenuButton } from "./MenuButton";
 import { trigger } from "../feedback/haptics";
@@ -87,6 +87,11 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
   const [error, setError] = useState<string | null>(null);
 
   const joinRoom = useMutation(api.rooms.joinRoom);
+  const trimmedCode = code.replace(/\D/g, "").slice(0, 6);
+  const roomPreview = useQuery(
+    api.rooms.getRoomByCode,
+    trimmedCode.length === 6 ? { code: trimmedCode } : "skip",
+  );
   const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
 
   const ty = useSharedValue(drawerH);
@@ -287,13 +292,11 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
       const result = await joinRoom({ code: trimmedCode, displayName: name });
       await saveRoomSession({
         roomId: result.roomId,
-        sessionToken: result.sessionToken,
         displayName: name,
       });
       trigger("gameStart");
       enterOnlineLobby({
         roomId: result.roomId,
-        sessionToken: result.sessionToken,
         displayName: name,
         code: trimmedCode,
         isHost: false,
@@ -371,6 +374,15 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
             <Text style={[styles.sub, { color: ui.textFaint }]}>
               Enter the room code from your friend
             </Text>
+            {trimmedCode.length === 6 && (
+              <Text style={[styles.previewHint, { color: ui.textMuted }]}>
+                {roomPreview === undefined
+                  ? "Looking up room…"
+                  : roomPreview
+                    ? `${roomPreview.humanCount} / ${roomPreview.maxPlayers} players in lobby`
+                    : "No open lobby with this code"}
+              </Text>
+            )}
 
             <Text style={[styles.label, { color: ui.textFaint }]}>ROOM CODE</Text>
             <TextInput
@@ -496,6 +508,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontSize: 16,
+  },
+  previewHint: {
+    fontSize: 12,
+    textAlign: "center",
+    marginBottom: spacing.sm,
   },
   codeInput: {
     fontSize: 28,

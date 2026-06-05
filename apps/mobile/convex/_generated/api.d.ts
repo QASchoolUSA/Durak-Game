@@ -8,10 +8,20 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
+import type * as crons from "../crons.js";
+import type * as http from "../http.js";
 import type * as lib_codes from "../lib/codes.js";
+import type * as lib_goldEconomy from "../lib/goldEconomy.js";
+import type * as lib_handSort from "../lib/handSort.js";
+import type * as lib_onlineGame from "../lib/onlineGame.js";
+import type * as lib_onlineRules from "../lib/onlineRules.js";
+import type * as lib_requireAuth from "../lib/requireAuth.js";
+import type * as lib_revealHelpers from "../lib/revealHelpers.js";
 import type * as lib_roomHelpers from "../lib/roomHelpers.js";
 import type * as lib_views from "../lib/views.js";
 import type * as rooms from "../rooms.js";
+import type * as wallets from "../wallets.js";
 
 import type {
   ApiFromModules,
@@ -20,10 +30,20 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
+  crons: typeof crons;
+  http: typeof http;
   "lib/codes": typeof lib_codes;
+  "lib/goldEconomy": typeof lib_goldEconomy;
+  "lib/handSort": typeof lib_handSort;
+  "lib/onlineGame": typeof lib_onlineGame;
+  "lib/onlineRules": typeof lib_onlineRules;
+  "lib/requireAuth": typeof lib_requireAuth;
+  "lib/revealHelpers": typeof lib_revealHelpers;
   "lib/roomHelpers": typeof lib_roomHelpers;
   "lib/views": typeof lib_views;
   rooms: typeof rooms;
+  wallets: typeof wallets;
 }>;
 
 /**

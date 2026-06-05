@@ -1,21 +1,23 @@
-import React, { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   FadeIn,
+  FadeOut,
   withDelay,
   withTiming,
 } from "react-native-reanimated";
+import type { SharedValue } from "react-native-reanimated";
 import { type TablePair } from "@durak/game-core";
 import { Card } from "./Card";
 import { ChoiceDropSlot } from "./ChoiceDropSlot";
 import { MeasuredDropSlot } from "./MeasuredDropSlot";
+import { useSharedIndex } from "../hooks/useSharedIndex";
+import { pairLayoutWidth, type DropZone, type DropZoneKind } from "../game/dropZones";
 import {
-  TRANSFER_CHOICE_LAYOUT,
-  pairLayoutWidth,
-  type DropZone,
-  type DropZoneKind,
-} from "../game/dropZones";
-import { cardSize, spacing } from "../theme";
+  computeTableLayout,
+  tablePairRows,
+  type TableLayoutResult,
+} from "../game/tableLayout";
 
 export type TableExitKind = "toHand" | "toOpponent" | "toDiscard";
 
@@ -133,6 +135,28 @@ function makeTableExit(kind: TableExitKind, pairIndex: number) {
   };
 }
 
+const ATTACK_ENTER = makeAttackEnter();
+const DEFENSE_ENTER = makeDefenseEnter();
+const ATTACK_ENTER_REDUCED = FadeIn.duration(120);
+const DEFENSE_ENTER_REDUCED = FadeIn.duration(120);
+const EXIT_REDUCED = FadeOut.duration(120);
+
+const MAX_TABLE_PAIRS = 6;
+
+function buildExitCache(kind: TableExitKind) {
+  return Array.from({ length: MAX_TABLE_PAIRS }, (_, i) => makeTableExit(kind, i));
+}
+
+const TABLE_EXITS: Record<TableExitKind, ReturnType<typeof makeTableExit>[]> = {
+  toDiscard: buildExitCache("toDiscard"),
+  toHand: buildExitCache("toHand"),
+  toOpponent: buildExitCache("toOpponent"),
+};
+
+function tableExitFor(kind: TableExitKind, pairIndex: number) {
+  return TABLE_EXITS[kind][pairIndex] ?? TABLE_EXITS[kind][0]!;
+}
+
 export interface TableAreaHandle {
   remeasureZones: () => void;
 }
@@ -140,16 +164,15 @@ export interface TableAreaHandle {
 export interface TableAreaProps {
   table: TablePair[];
   trumpSuit: string;
-  /** Where table cards visually go when the bout clears. */
+  layout: TableLayoutResult;
   exitKind?: TableExitKind;
-  /** Pairs that show beat + transfer slot signs (Perevodnoy opening defend). */
   choiceTargets?: number[];
-  /** Subset of choiceTargets where transfer drop is legal. */
   transferTargets?: number[];
   hoverDefendIndex?: number | null;
   hoverTransferIndex?: number | null;
-  /** True while the player is dragging — show zones as available targets. */
-  dragActive?: boolean;
+  hoverDefendIndexSV?: SharedValue<number>;
+  hoverTransferIndexSV?: SharedValue<number>;
+  dragActiveSV?: SharedValue<boolean>;
   reduceMotion?: boolean;
   remeasureKey?: number;
   onDropZoneLayout?: (zone: DropZone) => void;
@@ -161,12 +184,15 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
     {
       table,
       trumpSuit,
+      layout,
       exitKind = "toDiscard",
       choiceTargets = [],
       transferTargets = [],
       hoverDefendIndex = null,
       hoverTransferIndex = null,
-      dragActive = false,
+      hoverDefendIndexSV,
+      hoverTransferIndexSV,
+      dragActiveSV,
       reduceMotion = false,
       remeasureKey = 0,
       onDropZoneLayout,
@@ -174,11 +200,28 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
     },
     ref,
   ) {
-    const { w, h } = cardSize.table;
+    const w = layout.cardW;
+    const h = layout.cardH;
     const choiceSet = new Set(choiceTargets);
     const transferSet = new Set(transferTargets);
     const measureZones = Boolean(onDropZoneLayout);
     const reportersRef = useRef(new Set<() => void>());
+
+    const svDefendHover = useSharedIndex(hoverDefendIndexSV, -1);
+    const svTransferHover = useSharedIndex(hoverTransferIndexSV, -1);
+
+    const resolvedDefendHover =
+      hoverDefendIndexSV != null ? svDefendHover : (hoverDefendIndex ?? -1);
+    const resolvedTransferHover =
+      hoverTransferIndexSV != null ? svTransferHover : (hoverTransferIndex ?? -1);
+
+    const attackEnter = reduceMotion ? ATTACK_ENTER_REDUCED : ATTACK_ENTER;
+    const defenseEnter = reduceMotion ? DEFENSE_ENTER_REDUCED : DEFENSE_ENTER;
+
+    const rows = useMemo(
+      () => tablePairRows(table.length, layout.columns),
+      [table.length, layout.columns],
+    );
 
     const registerSlotReporter = useCallback((reporter: () => void) => {
       reportersRef.current.add(reporter);
@@ -195,120 +238,144 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
       },
     }));
 
-    const attackEnter = reduceMotion ? FadeIn.duration(120) : makeAttackEnter();
-    const defenseEnter = reduceMotion ? FadeIn.duration(120) : makeDefenseEnter();
+    const renderPair = (pair: TablePair, i: number) => {
+      const showChoice = choiceSet.has(i) && !pair.defense;
+      const transferEnabled = transferSet.has(i);
+      const beatHover = resolvedDefendHover === i;
+      const transferHover = transferEnabled && resolvedTransferHover === i;
+      const beatDimmed = showChoice && transferHover;
+      const transferDimmed = showChoice && beatHover;
+      const pairW = pairLayoutWidth(transferEnabled, w, layout.transferGap);
+      const pairH = showChoice ? h + Math.round(layout.pairPadW * 0.5) : h + layout.pairPadW;
 
-    return (
-      <View style={styles.container}>
-        {table.map((pair, i) => {
-          const showChoice = choiceSet.has(i) && !pair.defense;
-          const transferEnabled = transferSet.has(i);
-          const beatHover = hoverDefendIndex === i;
-          const transferHover = transferEnabled && hoverTransferIndex === i;
-          const beatDimmed = showChoice && transferHover;
-          const transferDimmed = showChoice && beatHover;
-          const pairW = pairLayoutWidth(transferEnabled);
-          const pairH = showChoice ? h + 8 : h + 16;
+      const attackCard = (
+        <Card
+          card={pair.attack}
+          width={w}
+          height={h}
+          trump={pair.attack.suit === trumpSuit}
+        />
+      );
 
-          const attackCard = (
-            <Card
-              card={pair.attack}
-              width={w}
-              height={h}
-              trump={pair.attack.suit === trumpSuit}
-            />
-          );
+      const beatSlot = (
+        <ChoiceDropSlot
+          variant="beat"
+          width={w}
+          height={h}
+          active={beatHover}
+          dimmed={beatDimmed}
+          availableSV={dragActiveSV}
+        >
+          {attackCard}
+        </ChoiceDropSlot>
+      );
 
-          const beatSlot = (
-            <ChoiceDropSlot
-              variant="beat"
-              width={w}
-              height={h}
-              active={beatHover}
-              dimmed={beatDimmed}
-              available={dragActive}
-            >
-              {attackCard}
-            </ChoiceDropSlot>
-          );
+      const transferSlot = (
+        <ChoiceDropSlot
+          variant="transfer"
+          width={w}
+          height={h}
+          active={transferHover}
+          dimmed={transferDimmed}
+          availableSV={dragActiveSV}
+        />
+      );
 
-          const transferSlot = (
-            <ChoiceDropSlot
-              variant="transfer"
-              width={w}
-              height={h}
-              active={transferHover}
-              dimmed={transferDimmed}
-              available={dragActive}
-            />
-          );
+      return (
+        <Animated.View
+          key={pair.attack.id}
+          entering={attackEnter}
+          exiting={reduceMotion ? EXIT_REDUCED : tableExitFor(exitKind, i)}
+          style={styles.pairCell}
+        >
+          <View style={[styles.pair, { width: pairW, height: pairH }]}>
+            <View style={[styles.attackSlot, { width: w, height: h }]}>
+              {showChoice && measureZones ? (
+                <MeasuredDropSlot
+                  tableIndex={i}
+                  kind="defend"
+                  remeasureKey={remeasureKey}
+                  onDropZoneLayout={onDropZoneLayout}
+                  onDropZoneRemoved={onDropZoneRemoved}
+                  onRegisterReporter={registerSlotReporter}
+                >
+                  {beatSlot}
+                </MeasuredDropSlot>
+              ) : showChoice ? (
+                beatSlot
+              ) : (
+                attackCard
+              )}
+            </View>
 
-          return (
-            <Animated.View
-              key={pair.attack.id}
-              entering={attackEnter}
-              exiting={makeTableExit(exitKind, i)}
-            >
-              <View style={[styles.pair, { width: pairW, height: pairH }]}>
-                <View style={[styles.attackSlot, { width: w, height: h }]}>
-                  {showChoice && measureZones ? (
-                    <MeasuredDropSlot
-                      tableIndex={i}
-                      kind="defend"
-                      remeasureKey={remeasureKey}
-                      onDropZoneLayout={onDropZoneLayout}
-                      onDropZoneRemoved={onDropZoneRemoved}
-                      onRegisterReporter={registerSlotReporter}
-                    >
-                      {beatSlot}
-                    </MeasuredDropSlot>
-                  ) : showChoice ? (
-                    beatSlot
-                  ) : (
-                    attackCard
-                  )}
-                </View>
-
-                {showChoice && transferEnabled && (
-                  <View
-                    style={[
-                      styles.transferSlot,
-                      { left: w + TRANSFER_CHOICE_LAYOUT.gap, width: w, height: h },
-                    ]}
+            {showChoice && transferEnabled && (
+              <View
+                style={[
+                  styles.transferSlot,
+                  { left: w + layout.transferGap, width: w, height: h },
+                ]}
+              >
+                {measureZones ? (
+                  <MeasuredDropSlot
+                    tableIndex={i}
+                    kind="transfer"
+                    remeasureKey={remeasureKey}
+                    onDropZoneLayout={onDropZoneLayout}
+                    onDropZoneRemoved={onDropZoneRemoved}
+                    onRegisterReporter={registerSlotReporter}
                   >
-                    {measureZones ? (
-                      <MeasuredDropSlot
-                        tableIndex={i}
-                        kind="transfer"
-                        remeasureKey={remeasureKey}
-                        onDropZoneLayout={onDropZoneLayout}
-                        onDropZoneRemoved={onDropZoneRemoved}
-                        onRegisterReporter={registerSlotReporter}
-                      >
-                        {transferSlot}
-                      </MeasuredDropSlot>
-                    ) : (
-                      transferSlot
-                    )}
-                  </View>
-                )}
-
-                {pair.defense && (
-                  <Animated.View entering={defenseEnter}>
-                    <View style={styles.defense}>
-                      <Card
-                        card={pair.defense}
-                        width={w}
-                        height={h}
-                        trump={pair.defense.suit === trumpSuit}
-                      />
-                    </View>
-                  </Animated.View>
+                    {transferSlot}
+                  </MeasuredDropSlot>
+                ) : (
+                  transferSlot
                 )}
               </View>
-            </Animated.View>
-          );
-        })}
+            )}
+
+            {pair.defense && (
+              <Animated.View entering={defenseEnter}>
+                <View
+                  style={[
+                    styles.defense,
+                    {
+                      top: layout.defenseOffsetTop,
+                      left: layout.defenseOffsetLeft,
+                    },
+                  ]}
+                >
+                  <Card
+                    card={pair.defense}
+                    width={w}
+                    height={h}
+                    trump={pair.defense.suit === trumpSuit}
+                  />
+                </View>
+              </Animated.View>
+            )}
+          </View>
+        </Animated.View>
+      );
+    };
+
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            paddingHorizontal: layout.containerPadH,
+            paddingVertical: layout.containerPadV,
+            gap: layout.gap,
+          },
+        ]}
+      >
+        {rows.map((indices, rowIndex) => (
+          <View
+            key={`row-${rowIndex}`}
+            style={[styles.row, { gap: layout.gap }]}
+          >
+            {indices.map((i) => renderPair(table[i]!, i))}
+          </View>
+        ))}
       </View>
     );
   },
@@ -316,13 +383,17 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
 
 const styles = StyleSheet.create({
   container: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  row: {
     flexDirection: "row",
-    flexWrap: "wrap",
     justifyContent: "center",
     alignItems: "center",
-    gap: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+  },
+  pairCell: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   pair: { position: "relative" },
   attackSlot: {
@@ -336,8 +407,6 @@ const styles = StyleSheet.create({
   },
   defense: {
     position: "absolute",
-    top: 14,
-    left: 12,
     transform: [{ rotate: "5deg" }],
   },
 });

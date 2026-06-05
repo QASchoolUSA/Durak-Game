@@ -25,6 +25,7 @@ import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { layoutFor, radius, spacing, typography } from "../theme";
 import { useReduceMotion } from "../hooks/useReduceMotion";
+import { EconomyBar } from "../components/EconomyBar";
 import { useGameStore } from "../game/store";
 
 export interface HomeScreenProps {
@@ -45,6 +46,9 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   const { width }  = useWindowDimensions();
   const lay        = layoutFor(width);
   const playerNameHydrated = useGameStore((s) => s.playerNameHydrated);
+  const goldBalance = useGameStore((s) => s.goldBalance);
+  const pot = useGameStore((s) => s.pot);
+  const buyIn = useGameStore((s) => s.buyIn);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
 
@@ -61,6 +65,9 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   return (
     <Background variant="home">
       <SafeAreaView style={styles.safe}>
+        <View style={styles.goldCorner}>
+          <EconomyBar pot={pot} buyIn={buyIn} goldBalance={goldBalance} />
+        </View>
         <View style={[styles.content, { paddingHorizontal: lay.hPad }]}>
           <HeroPanel maxWidth={lay.maxContent} reduceMotion={reduceMotion}>
             <Animated.View
@@ -314,6 +321,12 @@ function GlowTitle({ reduceMotion }: { reduceMotion: boolean }) {
 
 const styles = StyleSheet.create({
   safe:    { flex: 1 },
+  goldCorner: {
+    position: "absolute",
+    top: spacing.sm,
+    right: spacing.md,
+    zIndex: 2,
+  },
   content: {
     flex:           1,
     alignItems:     "center",

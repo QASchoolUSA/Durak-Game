@@ -4,7 +4,6 @@ const SESSION_KEY = "durak:onlineSession";
 
 export interface StoredOnlineSession {
   roomId: string;
-  sessionToken: string;
   displayName: string;
 }
 
@@ -16,7 +15,9 @@ export async function loadRoomSession(): Promise<StoredOnlineSession | null> {
   try {
     const raw = await AsyncStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as StoredOnlineSession;
+    const parsed = JSON.parse(raw) as StoredOnlineSession & { sessionToken?: string };
+    if (!parsed.roomId || !parsed.displayName) return null;
+    return { roomId: parsed.roomId, displayName: parsed.displayName };
   } catch {
     return null;
   }

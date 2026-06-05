@@ -51,9 +51,28 @@ const MIN_OVERLAP_RATIO = 0.08;
 /** Start highlighting the nearest zone when the card centre is within this many px. */
 const PROXIMITY_PX = 180;
 
-export function pairLayoutWidth(showTransfer: boolean): number {
-  if (!showTransfer) return TABLE_W + 16;
-  return TABLE_W + TRANSFER_CHOICE_LAYOUT.gap + TABLE_W;
+export function pairLayoutWidth(
+  showTransfer: boolean,
+  cardW: number = TABLE_W,
+  transferGap: number = TRANSFER_CHOICE_LAYOUT.gap,
+): number {
+  const pairPadW = Math.round((16 / TABLE_W) * cardW);
+  if (!showTransfer) return cardW + pairPadW;
+  const gap = Math.round((transferGap / TABLE_W) * cardW);
+  return cardW + gap + cardW;
+}
+
+export function boundsForTableOverlap(
+  bounds: DragCardBounds,
+  cardW: number = TABLE_W,
+  cardH: number = TABLE_H,
+): DragCardBounds {
+  return {
+    centerX: bounds.centerX,
+    centerY: bounds.centerY,
+    halfW: cardW / 2,
+    halfH: cardH / 2,
+  };
 }
 
 export function pointInRect(x: number, y: number, rect: ScreenRect): boolean {
@@ -73,15 +92,6 @@ export function hitRect(zone: DropZone): ScreenRect {
     y: zone.y - pad,
     width: zone.width + pad * 2,
     height: zone.height + pad * 2,
-  };
-}
-
-export function boundsForTableOverlap(bounds: DragCardBounds): DragCardBounds {
-  return {
-    centerX: bounds.centerX,
-    centerY: bounds.centerY,
-    halfW: TABLE_W / 2,
-    halfH: TABLE_H / 2,
   };
 }
 

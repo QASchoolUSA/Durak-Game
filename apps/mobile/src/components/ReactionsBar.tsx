@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import {
   Modal,
   Pressable,
@@ -18,11 +25,14 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
+import { useGameStore } from "../game/store";
 import { radius, spacing } from "../theme";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
-import { DOCK_ROW_HEIGHT, useDockPillStyles } from "./dockPill";
 
 const REACTIONS = [
   { emoji: "\u{1F44D}", label: "Nice" },
@@ -35,7 +45,8 @@ const REACTIONS = [
   { emoji: "\u{1F44E}", label: "Nope" },
 ];
 
-const BURST_BOTTOM = 96;
+/** Float bursts just above the bottom player chip. */
+const BURST_BOTTOM = 44;
 const SHEET_HEIGHT = 220;
 const SPRING_IN = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
@@ -46,10 +57,20 @@ interface Burst {
   emoji: string;
 }
 
-function ReactionsBarComponent() {
+export interface ReactionsHostRef {
+  open: () => void;
+}
+
+const ReactionsHostComponent = forwardRef<ReactionsHostRef>(function ReactionsHostComponent(
+  _props,
+  ref,
+) {
+  const playMode = useGameStore((s) => s.playMode);
+  const onlineRoomId = useGameStore((s) => s.onlineRoomId);
+  const remoteReaction = useGameStore((s) => s.remoteReaction);
+  const sendReactionMut = useMutation(api.rooms.sendReaction);
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
-  const dockPillStyles = useDockPillStyles();
   const insets = useSafeAreaInsets();
   const sheetH = SHEET_HEIGHT + insets.bottom;
 
@@ -68,11 +89,31 @@ function ReactionsBarComponent() {
   const sheetHSV = useSharedValue(sheetH);
   useEffect(() => { sheetHSV.value = sheetH; }, [sheetH, sheetHSV]);
 
-  const react = useCallback((emoji: string) => {
+  const showBurst = useCallback((emoji: string) => {
     const id = Date.now() + Math.random();
     setBursts((b) => [...b, { id, emoji }]);
     setTimeout(() => setBursts((b) => b.filter((x) => x.id !== id)), 1200);
   }, []);
+
+  const react = useCallback(
+    (emoji: string) => {
+      showBurst(emoji);
+      if (playMode === "online" && onlineRoomId) {
+        void sendReactionMut({
+          roomId: onlineRoomId as Id<"rooms">,
+          emoji,
+        });
+      }
+    },
+    [playMode, onlineRoomId, sendReactionMut, showBurst],
+  );
+
+  const lastRemoteAt = useRef(0);
+  useEffect(() => {
+    if (!remoteReaction || remoteReaction.at <= lastRemoteAt.current) return;
+    lastRemoteAt.current = remoteReaction.at;
+    showBurst(remoteReaction.emoji);
+  }, [remoteReaction, showBurst]);
 
   const animateOut = useCallback(
     (onDone: () => void) => {
@@ -92,6 +133,8 @@ function ReactionsBarComponent() {
   const openDrawer = useCallback(() => {
     setPickerOpen(true);
   }, []);
+
+  useImperativeHandle(ref, () => ({ open: openDrawer }), [openDrawer]);
 
   useEffect(() => {
     if (pickerOpen && !prevOpen.current) {
@@ -145,8 +188,8 @@ function ReactionsBarComponent() {
 
   return (
     <>
-      <View style={styles.wrap}>
-        <View style={styles.bursts} pointerEvents="none">
+      <View style={styles.burstHost} pointerEvents="none">
+        <View style={styles.bursts}>
           {bursts.map((b) => (
             <Animated.Text
               key={b.id}
@@ -157,19 +200,6 @@ function ReactionsBarComponent() {
               {b.emoji}
             </Animated.Text>
           ))}
-        </View>
-
-        <View style={styles.triggerRow}>
-          <Pressable
-            style={dockPillStyles.pill}
-            onPress={pickerOpen ? closeDrawer : openDrawer}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Reactions"
-          >
-            <Text style={dockPillStyles.icon}>{"\u{1F600}"}</Text>
-            <Text style={dockPillStyles.label}>React</Text>
-          </Pressable>
         </View>
       </View>
 
@@ -238,15 +268,13 @@ function ReactionsBarComponent() {
       </Modal>
     </>
   );
-}
+});
 
 const styles = StyleSheet.create({
-  wrap: {
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    height: DOCK_ROW_HEIGHT,
+  burstHost: {
+    ...StyleSheet.absoluteFill,
     overflow: "visible",
+    zIndex: 25,
   },
   bursts: {
     position: "absolute",
@@ -258,15 +286,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 10,
-    zIndex: 30,
   },
   burst: { fontSize: 36 },
-  triggerRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    height: DOCK_ROW_HEIGHT,
-  },
   gestureRoot: { flex: 1 },
   backdrop: { backgroundColor: "rgba(4,14,9,1)" },
   sheet: {
@@ -326,4 +347,7 @@ const styles = StyleSheet.create({
   optionLabel: { fontSize: 10, fontWeight: "600" },
 });
 
-export const ReactionsBar = React.memo(ReactionsBarComponent);
+export const ReactionsHost = React.memo(ReactionsHostComponent);
+
+/** @deprecated Use ReactionsHost */
+export const ReactionsBar = ReactionsHost;

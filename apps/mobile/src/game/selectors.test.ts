@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cardId, type Card, type GameState } from "@durak/game-core";
-import { getBeatTransferChoice, getHumanView, getSeatRole } from "./selectors";
+import { getBeatTransferChoice, getHumanView, getSeatIndication, getSeatRole } from "./selectors";
 
 function c(rank: Card["rank"], suit: Card["suit"]): Card {
   return { rank, suit, id: cardId(rank, suit) };
@@ -133,5 +133,35 @@ describe("getSeatRole", () => {
     });
     expect(getSeatRole(state, "bot2")).toBe("taking");
     expect(getSeatRole(state, "bot1")).toBe("attacker");
+  });
+});
+
+describe("getSeatIndication", () => {
+  it("returns defend when defender is taking cards", () => {
+    const state = baseState({
+      defenderId: "you",
+      takeInProgress: true,
+      table: [{ attack: c(9, "clubs") }],
+    });
+    expect(getSeatIndication(state, "you")).toBe("defend");
+  });
+
+  it("returns play for human throw-in with mustAct", () => {
+    const state = baseState({
+      attackerId: "bot1",
+      defenderId: "bot2",
+      hands: {
+        bot1: [c(9, "hearts")],
+        you: [c(9, "diamonds"), c(10, "clubs")],
+        bot2: [c(8, "clubs"), c(7, "hearts")],
+      },
+      table: [{ attack: c(9, "clubs") }],
+    });
+    const view = getHumanView(state, "you");
+    expect(view.mustAct).toBe(true);
+    expect(view.isDefender).toBe(false);
+    expect(getSeatIndication(state, "you", { mustAct: view.mustAct, isDefender: view.isDefender })).toBe(
+      "play",
+    );
   });
 });

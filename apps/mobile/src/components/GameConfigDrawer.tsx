@@ -19,7 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMutation } from "convex/react";
-import type { GameVariant, ThrowInScope, PlayStyle } from "@durak/game-core";
+import type { GameVariant, ThrowInScope } from "@durak/game-core";
 import { api } from "../../convex/_generated/api";
 import type { Difficulty, PlayMode } from "../game/store";
 import { useGameStore } from "../game/store";
@@ -70,10 +70,6 @@ const THROW_OPTIONS: { id: ThrowInScope; label: string; desc: string }[] = [
   { id: "neighbor", label: "Neighbors", desc: "Adjacent only"        },
 ];
 
-const PLAY_STYLE_OPTIONS: { id: PlayStyle; label: string; desc: string }[] = [
-  { id: "standard",  label: "Standard",       desc: "Classic Durak — no special powers" },
-  { id: "abilities", label: "With Abilities", desc: "Return, graveyard & reveal a card" },
-];
 
 // ── Animation springs ─────────────────────────────────────────────────────────
 
@@ -175,19 +171,23 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const numPlayers  = useGameStore((s) => s.numPlayers);
   const variant     = useGameStore((s) => s.variant);
   const throwIn     = useGameStore((s) => s.throwInScope);
-  const playStyle   = useGameStore((s) => s.playStyle);
   const difficulty  = useGameStore((s) => s.difficulty);
   const playMode    = useGameStore((s) => s.playMode);
   const setPlayers  = useGameStore((s) => s.setNumPlayers);
   const setVariant  = useGameStore((s) => s.setVariant);
   const setThrowIn  = useGameStore((s) => s.setThrowInScope);
-  const setPlayStyle = useGameStore((s) => s.setPlayStyle);
   const setDiff     = useGameStore((s) => s.setDifficulty);
   const setPlayMode = useGameStore((s) => s.setPlayMode);
   const startGame   = useGameStore((s) => s.startGame);
   const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
 
+  const convexConfigured = Boolean(process.env.EXPO_PUBLIC_CONVEX_URL);
+
   const handleStart = useCallback(async () => {
+    if (playMode === "online" && !convexConfigured) {
+      setCreateError("Online play is not configured on this build.");
+      return;
+    }
     if (playMode === "solo") {
       trigger("gameStart");
       setModalVisible(false);
@@ -206,19 +206,17 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
           numPlayers,
           variant,
           throwInScope: throwIn,
-          playStyle,
+          playStyle: "standard" as const,
           difficulty,
         },
       });
       await saveRoomSession({
         roomId: result.roomId,
-        sessionToken: result.sessionToken,
         displayName: name,
       });
       trigger("gameStart");
       enterOnlineLobby({
         roomId: result.roomId,
-        sessionToken: result.sessionToken,
         displayName: name,
         code: result.code,
         isHost: true,
@@ -237,7 +235,6 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
     numPlayers,
     variant,
     throwIn,
-    playStyle,
     difficulty,
     onClose,
     startGame,
@@ -356,27 +353,6 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                       onPress={() => {
                         trigger("selection");
                         setVariant(v.id);
-                      }}
-                    />
-                  ))}
-                </View>
-              </View>
-
-              <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
-
-              {/* Play Style */}
-              <View style={styles.section}>
-                <SectionLabel label="PLAY STYLE" />
-                <View style={styles.toggleRow}>
-                  {PLAY_STYLE_OPTIONS.map((opt) => (
-                    <ToggleBtn
-                      key={opt.id}
-                      label={opt.label}
-                      desc={opt.desc}
-                      active={playStyle === opt.id}
-                      onPress={() => {
-                        trigger("selection");
-                        setPlayStyle(opt.id);
                       }}
                     />
                   ))}
