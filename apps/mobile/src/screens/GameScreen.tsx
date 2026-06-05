@@ -72,7 +72,7 @@ const ROUND_CLEAR_DELAY_MS = 120;
 const STANDARD_COACH_STEPS: CoachStep[] = [
   {
     title: "Play your cards",
-    body: "When it's your turn, a YOUR TURN banner appears above your hand. Drag or tap a highlighted card to attack or defend.",
+    body: "When it's your turn, your seat glows and the timer ring counts down. Drag or tap a highlighted card to attack or defend.",
   },
   {
     title: "Take or pass",
@@ -86,7 +86,7 @@ const STANDARD_COACH_STEPS: CoachStep[] = [
 
 const ABILITIES_COACH_STEP: CoachStep = {
   title: "Abilities",
-  body: "Return undoes your last play for 3 seconds (free). Graveyard costs 1 gold; Reveal costs 2 gold.",
+  body: "Return undoes your last play for 3 seconds. Graveyard shows discarded cards; Reveal lets you peek at an opponent's hand.",
 };
 
 function activePlayer(game: GameState): PlayerId {
@@ -133,7 +133,6 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const submitHuman = useGameStore((s) => s.submitHuman);
   const autoPlayHuman = useGameStore((s) => s.autoPlayHuman);
   const playMode = useGameStore((s) => s.playMode);
-  const playStyle = useGameStore((s) => s.playStyle);
   const pendingReveal = useGameStore((s) => s.pendingReveal);
   const clearPendingReveal = useGameStore((s) => s.clearPendingReveal);
   const submittingMove = useGameStore((s) => s.submittingMove);
@@ -157,8 +156,11 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const prefsHydrated = usePreferencesStore((s) => s.hydrated);
 
   const coachSteps = useMemo(
-    () => [...STANDARD_COACH_STEPS, ABILITIES_COACH_STEP],
-    [],
+    () =>
+      game?.rules.playStyle === "abilities"
+        ? [...STANDARD_COACH_STEPS, ABILITIES_COACH_STEP]
+        : STANDARD_COACH_STEPS,
+    [game?.rules.playStyle],
   );
   const [coachVisible, setCoachVisible] = useState(false);
   const [coachStepIndex, setCoachStepIndex] = useState(0);
@@ -608,6 +610,12 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   }, [game, humanId, names, revealOpen, playMode]);
 
   const openGraveyard = useCallback(async () => {
+    if (playMode === "solo" && game?.rules.playStyle === "abilities") {
+      pauseForOverlay();
+      setGraveyardOpen(true);
+      return;
+    }
+
     if (!canAffordGold(goldBalance, GRAVEYARD_GOLD_COST)) {
       setOnlineStatusMessage("Not enough gold.");
       trigger("error");
@@ -635,6 +643,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     pauseForOverlay();
     setGraveyardOpen(true);
   }, [
+    game?.rules.playStyle,
     goldBalance,
     playMode,
     onlineRoomId,
@@ -646,13 +655,28 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   ]);
 
   const openReveal = useCallback(() => {
-    if (!revealEnabled || !canAffordGold(goldBalance, REVEAL_GOLD_COST)) {
-      if (revealEnabled) setOnlineStatusMessage("Not enough gold.");
+    if (!revealEnabled) return;
+
+    if (playMode === "solo" && game?.rules.playStyle === "abilities") {
+      pauseForOverlay();
+      setRevealOpen(true);
+      return;
+    }
+
+    if (!canAffordGold(goldBalance, REVEAL_GOLD_COST)) {
+      setOnlineStatusMessage("Not enough gold.");
       return;
     }
     pauseForOverlay();
     setRevealOpen(true);
-  }, [revealEnabled, goldBalance, pauseForOverlay, setOnlineStatusMessage]);
+  }, [
+    revealEnabled,
+    game?.rules.playStyle,
+    playMode,
+    goldBalance,
+    pauseForOverlay,
+    setOnlineStatusMessage,
+  ]);
 
   const handleRevealCard = useCallback(
     async (opponentId: string, cardIndex: number) => {
@@ -673,17 +697,21 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         }
       }
 
-      if (!trySpendGold(REVEAL_GOLD_COST)) {
-        trigger("error");
-        setOnlineStatusMessage("Not enough gold.");
-        return null;
+      const abilitiesReveal =
+        playMode === "solo" && game?.rules.playStyle === "abilities";
+      if (!abilitiesReveal) {
+        if (!trySpendGold(REVEAL_GOLD_COST)) {
+          trigger("error");
+          setOnlineStatusMessage("Not enough gold.");
+          return null;
+        }
       }
 
       const hand = game?.hands[opponentId as PlayerId] ?? [];
       const sorted = sortHandForDisplay(hand, game!.trumpSuit);
       const card = sorted[cardIndex] ?? null;
       if (!card) {
-        rollbackGoldSpend(REVEAL_GOLD_COST);
+        if (!abilitiesReveal) rollbackGoldSpend(REVEAL_GOLD_COST);
         return null;
       }
       return card;
@@ -737,15 +765,20 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const humanOnClock =
     Boolean(view?.mustAct) && game.phase === "playing" && !humanFinished;
 
-  const showGoldAbilities = playMode === "online" || playStyle === "abilities";
+  const abilitiesMode =
+    playMode === "solo" && game.rules.playStyle === "abilities";
+  const onlineGoldAbilities = playMode === "online";
   const returnWindowActive =
     playMode === "online"
       ? returnExpiresAt > Date.now()
       : !!returnSnapshot && returnExpiresAt > Date.now();
   const showAbilityDock =
-    game.phase === "playing" && (showGoldAbilities || returnWindowActive);
+    game.phase === "playing" &&
+    (abilitiesMode || onlineGoldAbilities || returnWindowActive);
   const canPayReveal = revealEnabled && canAffordGold(goldBalance, REVEAL_GOLD_COST);
   const canPayGraveyard = canAffordGold(goldBalance, GRAVEYARD_GOLD_COST);
+  const dockCanReveal = abilitiesMode ? revealEnabled : canPayReveal;
+  const dockCanGraveyard = abilitiesMode ? true : canPayGraveyard;
   const handInteractive = Boolean(view?.mustAct) && !submittingMove;
   const humanIndication = humanOnClock
     ? getSeatIndication(game, humanId, {
@@ -902,9 +935,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             <View style={styles.abilitiesRow}>
               <AbilityDock
                 discardCount={game.discard.length}
-                canReveal={canPayReveal}
-                canGraveyard={canPayGraveyard}
-                showGoldFeatures={showGoldAbilities}
+                canReveal={dockCanReveal}
+                canGraveyard={dockCanGraveyard}
+                showRevealGraveyard={abilitiesMode || onlineGoldAbilities}
+                chargeGold={onlineGoldAbilities}
                 onRevealPress={openReveal}
                 onGraveyardPress={() => void openGraveyard()}
               />
@@ -946,7 +980,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         onCancel={() => setTakeConfirmOpen(false)}
       />
 
-      {showGoldAbilities && (
+      {(abilitiesMode || onlineGoldAbilities) && (
         <GraveyardSheet
           visible={graveyardOpen}
           onClose={() => setGraveyardOpen(false)}
@@ -955,7 +989,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         />
       )}
 
-      {showGoldAbilities && (
+      {(abilitiesMode || onlineGoldAbilities) && (
         <RevealSheet
           visible={revealOpen}
           onClose={closeReveal}

@@ -457,11 +457,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       clearReturnWindow();
       cancelResultTimer();
       const count = n ?? get().numPlayers;
-      const { variant, throwInScope } = get();
+      const { variant, throwInScope, playStyle } = get();
       const { ids, names } = buildPlayers(count);
       const game = createGame(ids, {
         seed: (Math.random() * 2 ** 32) >>> 0,
-        rules: { variant, throwInScope, playStyle: "standard" },
+        rules: { variant, throwInScope, playStyle },
       });
       set({
         playMode: "solo",
@@ -511,8 +511,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         return;
       }
 
+      const abilitiesActive = game.rules.playStyle === "abilities";
       const cardPlay = isHumanCardMove(move, humanId);
-      const snapshot = cardPlay ? cloneGameState(game) : null;
+      const snapshot =
+        abilitiesActive && cardPlay ? cloneGameState(game) : null;
 
       try {
         const next = applyMove(game, move);
@@ -527,7 +529,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           return;
         }
 
-        if (cardPlay && snapshot) {
+        if (abilitiesActive && cardPlay && snapshot) {
           cancelAi();
           set({
             game: next,

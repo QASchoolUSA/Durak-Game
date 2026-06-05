@@ -74,9 +74,11 @@ function CostBadge({ cost }: { cost: number }) {
 function RevealPill({
   canReveal,
   onPress,
+  chargeGold,
 }: {
   canReveal: boolean;
   onPress: () => void;
+  chargeGold: boolean;
 }) {
   const dockPillStyles = useDockPillStyles();
 
@@ -102,7 +104,7 @@ function RevealPill({
       >
         Reveal
       </Text>
-      <CostBadge cost={REVEAL_GOLD_COST} />
+      {chargeGold && <CostBadge cost={REVEAL_GOLD_COST} />}
     </Pressable>
   );
 }
@@ -111,10 +113,12 @@ function GraveyardPill({
   discardCount,
   canOpen,
   onPress,
+  chargeGold,
 }: {
   discardCount: number;
   canOpen: boolean;
   onPress: () => void;
+  chargeGold: boolean;
 }) {
   const dockPillStyles = useDockPillStyles();
 
@@ -134,7 +138,7 @@ function GraveyardPill({
       >
         Grave
       </Text>
-      <CostBadge cost={GRAVEYARD_GOLD_COST} />
+      {chargeGold && <CostBadge cost={GRAVEYARD_GOLD_COST} />}
       {discardCount > 0 && (
         <View style={dockPillStyles.badge}>
           <Text style={dockPillStyles.badgeText}>{discardCount}</Text>
@@ -150,7 +154,10 @@ export interface AbilityDockProps {
   canGraveyard: boolean;
   onGraveyardPress: () => void;
   onRevealPress: () => void;
-  showGoldFeatures?: boolean;
+  /** Show Reveal and Graveyard pills (abilities mode or online gold). */
+  showRevealGraveyard?: boolean;
+  /** Show gold costs and affordability gating (online only). */
+  chargeGold?: boolean;
 }
 
 export function AbilityDock({
@@ -159,7 +166,8 @@ export function AbilityDock({
   canGraveyard,
   onGraveyardPress,
   onRevealPress,
-  showGoldFeatures = true,
+  showRevealGraveyard = true,
+  chargeGold = false,
 }: AbilityDockProps) {
   return (
     <View
@@ -167,13 +175,18 @@ export function AbilityDock({
       accessibilityRole="toolbar"
       accessibilityLabel="Game abilities"
     >
-      {showGoldFeatures && (
+      {showRevealGraveyard && (
         <>
-          <RevealPill canReveal={canReveal} onPress={onRevealPress} />
+          <RevealPill
+            canReveal={canReveal}
+            onPress={onRevealPress}
+            chargeGold={chargeGold}
+          />
           <GraveyardPill
             discardCount={discardCount}
             canOpen={canGraveyard}
             onPress={onGraveyardPress}
+            chargeGold={chargeGold}
           />
         </>
       )}
