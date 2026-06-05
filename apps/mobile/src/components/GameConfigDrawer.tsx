@@ -30,6 +30,7 @@ import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
 import { saveRoomSession } from "../game/onlineSessionStorage";
+import { useConvexAuthGate } from "../game/useAuthBootstrap";
 
 // ── Static config ─────────────────────────────────────────────────────────────
 
@@ -188,6 +189,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
 
   const convexConfigured = Boolean(process.env.EXPO_PUBLIC_CONVEX_URL);
+  const { authReady, authLoading, ensureAuthenticated } = useConvexAuthGate();
 
   const handleStart = useCallback(async () => {
     if (playMode === "online" && !convexConfigured) {
@@ -206,13 +208,14 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
     setCreating(true);
     setCreateError(null);
     try {
+      await ensureAuthenticated();
       const result = await createRoom({
         displayName: name,
         config: {
           numPlayers,
           variant,
           throwInScope: throwIn,
-          playStyle: "standard" as const,
+          playStyle,
           difficulty,
         },
       });
@@ -230,17 +233,24 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
       setModalVisible(false);
       onClose();
     } catch (e) {
-      setCreateError(e instanceof Error ? e.message : "Could not create room");
+      const msg = e instanceof Error ? e.message : "Could not create room";
+      setCreateError(
+        msg.toLowerCase().includes("not authenticated")
+          ? "Could not sign in for online play. Check your connection and try again."
+          : msg,
+      );
       trigger("error");
     } finally {
       setCreating(false);
     }
   }, [
     playMode,
+    ensureAuthenticated,
     createRoom,
     numPlayers,
     variant,
     throwIn,
+    playStyle,
     difficulty,
     onClose,
     startGame,
@@ -365,30 +375,26 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                 </View>
               </View>
 
-              {playMode !== "online" && (
-                <>
-                  <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
+              <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
 
-                  {/* Play Style */}
-                  <View style={styles.section}>
-                    <SectionLabel label="PLAY STYLE" />
-                    <View style={styles.toggleRow}>
-                      {PLAY_STYLE_OPTIONS.map((opt) => (
-                        <ToggleBtn
-                          key={opt.id}
-                          label={opt.label}
-                          desc={opt.desc}
-                          active={playStyle === opt.id}
-                          onPress={() => {
-                            trigger("selection");
-                            setPlayStyle(opt.id);
-                          }}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                </>
-              )}
+              {/* Play Style */}
+              <View style={styles.section}>
+                <SectionLabel label="PLAY STYLE" />
+                <View style={styles.toggleRow}>
+                  {PLAY_STYLE_OPTIONS.map((opt) => (
+                    <ToggleBtn
+                      key={opt.id}
+                      label={opt.label}
+                      desc={opt.desc}
+                      active={playStyle === opt.id}
+                      onPress={() => {
+                        trigger("selection");
+                        setPlayStyle(opt.id);
+                      }}
+                    />
+                  ))}
+                </View>
+              </View>
 
               <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
 
@@ -454,12 +460,18 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                   playMode === "online"
                     ? creating
                       ? "CREATING…"
-                      : "CREATE ROOM"
+                      : authLoading && !authReady
+                        ? "SIGNING IN…"
+                        : "CREATE ROOM"
                     : "START GAME"
                 }
                 variant="primary"
                 onPress={handleStart}
                 icon="▶"
+                disabled={
+                  playMode === "online" &&
+                  (creating || (authLoading && !authReady) || !convexConfigured)
+                }
               />
             </View>
 

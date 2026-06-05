@@ -33,6 +33,7 @@
     "vitest": "^2.1.8"
   },
   "scripts": {
+    "fix:auth-env": "node scripts/fix-preview-auth-env.mjs",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",

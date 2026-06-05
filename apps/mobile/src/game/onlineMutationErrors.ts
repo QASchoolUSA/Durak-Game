@@ -17,6 +17,9 @@ export function formatOnlineMutationError(error: unknown): string {
   if (lower.includes("not in progress") || lower.includes("not playing")) {
     return "The game is not in progress.";
   }
+  if (lower.includes("not authenticated")) {
+    return "Still signing in — wait a moment and try again.";
+  }
   if (lower.includes("not a member")) {
     return "You are no longer in this room.";
   }

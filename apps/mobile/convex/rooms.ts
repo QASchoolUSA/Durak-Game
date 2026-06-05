@@ -208,7 +208,7 @@ export const createRoom = mutation({
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const numPlayers = Math.min(6, Math.max(2, args.config.numPlayers));
-    const config = { ...args.config, numPlayers, playStyle: "standard" as const };
+    const config = { ...args.config, numPlayers };
     const now = Date.now();
 
     let code = randomRoomCode();
@@ -496,7 +496,7 @@ export const startGame = mutation({
 
     const autoFill = args.autoFillEmptySeats !== false;
     let members = [...room.members];
-    let config = { ...room.config, playStyle: "standard" as const };
+    let config = { ...room.config };
 
     if (autoFill || args.soloWithAi === true) {
       for (let seat = 0; seat < room.config.numPlayers; seat++) {
@@ -689,12 +689,9 @@ export const useGraveyardAbility = mutation({
       throw new Error("Not a member of this room");
     }
 
-    const goldBalance = await deductGold(
-      ctx,
-      userId,
-      GRAVEYARD_GOLD_COST,
-      "graveyard",
-    );
+    const graveCost =
+      room.config.playStyle === "abilities" ? 0 : GRAVEYARD_GOLD_COST;
+    const goldBalance = await deductGold(ctx, userId, graveCost, "graveyard");
     return { goldBalance };
   },
 });
@@ -725,12 +722,9 @@ export const useRevealAbility = mutation({
       args.cardIndex,
     );
 
-    const goldBalance = await deductGold(
-      ctx,
-      userId,
-      REVEAL_GOLD_COST,
-      "reveal",
-    );
+    const revealCost =
+      room.config.playStyle === "abilities" ? 0 : REVEAL_GOLD_COST;
+    const goldBalance = await deductGold(ctx, userId, revealCost, "reveal");
 
     const now = Date.now();
     const revealExpiresAt = now + REVEAL_DISPLAY_MS;

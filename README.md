@@ -44,11 +44,22 @@ pnpm test              # game-core + mobile vitest suites (includes Convex helpe
 
 ## Test online multiplayer (simulator + iPhone)
 
-Online play uses a **Convex** backend. Configure `apps/mobile/.env.local` with your deployment URL (see `apps/mobile/.env.example`). After changing `convex/` code:
+Online play uses a **Convex** backend. Configure `apps/mobile/.env.local` with your deployment URL and preview deploy key (see `apps/mobile/.env.example`). This repo targets a **preview deployment** (`neighborly-blackbird-943`), not a personal `convex dev` deployment — so use deploy, not `convex dev`.
+
+After changing `convex/` code:
 
 ```bash
-pnpm convex:deploy     # deploy to preview (requires CONVEX_DEPLOY_KEY in .env.local)
-pnpm mobile:clear      # restart Expo so env vars reload
+pnpm convex:dev        # same as convex:deploy — pushes to preview/dev
+pnpm mobile:clear      # restart Expo if you changed env vars
+```
+
+`pnpm convex:dev` fails with *"Use convex deploy to use preview deployments"* if you run `convex dev` directly; always use the npm scripts above.
+
+If you see **Auth provider discovery failed** for your `.convex.site` URL, the preview deployment’s `JWKS` env var was likely stored with bad escaping. From the repo root run:
+
+```bash
+pnpm convex:fix-auth
+pnpm mobile:clear
 ```
 
 - **iOS Simulator:** press `i` in the Expo terminal.
@@ -115,7 +126,8 @@ pnpm ios:preview:submit
 - **PLAY** → **With friends** → create or join a room by 6-digit code.
 - Server enforces rules via Convex; hands are hidden from opponents.
 - Turn timer is **server-side (12 seconds)** — Settings timer preference applies to solo only.
-- **Gold abilities** (Return, Graveyard, Reveal) work online as paid side features; full **Abilities mode** is solo-only for now.
+- **Standard** online rooms: Return is free after card plays; Graveyard and Reveal cost gold.
+- **With Abilities** online rooms: Return, Graveyard, and Reveal work like solo (no gold cost). Host picks play style when creating the room.
 - Forfeit mid-game replaces you with an AI bot so others can finish.
 - Session reconnect restores lobby or in-progress game state.
 - See [`apps/mobile/MULTIPLAYER_QA.md`](apps/mobile/MULTIPLAYER_QA.md) for the full 2-device QA script.
@@ -134,7 +146,7 @@ pnpm ios:preview:submit
 - **Reconnect** via persisted room session
 - **Forfeit** → AI bot substitution
 - **Live reactions** (emoji sync)
-- **Gold abilities** online: Return, Graveyard, Reveal (with reconnect-safe reveal overlay)
+- **Abilities mode online** (host-selected): free Return, Graveyard, Reveal; standard rooms use gold for Grave/Reveal
 - **Server turn timeout** enforcement
 - **Win gold** rewards (idempotent per room)
 
@@ -142,6 +154,5 @@ pnpm ios:preview:submit
 
 - **Phase 2** — Accounts, friends, and an in-app inbox for requests/invites (Supabase Auth + Postgres).
 - **Real pot settlement** — server-side buy-in/escrow (pot badge is solo practice UI only).
-- **Full Abilities mode online** — requires server rules alignment.
 - **Host-configurable turn timer** in lobby.
 - **Matchmaking** and friends list.

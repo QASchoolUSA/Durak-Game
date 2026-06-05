@@ -610,7 +610,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   }, [game, humanId, names, revealOpen, playMode]);
 
   const openGraveyard = useCallback(async () => {
-    if (playMode === "solo" && game?.rules.playStyle === "abilities") {
+    if (game?.rules.playStyle === "abilities") {
       pauseForOverlay();
       setGraveyardOpen(true);
       return;
@@ -657,7 +657,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const openReveal = useCallback(() => {
     if (!revealEnabled) return;
 
-    if (playMode === "solo" && game?.rules.playStyle === "abilities") {
+    if (game?.rules.playStyle === "abilities") {
       pauseForOverlay();
       setRevealOpen(true);
       return;
@@ -697,8 +697,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         }
       }
 
-      const abilitiesReveal =
-        playMode === "solo" && game?.rules.playStyle === "abilities";
+      const abilitiesReveal = game?.rules.playStyle === "abilities";
       if (!abilitiesReveal) {
         if (!trySpendGold(REVEAL_GOLD_COST)) {
           trigger("error");
@@ -765,9 +764,8 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const humanOnClock =
     Boolean(view?.mustAct) && game.phase === "playing" && !humanFinished;
 
-  const abilitiesMode =
-    playMode === "solo" && game.rules.playStyle === "abilities";
-  const onlineGoldAbilities = playMode === "online";
+  const abilitiesMode = game.rules.playStyle === "abilities";
+  const onlineGoldAbilities = playMode === "online" && !abilitiesMode;
   const returnWindowActive =
     playMode === "online"
       ? returnExpiresAt > Date.now()

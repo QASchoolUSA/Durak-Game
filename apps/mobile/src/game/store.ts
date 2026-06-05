@@ -291,8 +291,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     goldBalance: STARTING_GOLD,
     goldHydrated: false,
 
-    setPlayMode: (playMode) =>
-      set(playMode === "online" ? { playMode, playStyle: "standard" } : { playMode }),
+    setPlayMode: (playMode) => set({ playMode }),
 
     setOnlineStatusMessage: (onlineStatusMessage) => set({ onlineStatusMessage }),
     clearOnlineStatusMessage: () => set({ onlineStatusMessage: null }),

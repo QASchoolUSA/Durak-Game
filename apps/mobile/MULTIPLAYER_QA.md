@@ -21,30 +21,36 @@ Run this checklist on two physical devices before each TestFlight multiplayer bu
 10. Defender: drag to **transfer** slot → verify `TRANSFER` applied on both devices.
 11. Beat path: drag to beat slot → `DEFEND`.
 
-## Abilities
+## Abilities (standard room — gold)
 
 12. Return: play card → tap ↩ within 3s → both see undo.
 13. Graveyard: spend 1 gold → discard sheet opens on both (same discard from sync).
 14. Reveal: spend 2 gold → pick opponent card → animation on initiator; **kill app mid-reveal, reopen** → card should appear via `pendingReveal` sync.
 
+## Abilities mode (host creates room with **With Abilities**)
+
+15. Lobby subtitle shows **With Abilities** for all joiners.
+16. Return / Grave / Reveal work without gold costs (server `playStyle: abilities`).
+17. Reveal flow same as step 14 (including reconnect mid-reveal).
+
 ## Timeout
 
-15. Let timer expire on defender → server TAKE; on attacker with open table → PASS/Done.
+18. Let timer expire on defender → server TAKE; on attacker with open table → PASS/Done.
 
 ## Forfeit / reconnect
 
-16. Mid-game Device A: ✕ exit → confirm → becomes AI; Device B game continues.
-17. Device B: background app 60s, foreground → state resyncs via `getRoomView`.
-18. Kill app during lobby → reopen → session restore to lobby.
+19. Mid-game Device A: ✕ exit → confirm → becomes AI; Device B game continues.
+20. Device B: background app 60s, foreground → state resyncs via `getRoomView`.
+21. Kill app during lobby → reopen → session restore to lobby.
 
 ## Reactions
 
-19. Send emoji during play → appears on other device within subscription latency.
+22. Send emoji during play → appears on other device within subscription latency.
 
 ## Regression (solo)
 
-20. PLAY → Vs AI → full game → no Convex calls; timer auto-plays locally.
-21. **Card play (Expo Go):** touch + lift a card, drag attack/defend/throw-in, clear a 6-card round — app must not crash on drag start, play, or table exit animation.
+23. PLAY → Vs AI → full game → no Convex calls; timer auto-plays locally.
+24. **Card play (Expo Go):** touch + lift a card, drag attack/defend/throw-in, clear a 6-card round — app must not crash on drag start, play, or table exit animation.
 
 ## Automated coverage
 

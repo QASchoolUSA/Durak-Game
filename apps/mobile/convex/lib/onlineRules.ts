@@ -6,6 +6,6 @@ export function onlineRules(config: {
   return {
     variant: config.variant,
     throwInScope: config.throwInScope,
-    playStyle: "standard" as const,
+    playStyle: config.playStyle,
   };
 }

@@ -64,6 +64,9 @@ export function LobbyScreen() {
   const code = roomView?.code ?? onlineRoomCode ?? "------";
   const maxSeats = roomView?.config.numPlayers ?? 2;
   const roomDifficulty = roomView?.config.difficulty ?? "medium";
+  const roomPlayStyle = roomView?.config.playStyle ?? "standard";
+  const playStyleLabel =
+    roomPlayStyle === "abilities" ? "With Abilities" : "Standard";
   const joinedCount = members.length;
 
   const seats = useMemo(() => {
@@ -211,7 +214,7 @@ export function LobbyScreen() {
         <View style={[styles.content, { paddingHorizontal: lay.hPad, maxWidth: lay.maxContent }]}>
           <Text style={[styles.title, { color: ui.accent }]}>GAME LOBBY</Text>
           <Text style={[styles.subtitle, { color: ui.textFaint }]}>
-            Share the code with friends
+            Share the code with friends · {playStyleLabel}
           </Text>
 
           <Pressable

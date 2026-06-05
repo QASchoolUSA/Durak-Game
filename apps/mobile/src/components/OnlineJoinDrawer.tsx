@@ -28,6 +28,7 @@ import { api } from "../../convex/_generated/api";
 import { MenuButton } from "./MenuButton";
 import { trigger } from "../feedback/haptics";
 import { saveRoomSession } from "../game/onlineSessionStorage";
+import { useConvexAuthGate } from "../game/useAuthBootstrap";
 import { useGameStore } from "../game/store";
 import { colors, radius, spacing, typography } from "../theme";
 import { useTableTheme } from "../theme/TableThemeContext";
@@ -93,6 +94,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
     trimmedCode.length === 6 ? { code: trimmedCode } : "skip",
   );
   const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
+  const { authReady, authLoading, ensureAuthenticated } = useConvexAuthGate();
 
   const ty = useSharedValue(drawerH);
   const keyboardLift = useSharedValue(0);
@@ -289,6 +291,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
     setJoining(true);
     setError(null);
     try {
+      await ensureAuthenticated();
       const result = await joinRoom({ code: trimmedCode, displayName: name });
       await saveRoomSession({
         roomId: result.roomId,
@@ -304,12 +307,17 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
       setModalVisible(false);
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not join room");
+      const msg = e instanceof Error ? e.message : "Could not join room";
+      setError(
+        msg.toLowerCase().includes("not authenticated")
+          ? "Could not sign in for online play. Check your connection and try again."
+          : msg,
+      );
       trigger("error");
     } finally {
       setJoining(false);
     }
-  }, [code, joinRoom, enterOnlineLobby, onClose, resetKeyboardLift]);
+  }, [code, ensureAuthenticated, joinRoom, enterOnlineLobby, onClose, resetKeyboardLift]);
 
   const aBackdrop = useAnimatedStyle(() => ({ opacity: backdropO.value }));
   const aSheet = useAnimatedStyle(() => ({
@@ -414,10 +422,17 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
 
             <View ref={joinButtonRef} collapsable={false}>
               <MenuButton
-                label={joining ? "JOINING…" : "JOIN ROOM"}
+                label={
+                  joining
+                    ? "JOINING…"
+                    : authLoading && !authReady
+                      ? "SIGNING IN…"
+                      : "JOIN ROOM"
+                }
                 variant="primary"
                 icon="▶"
                 onPress={handleJoin}
+                disabled={joining || (authLoading && !authReady)}
               />
             </View>
           </ScrollView>
