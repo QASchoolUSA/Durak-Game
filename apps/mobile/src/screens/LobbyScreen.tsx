@@ -1,0 +1,574 @@
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useMutation, useQuery } from "convex/react";
+import { AddAiSeatSheet } from "../components/AddAiSeatSheet";
+import { Background } from "../components/Background";
+import { MenuButton } from "../components/MenuButton";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
+import { trigger } from "../feedback/haptics";
+import { clearRoomSession } from "../game/onlineSessionStorage";
+import type { Difficulty } from "../game/store";
+import { useGameStore } from "../game/store";
+import { useUiTheme } from "../theme/UiThemeContext";
+import { layoutFor, radius, spacing, typography } from "../theme";
+
+type RoomMemberView = {
+  displayName: string;
+  seatIndex: number;
+  isBot: boolean;
+  isReady?: boolean;
+};
+
+export function LobbyScreen() {
+  const ui = useUiTheme();
+  const { width } = useWindowDimensions();
+  const lay = layoutFor(width);
+
+  const onlineRoomId = useGameStore((s) => s.onlineRoomId);
+  const onlineSessionToken = useGameStore((s) => s.onlineSessionToken);
+  const onlineRoomCode = useGameStore((s) => s.onlineRoomCode);
+  const onlineIsHost = useGameStore((s) => s.onlineIsHost);
+  const onlineDisplayName = useGameStore((s) => s.onlineDisplayName);
+  const goHome = useGameStore((s) => s.goHome);
+
+  const [addAiSeat, setAddAiSeat] = useState<number | null>(null);
+
+  const startGame = useMutation(api.rooms.startGame);
+  const leaveRoom = useMutation(api.rooms.leaveRoom);
+  const setReady = useMutation(api.rooms.setReady);
+  const setLobbyBot = useMutation(api.rooms.setLobbyBot);
+  const setRoomDifficulty = useMutation(api.rooms.setRoomDifficulty);
+
+  const roomView = useQuery(
+    api.rooms.getRoomView,
+    onlineRoomId && onlineSessionToken
+      ? {
+          roomId: onlineRoomId as Id<"rooms">,
+          sessionToken: onlineSessionToken,
+        }
+      : "skip",
+  );
+
+  const members = roomView?.members ?? [];
+  const humanCount = roomView?.humanCount ?? 0;
+  const readyCount = roomView?.readyCount ?? 0;
+  const allHumansReady = roomView?.allHumansReady ?? false;
+  const code = roomView?.code ?? onlineRoomCode ?? "------";
+  const maxSeats = roomView?.config.numPlayers ?? 2;
+  const roomDifficulty = roomView?.config.difficulty ?? "medium";
+  const joinedCount = members.length;
+
+  const seats = useMemo(() => {
+    const slots: { seatIndex: number; member?: RoomMemberView }[] = [];
+    for (let i = 0; i < maxSeats; i++) {
+      slots.push({
+        seatIndex: i,
+        member: members.find((m) => m.seatIndex === i),
+      });
+    }
+    return slots;
+  }, [members, maxSeats]);
+
+  const hasEmptySeat = seats.some((s) => !s.member);
+
+  const canHostStart =
+    onlineIsHost &&
+    ((joinedCount >= 2 && humanCount < 2) ||
+      (humanCount >= 2 && allHumansReady));
+
+  const showStartCompact =
+    canHostStart && humanCount < maxSeats && hasEmptySeat;
+
+  const isLocalReady = roomView?.yourIsReady ?? false;
+
+  const handleToggleReady = useCallback(async () => {
+    if (!onlineRoomId || !onlineSessionToken || humanCount < 2) return;
+    trigger(isLocalReady ? "selection" : "confirm");
+    try {
+      await setReady({
+        roomId: onlineRoomId as Id<"rooms">,
+        sessionToken: onlineSessionToken,
+        ready: !isLocalReady,
+      });
+    } catch {
+      trigger("error");
+    }
+  }, [
+    onlineRoomId,
+    onlineSessionToken,
+    humanCount,
+    isLocalReady,
+    setReady,
+  ]);
+
+  const handleShare = useCallback(async () => {
+    if (!code || code === "------") return;
+    try {
+      await Share.share({
+        message: `Join my Durak game! Room code: ${code}`,
+      });
+    } catch {
+      /* cancelled */
+    }
+  }, [code]);
+
+  const handleStart = useCallback(async () => {
+    if (!onlineRoomId || !onlineSessionToken) return;
+    trigger("gameStart");
+    try {
+      await startGame({
+        roomId: onlineRoomId as Id<"rooms">,
+        sessionToken: onlineSessionToken,
+        soloWithAi: false,
+        autoFillEmptySeats: true,
+      });
+    } catch {
+      trigger("error");
+    }
+  }, [onlineRoomId, onlineSessionToken, startGame]);
+
+  const handleStartCompact = useCallback(async () => {
+    if (!onlineRoomId || !onlineSessionToken) return;
+    trigger("gameStart");
+    try {
+      await startGame({
+        roomId: onlineRoomId as Id<"rooms">,
+        sessionToken: onlineSessionToken,
+        soloWithAi: false,
+        autoFillEmptySeats: false,
+      });
+    } catch {
+      trigger("error");
+    }
+  }, [onlineRoomId, onlineSessionToken, startGame]);
+
+  const handleLobbyBot = useCallback(
+    async (seatIndex: number, enabled: boolean) => {
+      if (!onlineRoomId || !onlineSessionToken) return;
+      trigger("selection");
+      try {
+        await setLobbyBot({
+          roomId: onlineRoomId as Id<"rooms">,
+          sessionToken: onlineSessionToken,
+          seatIndex,
+          enabled,
+        });
+      } catch {
+        trigger("error");
+      }
+    },
+    [onlineRoomId, onlineSessionToken, setLobbyBot],
+  );
+
+  const handleConfirmAddAi = useCallback(
+    async (difficulty: Difficulty) => {
+      if (!onlineRoomId || !onlineSessionToken || addAiSeat === null) {
+        throw new Error("Missing room");
+      }
+      if (difficulty !== roomDifficulty) {
+        await setRoomDifficulty({
+          roomId: onlineRoomId as Id<"rooms">,
+          sessionToken: onlineSessionToken,
+          difficulty,
+        });
+      }
+      await setLobbyBot({
+        roomId: onlineRoomId as Id<"rooms">,
+        sessionToken: onlineSessionToken,
+        seatIndex: addAiSeat,
+        enabled: true,
+      });
+    },
+    [
+      onlineRoomId,
+      onlineSessionToken,
+      addAiSeat,
+      roomDifficulty,
+      setRoomDifficulty,
+      setLobbyBot,
+    ],
+  );
+
+  const handleLeave = useCallback(async () => {
+    if (onlineRoomId && onlineSessionToken) {
+      try {
+        await leaveRoom({
+          roomId: onlineRoomId as Id<"rooms">,
+          sessionToken: onlineSessionToken,
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+    await clearRoomSession();
+    goHome();
+  }, [onlineRoomId, onlineSessionToken, leaveRoom, goHome]);
+
+  return (
+    <Background variant="home">
+      <SafeAreaView style={styles.safe}>
+        <View style={[styles.content, { paddingHorizontal: lay.hPad, maxWidth: lay.maxContent }]}>
+          <Text style={[styles.title, { color: ui.accent }]}>GAME LOBBY</Text>
+          <Text style={[styles.subtitle, { color: ui.textFaint }]}>
+            Share the code with friends
+          </Text>
+
+          <Pressable
+            style={[styles.codeCard, { borderColor: ui.accent, backgroundColor: ui.panelBg }]}
+            onPress={handleShare}
+          >
+            <Text style={[styles.codeLabel, { color: ui.textFaint }]}>ROOM CODE</Text>
+            <Text style={[styles.codeValue, { color: ui.accent }]}>{code}</Text>
+            <Text style={[styles.codeHint, { color: ui.textFaint }]}>Tap to share</Text>
+          </Pressable>
+
+          <View
+            style={[
+              styles.playerList,
+              { borderColor: ui.panelBorderSoft, backgroundColor: ui.panelBg },
+            ]}
+          >
+            <Text style={[styles.listTitle, { color: ui.textFaint }]}>
+              SEATS ({joinedCount}/{maxSeats})
+            </Text>
+            {!roomView ? (
+              <ActivityIndicator color={ui.accent} style={{ marginTop: spacing.md }} />
+            ) : (
+              <ScrollView
+                style={styles.seatScroll}
+                contentContainerStyle={styles.seatScrollContent}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled
+              >
+                {seats.map(({ seatIndex, member }) => (
+                  <SeatRow
+                    key={seatIndex}
+                    seatIndex={seatIndex}
+                    member={member}
+                    isYou={
+                      member != null &&
+                      !member.isBot &&
+                      member.displayName === onlineDisplayName
+                    }
+                    showReady={humanCount >= 2 && member != null && !member.isBot}
+                    canManageBots={onlineIsHost}
+                    onAddBot={() => setAddAiSeat(seatIndex)}
+                    onRemoveBot={() => handleLobbyBot(seatIndex, false)}
+                  />
+                ))}
+                {onlineIsHost && humanCount === 1 && (
+                  <Text style={[styles.aiHint, { color: ui.textFaint }]}>
+                    Add AI to empty seats, or share the code with friends
+                  </Text>
+                )}
+                {onlineIsHost && humanCount >= 2 && hasEmptySeat && (
+                  <Text style={[styles.aiHint, { color: ui.textFaint }]}>
+                    Add AI to empty seats, or start with only joined players
+                  </Text>
+                )}
+              </ScrollView>
+            )}
+          </View>
+
+          <View style={styles.actions}>
+            {onlineIsHost ? (
+              canHostStart ? (
+                <>
+                  <MenuButton
+                    label="START GAME"
+                    variant="primary"
+                    icon="▶"
+                    onPress={handleStart}
+                  />
+                  {showStartCompact && (
+                    <MenuButton
+                      label={`START WITH ${joinedCount} PLAYERS`}
+                      variant="secondary"
+                      icon="▶"
+                      onPress={handleStartCompact}
+                    />
+                  )}
+                </>
+              ) : (
+                <View style={[styles.waitPill, { backgroundColor: ui.accentSoft, borderColor: ui.panelBorderSoft }]}>
+                  <Text style={[styles.waitText, { color: ui.textFaint }]}>
+                    {joinedCount < 2
+                      ? "Add AI to a seat or share the code"
+                      : `Waiting for players to ready up (${readyCount}/${humanCount})`}
+                  </Text>
+                </View>
+              )
+            ) : (
+              <View style={[styles.waitPill, { backgroundColor: ui.accentSoft, borderColor: ui.panelBorderSoft }]}>
+                <Text style={[styles.waitText, { color: ui.textFaint }]}>
+                  {allHumansReady
+                    ? "Waiting for host to start…"
+                    : `Ready up to play (${readyCount}/${humanCount})`}
+                </Text>
+              </View>
+            )}
+            {humanCount >= 2 && (
+              <MenuButton
+                label={isLocalReady ? "NOT READY" : "READY"}
+                variant={isLocalReady ? "ghost" : "secondary"}
+                icon={isLocalReady ? "✕" : "✓"}
+                onPress={handleToggleReady}
+              />
+            )}
+            <MenuButton label="LEAVE" variant="ghost" onPress={handleLeave} />
+          </View>
+        </View>
+      </SafeAreaView>
+
+      <AddAiSeatSheet
+        visible={addAiSeat !== null}
+        seatIndex={addAiSeat ?? 0}
+        initialDifficulty={roomDifficulty}
+        onClose={() => setAddAiSeat(null)}
+        onConfirm={handleConfirmAddAi}
+      />
+    </Background>
+  );
+}
+
+function SeatRow({
+  seatIndex,
+  member,
+  isYou,
+  showReady,
+  canManageBots,
+  onAddBot,
+  onRemoveBot,
+}: {
+  seatIndex: number;
+  member?: RoomMemberView;
+  isYou: boolean;
+  showReady: boolean;
+  canManageBots: boolean;
+  onAddBot: () => void;
+  onRemoveBot: () => void;
+}) {
+  const ui = useUiTheme();
+
+  if (!member) {
+    return (
+      <View
+        style={[styles.playerRow, { borderBottomColor: ui.panelBorderSoft }]}
+      >
+        <View style={[styles.avatar, { backgroundColor: ui.panelBorderSoft }]}>
+          <Text style={[styles.avatarText, { color: ui.textFaint }]}>—</Text>
+        </View>
+        <Text style={[styles.playerName, { color: ui.textFaint }]}>
+          Seat {seatIndex + 1} · Empty
+        </Text>
+        {canManageBots && (
+          <Pressable
+            style={[styles.seatAction, { borderColor: ui.accent, backgroundColor: ui.accentSoft }]}
+            onPress={onAddBot}
+          >
+            <Text style={[styles.seatActionText, { color: ui.accent }]}>Add AI</Text>
+          </Pressable>
+        )}
+      </View>
+    );
+  }
+
+  if (member.isBot) {
+    return (
+      <View
+        style={[styles.playerRow, { borderBottomColor: ui.panelBorderSoft }]}
+      >
+        <View style={[styles.avatar, { backgroundColor: ui.accentSoft }]}>
+          <Text style={[styles.avatarText, { color: ui.accent }]}>🤖</Text>
+        </View>
+        <Text style={[styles.playerName, { color: ui.textPrimary }]}>
+          {member.displayName}
+          <Text style={{ color: ui.textFaint }}> · AI</Text>
+        </Text>
+        {canManageBots && (
+          <Pressable
+            style={[styles.seatAction, { borderColor: ui.panelBorderSoft }]}
+            onPress={onRemoveBot}
+          >
+            <Text style={[styles.seatActionText, { color: ui.textFaint }]}>
+              Remove
+            </Text>
+          </Pressable>
+        )}
+      </View>
+    );
+  }
+
+  const ready = member.isReady === true;
+
+  return (
+    <View
+      style={[
+        styles.playerRow,
+        { borderBottomColor: ui.panelBorderSoft },
+        isYou && { backgroundColor: ui.accentSoft },
+      ]}
+    >
+      <View style={[styles.avatar, { backgroundColor: ui.accentSoft }]}>
+        <Text style={[styles.avatarText, { color: ui.accent }]}>
+          {member.displayName.charAt(0).toUpperCase()}
+        </Text>
+      </View>
+      <Text style={[styles.playerName, { color: ui.textPrimary }]}>
+        {member.displayName}
+        {isYou ? " (you)" : ""}
+      </Text>
+      {showReady && (
+        <View
+          style={[
+            styles.readyBadge,
+            {
+              borderColor: ready ? ui.accent : ui.panelBorderSoft,
+              backgroundColor: ready ? ui.accentSoft : "transparent",
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.readyBadgeText,
+              { color: ready ? ui.accent : ui.textFaint },
+            ]}
+          >
+            {ready ? "Ready" : "Not ready"}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  content: {
+    flex: 1,
+    alignSelf: "center",
+    width: "100%",
+    paddingTop: spacing.xl,
+    gap: spacing.lg,
+  },
+  title: {
+    ...typography.title,
+    fontSize: 32,
+    textAlign: "center",
+    letterSpacing: 2,
+  },
+  subtitle: {
+    ...typography.body,
+    textAlign: "center",
+    marginTop: -spacing.sm,
+  },
+  codeCard: {
+    borderWidth: 1.5,
+    borderRadius: radius.panel,
+    paddingVertical: spacing.lg,
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  codeLabel: {
+    ...typography.caption,
+    letterSpacing: 1.5,
+  },
+  codeValue: {
+    fontSize: 42,
+    fontWeight: "700",
+    letterSpacing: 8,
+  },
+  codeHint: {
+    ...typography.caption,
+  },
+  playerList: {
+    borderWidth: 1,
+    borderRadius: radius.panel,
+    padding: spacing.md,
+    flex: 1,
+    minHeight: 0,
+  },
+  listTitle: {
+    ...typography.caption,
+    letterSpacing: 1,
+    marginBottom: spacing.sm,
+  },
+  seatScroll: {
+    flex: 1,
+  },
+  seatScrollContent: {
+    paddingBottom: spacing.xs,
+  },
+  playerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  playerName: {
+    ...typography.body,
+    fontWeight: "600",
+    flex: 1,
+  },
+  readyBadge: {
+    borderWidth: 1,
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  readyBadgeText: {
+    ...typography.caption,
+    fontWeight: "600",
+  },
+  seatAction: {
+    borderWidth: 1,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  seatActionText: {
+    ...typography.caption,
+    fontWeight: "600",
+  },
+  aiHint: {
+    ...typography.caption,
+    marginTop: spacing.md,
+    textAlign: "center",
+  },
+  actions: {
+    gap: spacing.sm,
+    paddingBottom: spacing.lg,
+  },
+  waitPill: {
+    borderWidth: 1,
+    borderRadius: radius.panel,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+  },
+  waitText: {
+    ...typography.body,
+  },
+});

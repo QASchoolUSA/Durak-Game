@@ -207,7 +207,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
           const transferHover = transferEnabled && hoverTransferIndex === i;
           const beatDimmed = showChoice && transferHover;
           const transferDimmed = showChoice && beatHover;
-          const pairW = pairLayoutWidth(showChoice);
+          const pairW = pairLayoutWidth(transferEnabled);
           const pairH = showChoice ? h + 8 : h + 16;
 
           const attackCard = (
@@ -239,7 +239,6 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
               height={h}
               active={transferHover}
               dimmed={transferDimmed}
-              disabled={!transferEnabled}
               available={dragActive}
             />
           );
@@ -270,14 +269,14 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
                   )}
                 </View>
 
-                {showChoice && (
+                {showChoice && transferEnabled && (
                   <View
                     style={[
                       styles.transferSlot,
                       { left: w + TRANSFER_CHOICE_LAYOUT.gap, width: w, height: h },
                     ]}
                   >
-                    {transferEnabled && measureZones ? (
+                    {measureZones ? (
                       <MeasuredDropSlot
                         tableIndex={i}
                         kind="transfer"

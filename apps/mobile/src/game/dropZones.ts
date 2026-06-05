@@ -1,5 +1,3 @@
-import { cardSize } from "../theme";
-
 export type DropZoneKind = "defend" | "transfer";
 
 export interface ScreenRect {
@@ -44,7 +42,9 @@ export const CHOICE_HIT_PAD = 4;
 /** Prevent beat/transfer flicker when the center crosses the gap midpoint. */
 const CHOICE_HYSTERESIS = 8;
 
-const { w: TABLE_W, h: TABLE_H } = cardSize.table;
+/** Matches theme cardSize.table — inline so drop-zone math is testable without RN. */
+const TABLE_W = 62;
+const TABLE_H = 87;
 
 const LOCK_RELEASE_SLACK = 12;
 const MIN_OVERLAP_RATIO = 0.08;
@@ -134,7 +134,7 @@ function gapMidpoint(defend: DropZone, transfer: DropZone): number {
   return beatRight + (xferLeft - beatRight) / 2;
 }
 
-/** Midpoint of the physical gap between unpadded slot frames. */
+/** Vertical band for beat/transfer targeting on a table pair. */
 function inVerticalBand(y: number, defend: DropZone, transfer: DropZone): boolean {
   const pad = 40;
   const top = Math.min(defend.y, transfer.y) - pad;
@@ -153,7 +153,6 @@ function resolveBeatTransferPair(
 ): DropZone | null {
   const aim = aimPoint(bounds);
   const aimX = aim.x;
-  // Use card center Y — the card rises to the zone while the finger stays lower
   if (!inVerticalBand(bounds.centerY, defend, transfer)) return null;
 
   const beatLeft = defend.x;
@@ -182,7 +181,6 @@ function resolveBeatTransferPair(
   }
 
   const pad = CHOICE_HIT_PAD;
-  // Use card center Y for vertical proximity checks
   const cardY = bounds.centerY;
   const nearBeat =
     aimX >= beatLeft - pad &&

@@ -94,6 +94,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const lastMoveAt = useGameStore((s) => s.lastMoveAt);
   const submitHuman = useGameStore((s) => s.submitHuman);
   const autoPlayHuman = useGameStore((s) => s.autoPlayHuman);
+  const playMode = useGameStore((s) => s.playMode);
   const goHome = useGameStore((s) => s.goHome);
   const ui = useUiTheme();
   const reduceMotion = useReduceMotion();
@@ -239,7 +240,8 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const transferTargets = beatTransferChoice.transferIndices;
 
   const expectedZoneCount =
-    beatTransferChoice.choiceIndices.length + beatTransferChoice.transferIndices.length;
+    beatTransferChoice.choiceIndices.length +
+    (beatTransferChoice.transferIndices.length > 0 ? 1 : 0);
 
   const reaimFromLastBounds = useCallback(() => {
     const bounds = lastDragBoundsRef.current;
@@ -504,7 +506,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const active = activePlayer(game);
 
   const humanHand = game.hands[humanId] ?? [];
-  const abilitiesMode = game.rules.playStyle === "abilities";
+  const abilitiesMode = game.rules.playStyle === "abilities" && playMode === "solo";
 
   return (
     <Background variant="game">

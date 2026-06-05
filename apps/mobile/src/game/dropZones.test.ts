@@ -88,7 +88,6 @@ describe("resolveDropFromBounds", () => {
   });
 
   it("finger over beat wins when card center is in gap", () => {
-    const GAP_MID = 172;
     const { zone: z } = resolveDropFromBounds(
       {
         centerX: GAP_MID,

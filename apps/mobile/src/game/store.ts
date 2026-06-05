@@ -15,14 +15,25 @@ import {
 } from "@durak/game-core";
 import { timeoutMoveFor } from "./autoMove";
 import { trigger } from "../feedback/haptics";
+import { submitOnlineMove } from "./onlineBridge";
+import type { RoomView } from "./onlineTypes";
+import { clearRoomSession } from "./onlineSessionStorage";
 import {
   getStoredGameConfig,
   setStoredGameConfig,
   type StoredGameConfig,
 } from "./gameConfigStorage";
+import {
+  generateGuestDisplayName,
+  getStoredNameIsCustom,
+  getStoredPlayerName,
+  setStoredCustomName,
+  setStoredGuestName,
+} from "./playerNameStorage";
 
-export type Screen = "home" | "game" | "result";
+export type Screen = "home" | "lobby" | "game" | "result";
 export type Difficulty = "easy" | "medium" | "hard";
+export type PlayMode = "solo" | "online";
 
 const AI_DELAY: Record<Difficulty, number> = { easy: 1400, medium: 750, hard: 320 };
 const RETURN_WINDOW_MS = 3000;
@@ -69,6 +80,7 @@ function triggerMoveFeedback(move: Move): void {
 
 interface GameStore {
   screen: Screen;
+  playMode: PlayMode;
   numPlayers: number;
   variant: GameVariant;
   throwInScope: ThrowInScope;
@@ -82,11 +94,28 @@ interface GameStore {
   pot: number;
   buyIn: number;
   difficulty: Difficulty;
+  onlineRoomId: string | null;
+  onlineSessionToken: string | null;
+  onlineDisplayName: string;
+  playerNameHydrated: boolean;
+  hasCustomDisplayName: boolean;
+  onlineRoomCode: string | null;
+  onlineIsHost: boolean;
+  setPlayMode: (mode: PlayMode) => void;
   setNumPlayers: (n: number) => void;
   setVariant: (variant: GameVariant) => void;
   setThrowInScope: (scope: ThrowInScope) => void;
   setPlayStyle: (style: PlayStyle) => void;
   setDifficulty: (d: Difficulty) => void;
+  setOnlineDisplayName: (name: string) => void;
+  enterOnlineLobby: (args: {
+    roomId: string;
+    sessionToken: string;
+    displayName: string;
+    code: string;
+    isHost: boolean;
+  }) => void;
+  syncOnlineState: (view: RoomView) => void;
   startGame: (n?: number) => void;
   goHome: () => void;
   submitHuman: (move: Move) => void;
@@ -155,7 +184,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       return;
     }
     set({ game: next, lastMoveAt: Date.now() });
-    scheduleAi();
+    if (get().playMode === "solo") {
+      scheduleAi();
+    }
   }
 
   function scheduleAiAfterReturnWindow() {
@@ -168,6 +199,7 @@ export const useGameStore = create<GameStore>((set, get) => {
   }
 
   function scheduleAi() {
+    if (get().playMode !== "solo") return;
     cancelAi();
     aiTimer = setTimeout(() => {
       aiTimer = null;
@@ -205,6 +237,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
   return {
     screen: "home",
+    playMode: "solo",
     numPlayers: 2,
     variant: "podkidnoy",
     throwInScope: "all",
@@ -218,6 +251,98 @@ export const useGameStore = create<GameStore>((set, get) => {
     returnExpiresAt: 0,
     pot: 0,
     buyIn: 100,
+    onlineRoomId: null,
+    onlineSessionToken: null,
+    onlineDisplayName: "Player",
+    playerNameHydrated: false,
+    hasCustomDisplayName: false,
+    onlineRoomCode: null,
+    onlineIsHost: false,
+
+    setPlayMode: (playMode) => set({ playMode }),
+
+    setOnlineDisplayName: (onlineDisplayName) => {
+      const trimmed = onlineDisplayName.trim().slice(0, 20);
+      if (!trimmed) return;
+      set({ onlineDisplayName: trimmed, hasCustomDisplayName: true });
+      void setStoredCustomName(trimmed);
+    },
+
+    enterOnlineLobby: ({ roomId, sessionToken, displayName, code, isHost }) => {
+      cancelAi();
+      clearReturnWindow();
+      cancelResultTimer();
+      set({
+        playMode: "online",
+        onlineRoomId: roomId,
+        onlineSessionToken: sessionToken,
+        onlineDisplayName: displayName,
+        onlineRoomCode: code,
+        onlineIsHost: isHost,
+        screen: "lobby",
+        game: null,
+      });
+    },
+
+    syncOnlineState: (view) => {
+      const prev = get();
+
+      const baseWithoutPlayer = {
+        onlineRoomCode: view.code,
+        onlineIsHost: view.isHost,
+        numPlayers: view.config.numPlayers,
+        variant: view.config.variant,
+        throwInScope: view.config.throwInScope,
+        playStyle: view.config.playStyle,
+        difficulty: view.config.difficulty,
+        lastMoveAt: view.lastMoveAt,
+        pot: prev.buyIn * view.config.numPlayers,
+      };
+
+      if (view.status === "lobby") {
+        const lobbyNames: Record<PlayerId, string> = {};
+        for (const m of view.members) {
+          lobbyNames[`seat-${m.seatIndex}`] = m.displayName;
+        }
+        set({ ...baseWithoutPlayer, screen: "lobby", game: null, names: lobbyNames });
+        return;
+      }
+
+      const yourId = view.yourPlayerId;
+      if (!yourId) return;
+
+      const names = { ...view.names };
+      names[yourId] = "You";
+
+      const base = {
+        ...baseWithoutPlayer,
+        names,
+        humanId: yourId,
+      };
+
+      if (view.status === "playing" && view.gameState) {
+        set({ ...base, screen: "game", game: view.gameState });
+        return;
+      }
+
+      if (view.status === "finished" && view.gameState) {
+        if (view.gameState.phase === "gameOver") {
+          const delay = view.gameState.table.length === 0 ? RESULT_DELAY_MS : 0;
+          set({
+            ...base,
+            game: view.gameState,
+            ...(delay === 0 ? { screen: "result" as const } : { screen: "game" as const }),
+          });
+          if (delay > 0 && prev.screen !== "result") {
+            cancelResultTimer();
+            resultTimer = setTimeout(() => {
+              resultTimer = null;
+              set({ screen: "result" });
+            }, delay);
+          }
+        }
+      }
+    },
 
     setNumPlayers: (n) => {
       const numPlayers = Math.min(6, Math.max(2, n));
@@ -253,12 +378,16 @@ export const useGameStore = create<GameStore>((set, get) => {
         rules: { variant, throwInScope, playStyle },
       });
       set({
+        playMode: "solo",
         screen: "game",
         numPlayers: count,
         names,
         game,
         lastMoveAt: Date.now(),
         pot: get().buyIn * count,
+        onlineRoomId: null,
+        onlineSessionToken: null,
+        onlineRoomCode: null,
       });
       persistConfig(get());
       scheduleAi();
@@ -268,12 +397,29 @@ export const useGameStore = create<GameStore>((set, get) => {
       cancelAi();
       clearReturnWindow();
       cancelResultTimer();
-      set({ screen: "home", game: null });
+      void clearRoomSession();
+      set({
+        screen: "home",
+        game: null,
+        playMode: "solo",
+        onlineRoomId: null,
+        onlineSessionToken: null,
+        onlineRoomCode: null,
+        onlineIsHost: false,
+        humanId: HUMAN_ID,
+        names: { [HUMAN_ID]: "You" },
+      });
     },
 
     submitHuman: (move) => {
-      const { game, humanId, playStyle } = get();
+      const { game, humanId, playStyle, playMode } = get();
       if (!game || game.phase !== "playing") return;
+
+      if (playMode === "online") {
+        triggerMoveFeedback(move);
+        submitOnlineMove(move);
+        return;
+      }
 
       const abilitiesActive = game.rules.playStyle === "abilities";
       const cardPlay = isHumanCardMove(move, humanId);
@@ -308,7 +454,6 @@ export const useGameStore = create<GameStore>((set, get) => {
         afterApply(next);
       } catch {
         trigger("error");
-        // Illegal move (e.g. stale UI). Ignore and let the user try again.
       }
     },
 
@@ -322,7 +467,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     returnLastCard: () => {
-      const { returnSnapshot, returnExpiresAt } = get();
+      const { returnSnapshot, returnExpiresAt, playMode } = get();
+      if (playMode === "online") return;
       if (!returnSnapshot || Date.now() > returnExpiresAt) return;
 
       cancelReturnTimer();
@@ -343,8 +489,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     resumeFromOverlay: () => {
-      const { game } = get();
-      if (game?.phase === "playing") {
+      const { game, playMode } = get();
+      if (game?.phase === "playing" && playMode === "solo") {
         scheduleAi();
       }
     },
@@ -364,6 +510,30 @@ export async function loadGameConfig(): Promise<void> {
     });
   } catch {
     // Fall through to defaults
+  }
+}
+
+export async function loadPlayerName(): Promise<void> {
+  try {
+    const stored = await getStoredPlayerName();
+    if (stored) {
+      const isCustom = await getStoredNameIsCustom();
+      useGameStore.setState({
+        onlineDisplayName: stored,
+        hasCustomDisplayName: isCustom,
+        playerNameHydrated: true,
+      });
+      return;
+    }
+    const guest = generateGuestDisplayName();
+    await setStoredGuestName(guest);
+    useGameStore.setState({
+      onlineDisplayName: guest,
+      hasCustomDisplayName: false,
+      playerNameHydrated: true,
+    });
+  } catch {
+    useGameStore.setState({ playerNameHydrated: true });
   }
 }
 

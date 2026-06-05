@@ -61,7 +61,26 @@ describe("getBeatTransferChoice", () => {
     expect(choice.transferIndices).toEqual([0]);
   });
 
-  it("is inactive after a throw-in", () => {
+  it("shows transfer slot after a chained transfer", () => {
+    const state = baseState({
+      defenderId: "you",
+      hands: {
+        bot1: [c(9, "hearts"), c(7, "hearts"), c(8, "hearts")],
+        you: [c(9, "spades"), c(10, "clubs")],
+        bot2: [c(9, "diamonds"), c(8, "clubs"), c(6, "clubs")],
+      },
+      table: [
+        { attack: c(9, "clubs") },
+        { attack: c(9, "diamonds"), viaTransfer: true },
+      ],
+    });
+    const view = getHumanView(state, "you");
+    const choice = getBeatTransferChoice(state, view);
+    expect(choice.active).toBe(true);
+    expect(choice.transferIndices).toEqual([0]);
+  });
+
+  it("disallows transfer after a throw-in", () => {
     const state = baseState({
       hands: {
         bot1: [c(9, "hearts")],
@@ -71,7 +90,7 @@ describe("getBeatTransferChoice", () => {
       table: [{ attack: c(9, "clubs") }, { attack: c(9, "hearts") }],
     });
     const view = getHumanView(state, "you");
-    expect(getBeatTransferChoice(state, view).active).toBe(false);
+    expect(getBeatTransferChoice(state, view).transferIndices).toEqual([]);
   });
 });
 
