@@ -39,7 +39,7 @@ import {
 } from "../components/TableArea";
 import { GameCoachOverlay, type CoachStep } from "../components/GameCoachOverlay";
 import { useTurnProgressSV } from "../hooks/useTurnProgressSV";
-import { anySeatOnClock } from "../game/turnClockEngine";
+import { anySeatOnClock, seatOnClockOnline } from "../game/turnClockEngine";
 import { toWorkletZones } from "../game/dropZoneWorklet";
 import { computeTableLayout } from "../game/tableLayout";
 import { useRenderCount } from "../dev/useRenderCount";
@@ -141,6 +141,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const goHome = useGameStore((s) => s.goHome);
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
   const turnDeadlineAt = useGameStore((s) => s.turnDeadlineAt);
+  const turnClockPlayerId = useGameStore((s) => s.turnClockPlayerId);
   const serverTurnSeconds = useGameStore((s) => s.turnTimerSeconds);
   const forfeit = useMutation(api.rooms.forfeit);
   const useGraveyardAbility = useMutation(api.rooms.useGraveyardAbility);
@@ -549,16 +550,19 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     playMode === "online" ? serverTurnSeconds : turnSeconds;
   const timerEnabled = effectiveTurnSeconds > 0;
 
-  const seatOnClock = useMemo(
-    () =>
-      anySeatOnClock(
-        game,
-        humanId,
-        Boolean(view?.mustAct),
-        game ? opponentOrder(game, humanId) : [],
-      ),
-    [game, view?.mustAct, humanId],
-  );
+  const opponentsForClock = game ? opponentOrder(game, humanId) : [];
+
+  const seatOnClock = useMemo(() => {
+    if (playMode === "online") {
+      return turnClockPlayerId != null;
+    }
+    return anySeatOnClock(
+      game,
+      humanId,
+      Boolean(view?.mustAct),
+      opponentsForClock,
+    );
+  }, [playMode, turnClockPlayerId, game, humanId, view?.mustAct, opponentsForClock]);
 
   const timerClock = useMemo(
     () => ({
@@ -762,7 +766,11 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const active = activePlayer(game);
   const humanFinished = game.finishedOrder.includes(humanId);
   const humanOnClock =
-    Boolean(view?.mustAct) && game.phase === "playing" && !humanFinished;
+    playMode === "online"
+      ? seatOnClockOnline(turnClockPlayerId, humanId) &&
+        game.phase === "playing" &&
+        !humanFinished
+      : Boolean(view?.mustAct) && game.phase === "playing" && !humanFinished;
 
   const abilitiesMode = game.rules.playStyle === "abilities";
   const onlineGoldAbilities = playMode === "online" && !abilitiesMode;
@@ -779,10 +787,13 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const dockCanGraveyard = abilitiesMode ? true : canPayGraveyard;
   const handInteractive = Boolean(view?.mustAct) && !submittingMove;
   const humanIndication = humanOnClock
-    ? getSeatIndication(game, humanId, {
-        mustAct: view.mustAct,
-        isDefender: view.isDefender,
-      })
+    ? (getSeatIndication(game, humanId, {
+        mustAct: view?.mustAct,
+        isDefender: view?.isDefender,
+      }) ??
+      (view?.isDefender || getSeatRole(game, humanId) === "defender"
+        ? "defend"
+        : "play"))
     : getSeatRole(game, humanId) === "taking"
       ? "defend"
       : null;
@@ -826,15 +837,21 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             const role = seatRoleForFinished(game, id);
             const oppFinished = game.finishedOrder.includes(id);
             const oppOnClock =
-              active === id && game.phase === "playing" && !oppFinished;
+              playMode === "online"
+                ? seatOnClockOnline(turnClockPlayerId, id) &&
+                  game.phase === "playing" &&
+                  !oppFinished
+                : active === id && game.phase === "playing" && !oppFinished;
             const oppIndication = oppOnClock
-              ? getSeatIndication(game, id)
+              ? (getSeatIndication(game, id) ??
+                (role === "defender" || role === "taking" ? "defend" : "play"))
               : role === "taking"
                 ? "defend"
                 : null;
             return (
             <PlayerSeat
               key={id}
+              playerId={id}
               name={names[id] ?? id}
               cardCount={(game.hands[id] ?? []).length}
               role={role}
@@ -950,6 +967,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             ]}
           >
             <HumanPlayerChip
+              playerId={humanId}
               name={names[humanId] ?? "You"}
               role={seatRoleForFinished(game, humanId)}
               indication={humanIndication}

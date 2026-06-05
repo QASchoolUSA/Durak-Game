@@ -13,6 +13,7 @@ import {
   indicationColor,
   indicationShadowColor,
 } from "./playerSeatShared";
+import { SeatReactionBurst } from "./SeatReactionBurst";
 import { TurnTimerRing } from "./TurnTimerRing";
 import { TakeSpeechBubble } from "./TakeSpeechBubble";
 import { useCardTheme } from "../theme/CardThemeContext";
@@ -21,7 +22,10 @@ import { radius, cardSize } from "../theme";
 
 export type { SeatRole };
 
+const RING_FALLBACK = { width: 100, height: 72 };
+
 export interface PlayerSeatProps {
+  playerId: string;
   name: string;
   cardCount: number;
   role: SeatRole;
@@ -64,6 +68,7 @@ function MiniFan({ count }: { count: number }) {
 }
 
 function PlayerSeatComponent({
+  playerId,
   name,
   cardCount,
   role,
@@ -84,6 +89,8 @@ function PlayerSeatComponent({
 
   const [layoutSize, setLayoutSize] = useState({ width: 0, height: 0 });
   const layoutReady = layoutSize.width > 0 && layoutSize.height > 0;
+  const ringWidth = layoutReady ? layoutSize.width : RING_FALLBACK.width;
+  const ringHeight = layoutReady ? layoutSize.height : RING_FALLBACK.height;
 
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
@@ -117,6 +124,7 @@ function PlayerSeatComponent({
     <View style={styles.outer}>
       <Animated.View style={animStyle}>
         <View style={styles.shell} onLayout={onLayout}>
+          <SeatReactionBurst playerId={playerId} />
           {isTaking && !finished && <TakeSpeechBubble />}
           <Animated.View
             entering={FadeIn.duration(350)}
@@ -175,15 +183,15 @@ function PlayerSeatComponent({
               </View>
             )}
           </Animated.View>
-          {showBorder && layoutReady && timerEnabled && (
+          {showBorder && timerEnabled && (
             <TurnTimerRing
               visible={showBorder}
               color={ringColor}
               maxBorderRadius={radius.panel}
               progressSV={turnProgressSV}
               clockActive={onClock}
-              width={layoutSize.width}
-              height={layoutSize.height}
+              width={ringWidth}
+              height={ringHeight}
             />
           )}
         </View>

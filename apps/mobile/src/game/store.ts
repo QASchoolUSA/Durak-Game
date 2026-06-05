@@ -112,9 +112,12 @@ interface GameStore {
   onlineRoomCode: string | null;
   onlineIsHost: boolean;
   turnDeadlineAt: number | null;
+  turnClockPlayerId: string | null;
   turnTimerSeconds: number;
   onlineStatusMessage: string | null;
-  remoteReaction: { emoji: string; at: number } | null;
+  remoteReaction: { emoji: string; fromPlayerId: string; at: number } | null;
+  localReaction: { emoji: string; fromPlayerId: string; at: number } | null;
+  lastConsumedReactionAt: number;
   pendingReveal: { card: Card; expiresAt: number } | null;
   submittingMove: boolean;
   goldBalance: number;
@@ -133,6 +136,8 @@ interface GameStore {
     isHost: boolean;
   }) => void;
   syncOnlineState: (view: RoomView) => void;
+  triggerLocalReaction: (emoji: string) => void;
+  tryConsumeReactionAt: (at: number) => boolean;
   setSubmittingMove: (submitting: boolean) => void;
   clearPendingReveal: () => void;
   startGame: (n?: number) => void;
@@ -283,9 +288,12 @@ export const useGameStore = create<GameStore>((set, get) => {
     onlineRoomCode: null,
     onlineIsHost: false,
     turnDeadlineAt: null,
+    turnClockPlayerId: null,
     turnTimerSeconds: 12,
     onlineStatusMessage: null,
     remoteReaction: null,
+    localReaction: null,
+    lastConsumedReactionAt: 0,
     pendingReveal: null,
     submittingMove: false,
     goldBalance: STARTING_GOLD,
@@ -305,6 +313,25 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     setSubmittingMove: (submittingMove) => set({ submittingMove }),
     clearPendingReveal: () => set({ pendingReveal: null }),
+
+    triggerLocalReaction: (emoji) => {
+      const { humanId } = get();
+      const at = Date.now();
+      set({
+        localReaction: {
+          emoji: emoji.slice(0, 8),
+          fromPlayerId: humanId,
+          at,
+        },
+      });
+    },
+
+    tryConsumeReactionAt: (at) => {
+      const { lastConsumedReactionAt } = get();
+      if (at <= lastConsumedReactionAt) return false;
+      set({ lastConsumedReactionAt: at });
+      return true;
+    },
 
     enterOnlineLobby: ({ roomId, displayName, code, isHost }) => {
       cancelAi();
@@ -337,6 +364,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         difficulty: view.config.difficulty,
         lastMoveAt: view.lastMoveAt,
         turnDeadlineAt: view.turnDeadlineAt,
+        turnClockPlayerId: view.turnClockPlayerId,
         turnTimerSeconds: view.turnTimerSeconds,
         pot: prev.buyIn * view.config.numPlayers,
         pendingReveal: nextPendingReveal,
@@ -395,6 +423,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         const sameMeta =
           prev.lastMoveAt === view.lastMoveAt &&
           prev.turnDeadlineAt === view.turnDeadlineAt &&
+          prev.turnClockPlayerId === view.turnClockPlayerId &&
           namesEqual(prev.names, names) &&
           !returnChanged &&
           !reactionChanged &&
@@ -404,7 +433,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           return;
         }
 
-        set({ ...base, screen: "game", game: nextGame });
+        set({ ...base, playMode: "online", screen: "game", game: nextGame });
         return;
       }
 
@@ -413,6 +442,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           const delay = view.gameState.table.length === 0 ? RESULT_DELAY_MS : 0;
           set({
             ...base,
+            playMode: "online",
             game: view.gameState,
             pendingReveal: null,
             submittingMove: false,
@@ -490,8 +520,11 @@ export const useGameStore = create<GameStore>((set, get) => {
         onlineRoomCode: null,
         onlineIsHost: false,
         turnDeadlineAt: null,
+        turnClockPlayerId: null,
         onlineStatusMessage: null,
         remoteReaction: null,
+        localReaction: null,
+        lastConsumedReactionAt: 0,
         pendingReveal: null,
         submittingMove: false,
         humanId: HUMAN_ID,

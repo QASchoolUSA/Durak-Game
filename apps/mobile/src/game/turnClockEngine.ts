@@ -87,3 +87,11 @@ export function turnProgressFromRemaining(
   if (totalSeconds <= 0) return 0;
   return Math.max(0, Math.min(1, remaining / totalSeconds));
 }
+
+/** Online: server-authoritative seat on the turn clock. */
+export function seatOnClockOnline(
+  turnClockPlayerId: string | null,
+  playerId: PlayerId,
+): boolean {
+  return turnClockPlayerId != null && turnClockPlayerId === playerId;
+}

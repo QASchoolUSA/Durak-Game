@@ -16,8 +16,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
-  FadeIn,
-  FadeOutUp,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -45,17 +43,10 @@ const REACTIONS = [
   { emoji: "\u{1F44E}", label: "Nope" },
 ];
 
-/** Float bursts just above the bottom player chip. */
-const BURST_BOTTOM = 44;
 const SHEET_HEIGHT = 220;
 const SPRING_IN = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
 const BACKDROP_FULL = 0.76;
-
-interface Burst {
-  id: number;
-  emoji: string;
-}
 
 export interface ReactionsHostRef {
   open: () => void;
@@ -67,7 +58,7 @@ const ReactionsHostComponent = forwardRef<ReactionsHostRef>(function ReactionsHo
 ) {
   const playMode = useGameStore((s) => s.playMode);
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
-  const remoteReaction = useGameStore((s) => s.remoteReaction);
+  const triggerLocalReaction = useGameStore((s) => s.triggerLocalReaction);
   const sendReactionMut = useMutation(api.rooms.sendReaction);
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
@@ -79,7 +70,6 @@ const ReactionsHostComponent = forwardRef<ReactionsHostRef>(function ReactionsHo
     ui.feltEdge,
   ];
 
-  const [bursts, setBursts] = useState<Burst[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const prevOpen = useRef(pickerOpen);
@@ -89,15 +79,9 @@ const ReactionsHostComponent = forwardRef<ReactionsHostRef>(function ReactionsHo
   const sheetHSV = useSharedValue(sheetH);
   useEffect(() => { sheetHSV.value = sheetH; }, [sheetH, sheetHSV]);
 
-  const showBurst = useCallback((emoji: string) => {
-    const id = Date.now() + Math.random();
-    setBursts((b) => [...b, { id, emoji }]);
-    setTimeout(() => setBursts((b) => b.filter((x) => x.id !== id)), 1200);
-  }, []);
-
   const react = useCallback(
     (emoji: string) => {
-      showBurst(emoji);
+      triggerLocalReaction(emoji);
       if (playMode === "online" && onlineRoomId) {
         void sendReactionMut({
           roomId: onlineRoomId as Id<"rooms">,
@@ -105,15 +89,8 @@ const ReactionsHostComponent = forwardRef<ReactionsHostRef>(function ReactionsHo
         });
       }
     },
-    [playMode, onlineRoomId, sendReactionMut, showBurst],
+    [playMode, onlineRoomId, sendReactionMut, triggerLocalReaction],
   );
-
-  const lastRemoteAt = useRef(0);
-  useEffect(() => {
-    if (!remoteReaction || remoteReaction.at <= lastRemoteAt.current) return;
-    lastRemoteAt.current = remoteReaction.at;
-    showBurst(remoteReaction.emoji);
-  }, [remoteReaction, showBurst]);
 
   const animateOut = useCallback(
     (onDone: () => void) => {
@@ -188,21 +165,6 @@ const ReactionsHostComponent = forwardRef<ReactionsHostRef>(function ReactionsHo
 
   return (
     <>
-      <View style={styles.burstHost} pointerEvents="none">
-        <View style={styles.bursts}>
-          {bursts.map((b) => (
-            <Animated.Text
-              key={b.id}
-              entering={FadeIn}
-              exiting={FadeOutUp.duration(900)}
-              style={styles.burst}
-            >
-              {b.emoji}
-            </Animated.Text>
-          ))}
-        </View>
-      </View>
-
       <Modal
         visible={modalVisible}
         transparent
@@ -271,23 +233,6 @@ const ReactionsHostComponent = forwardRef<ReactionsHostRef>(function ReactionsHo
 });
 
 const styles = StyleSheet.create({
-  burstHost: {
-    ...StyleSheet.absoluteFill,
-    overflow: "visible",
-    zIndex: 25,
-  },
-  bursts: {
-    position: "absolute",
-    bottom: BURST_BOTTOM,
-    left: 0,
-    right: 0,
-    height: 72,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 10,
-  },
-  burst: { fontSize: 36 },
   gestureRoot: { flex: 1 },
   backdrop: { backgroundColor: "rgba(4,14,9,1)" },
   sheet: {

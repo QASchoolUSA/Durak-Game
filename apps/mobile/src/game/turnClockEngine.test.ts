@@ -7,6 +7,7 @@ import type { GameState, PlayerId } from "@durak/game-core";
 import {
   anySeatOnClock,
   computeTurnRemaining,
+  seatOnClockOnline,
   turnProgressFromRemaining,
 } from "./turnClockEngine";
 
@@ -98,6 +99,14 @@ describe("computeTurnRemaining", () => {
 
     expect(remaining).toBeCloseTo(4, 0);
     vi.useRealTimers();
+  });
+});
+
+describe("seatOnClockOnline", () => {
+  it("returns true only for the server clock player", () => {
+    expect(seatOnClockOnline("p0", "p0")).toBe(true);
+    expect(seatOnClockOnline("p0", "p1")).toBe(false);
+    expect(seatOnClockOnline(null, "p0")).toBe(false);
   });
 });
 

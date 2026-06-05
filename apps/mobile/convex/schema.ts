@@ -70,6 +70,7 @@ export default defineSchema({
     lastMoveAt: v.number(),
     lastTouchedAt: v.optional(v.number()),
     turnDeadlineAt: v.optional(v.number()),
+    turnClockPlayerId: v.optional(v.string()),
     turnTimerSeconds: v.optional(v.number()),
     recentReaction: v.optional(recentReaction),
     returnWindow: v.optional(returnWindow),

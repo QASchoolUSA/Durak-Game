@@ -142,10 +142,12 @@ async function applyGameUpdate(
   const now = Date.now();
 
   let turnDeadlineAt: number | undefined = undefined;
+  let turnClockPlayerId: string | undefined = undefined;
   if (next.phase === "playing") {
     const human = activeHumanPlayer(next, bots);
     if (human) {
       turnDeadlineAt = now + turnTimerSeconds * 1000;
+      turnClockPlayerId = human;
       await ctx.scheduler.runAfter(
         turnTimerSeconds * 1000,
         internal.rooms.processHumanTimeout,
@@ -159,6 +161,7 @@ async function applyGameUpdate(
     status,
     ...touchFields(now),
     turnDeadlineAt,
+    turnClockPlayerId,
     returnWindow: options?.returnWindow,
     ...(options?.clearReturnWindow !== false
       ? options?.returnWindow
@@ -563,6 +566,7 @@ export const returnToLobby = mutation({
       status: "lobby",
       gameState: undefined,
       turnDeadlineAt: undefined,
+      turnClockPlayerId: undefined,
       returnWindow: undefined,
       pendingReveal: undefined,
       recentReaction: undefined,
@@ -790,6 +794,7 @@ export const getRoomView = query({
       gameState,
       lastMoveAt: room.lastMoveAt,
       turnDeadlineAt: room.turnDeadlineAt ?? null,
+      turnClockPlayerId: room.turnClockPlayerId ?? null,
       turnTimerSeconds: room.turnTimerSeconds ?? DEFAULT_TURN_SECONDS,
       recentReaction: room.recentReaction ?? null,
       isHost: isHost(room, userId),
@@ -961,6 +966,7 @@ export type RoomView = {
   gameState: GameState | null;
   lastMoveAt: number;
   turnDeadlineAt: number | null;
+  turnClockPlayerId: string | null;
   turnTimerSeconds: number;
   recentReaction: { emoji: string; fromPlayerId: string; at: number } | null;
   isHost: boolean;

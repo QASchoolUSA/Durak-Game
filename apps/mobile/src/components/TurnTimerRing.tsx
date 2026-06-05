@@ -52,9 +52,12 @@ function TurnTimerRingComponent({
         ? Math.max(0, Math.min(1, progressSV.value))
         : 1;
 
+      const opacity =
+        clockActive && progress < 0.02 ? 0.35 : 1;
+
       return {
         strokeDashoffset: perimeter * (1 - progress),
-        opacity: progress < 0.02 ? 0 : 1,
+        opacity,
       };
     },
     [clockActive, perimeter],

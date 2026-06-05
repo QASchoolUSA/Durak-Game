@@ -13,13 +13,17 @@ import {
   indicationShadowColor,
 } from "./playerSeatShared";
 import { TakeSpeechBubble } from "./TakeSpeechBubble";
+import { SeatReactionBurst } from "./SeatReactionBurst";
 import { TurnTimerRing } from "./TurnTimerRing";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { radius } from "../theme";
 
 const SPRING = { damping: 16, stiffness: 280, mass: 0.7 };
 
+const RING_FALLBACK = { width: 120, height: 38 };
+
 export interface HumanPlayerChipProps {
+  playerId: string;
   name: string;
   role: SeatRole;
   indication: SeatIndication | null;
@@ -31,6 +35,7 @@ export interface HumanPlayerChipProps {
 }
 
 function HumanPlayerChipComponent({
+  playerId,
   name,
   role,
   indication,
@@ -49,6 +54,8 @@ function HumanPlayerChipComponent({
 
   const [layoutSize, setLayoutSize] = useState({ width: 0, height: 0 });
   const layoutReady = layoutSize.width > 0 && layoutSize.height > 0;
+  const ringWidth = layoutReady ? layoutSize.width : RING_FALLBACK.width;
+  const ringHeight = layoutReady ? layoutSize.height : RING_FALLBACK.height;
 
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
@@ -73,6 +80,7 @@ function HumanPlayerChipComponent({
   return (
     <Animated.View style={[styles.frame, animStyle]}>
       <View style={styles.shell} onLayout={onLayout}>
+        <SeatReactionBurst playerId={playerId} />
         {isTaking && !finished && <TakeSpeechBubble />}
         <View
           style={[
@@ -102,15 +110,15 @@ function HumanPlayerChipComponent({
             </Text>
           </Pressable>
         </View>
-        {showBorder && layoutReady && timerEnabled && (
+        {showBorder && timerEnabled && (
           <TurnTimerRing
             visible={showBorder}
             color={ringColor}
             maxBorderRadius={radius.panel}
             progressSV={turnProgressSV}
             clockActive={onClock}
-            width={layoutSize.width}
-            height={layoutSize.height}
+            width={ringWidth}
+            height={ringHeight}
           />
         )}
       </View>

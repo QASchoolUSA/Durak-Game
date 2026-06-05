@@ -10,7 +10,7 @@ Run this checklist on two physical devices before each TestFlight multiplayer bu
 2. Share code; Device B: JOIN GAME → enter code + name.
 3. Both: READY. Host: START GAME (compact, no auto-fill).
 4. Play full round: attack, defend, pass, take.
-5. Verify timer counts down; **do not** expect client auto-play on timeout — wait for server move.
+5. Verify timer ring + glow on **both devices** on the same active human seat; counts down in sync. **Do not** expect client auto-play on timeout — wait for server move.
 6. Finish game → result screen shows correct durak/winner.
 7. Device A: PLAY AGAIN → both land in lobby; ready + start again.
 8. Device B: MAIN MENU → leave room.
@@ -43,14 +43,17 @@ Run this checklist on two physical devices before each TestFlight multiplayer bu
 20. Device B: background app 60s, foreground → state resyncs via `getRoomView`.
 21. Kill app during lobby → reopen → session restore to lobby.
 
-## Reactions
+## Reactions (2-device positioning)
 
-22. Send emoji during play → appears on other device within subscription latency.
+22. Phone sends emoji → **exactly one** burst above phone player's chip at **bottom** on phone.
+23. Simulator shows **exactly one** burst above phone player's seat in **top opponents row** (not screen bottom).
+24. Sim sends → symmetric (sim bottom chip, phone top row).
+25. Rapid double-tap → still one burst per send (dedupe).
 
 ## Regression (solo)
 
-23. PLAY → Vs AI → full game → no Convex calls; timer auto-plays locally.
-24. **Card play (Expo Go):** touch + lift a card, drag attack/defend/throw-in, clear a 6-card round — app must not crash on drag start, play, or table exit animation.
+26. PLAY → Vs AI → full game → no Convex calls; timer auto-plays locally; reaction on human chip only.
+27. **Card play (Expo Go):** touch + lift a card, drag attack/defend/throw-in, clear a 6-card round — app must not crash on drag start, play, or table exit animation.
 
 ## Automated coverage
 

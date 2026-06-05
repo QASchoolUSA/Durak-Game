@@ -1,5 +1,9 @@
 import { useEffect, useRef } from "react";
-import { useSharedValue, type SharedValue } from "react-native-reanimated";
+import {
+  useFrameCallback,
+  useSharedValue,
+  type SharedValue,
+} from "react-native-reanimated";
 import {
   tickTurnClock,
   turnProgressFromRemaining,
@@ -9,10 +13,53 @@ import {
 /** UI-thread turn progress (1 = full time, 0 = expired) without parent re-renders. */
 export function useTurnProgressSV(config: TurnClockConfig): SharedValue<number> {
   const progressSV = useSharedValue(0);
+  const enabledSV = useSharedValue(config.enabled ? 1 : 0);
+  const totalSV = useSharedValue(config.totalSeconds);
+  const deadlineSV = useSharedValue(config.turnDeadlineAt ?? 0);
+  const lastMoveSV = useSharedValue(config.lastMoveAt);
+  const onlineSV = useSharedValue(config.playMode === "online" ? 1 : 0);
+
   const firedRef = useRef(false);
   const prevRemainingRef = useRef(config.totalSeconds);
   const onTimeoutRef = useRef(config.onTimeout);
   onTimeoutRef.current = config.onTimeout;
+
+  useEffect(() => {
+    enabledSV.value = config.enabled ? 1 : 0;
+    totalSV.value = config.totalSeconds;
+    deadlineSV.value = config.turnDeadlineAt ?? 0;
+    lastMoveSV.value = config.lastMoveAt;
+    onlineSV.value = config.playMode === "online" ? 1 : 0;
+  }, [
+    config.enabled,
+    config.totalSeconds,
+    config.turnDeadlineAt,
+    config.lastMoveAt,
+    config.playMode,
+    enabledSV,
+    totalSV,
+    deadlineSV,
+    lastMoveSV,
+    onlineSV,
+  ]);
+
+  useFrameCallback(() => {
+    "worklet";
+    if (enabledSV.value <= 0 || totalSV.value <= 0) {
+      progressSV.value = 0;
+      return;
+    }
+    let remaining = 0;
+    if (onlineSV.value > 0 && deadlineSV.value > 0) {
+      remaining = Math.max(0, (deadlineSV.value - Date.now()) / 1000);
+    } else {
+      remaining = Math.max(
+        0,
+        totalSV.value - (Date.now() - lastMoveSV.value) / 1000,
+      );
+    }
+    progressSV.value = turnProgressFromRemaining(remaining, totalSV.value);
+  });
 
   useEffect(() => {
     firedRef.current = false;
@@ -30,11 +77,7 @@ export function useTurnProgressSV(config: TurnClockConfig): SharedValue<number> 
     };
 
     const tick = () => {
-      const remaining = tickTurnClock(config, ctx);
-      progressSV.value = turnProgressFromRemaining(
-        remaining,
-        config.totalSeconds,
-      );
+      tickTurnClock(config, ctx);
     };
 
     tick();
