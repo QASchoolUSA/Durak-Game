@@ -11,6 +11,7 @@ export function useConvexAuthGate() {
   const { signIn } = useAuthActions();
   const [signingIn, setSigningIn] = useState(false);
   const signInFlightRef = useRef<Promise<unknown> | null>(null);
+  const storageCheckedRef = useRef(false);
 
   const runSignIn = useCallback(() => {
     if (signInFlightRef.current) return signInFlightRef.current;
@@ -29,7 +30,18 @@ export function useConvexAuthGate() {
   }, [signIn]);
 
   useEffect(() => {
-    if (isLoading || isAuthenticated) return;
+    if (isLoading) return;
+
+    if (!storageCheckedRef.current) {
+      storageCheckedRef.current = true;
+      if (__DEV__) {
+        console.debug(
+          `[auth] session ${isAuthenticated ? "restored from storage" : "missing — signing in anonymously"}`,
+        );
+      }
+    }
+
+    if (isAuthenticated) return;
     void runSignIn();
   }, [isLoading, isAuthenticated, runSignIn]);
 

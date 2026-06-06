@@ -28,7 +28,7 @@ describe("goldEconomy", () => {
   });
 
   it("defines starting balance and win reward", () => {
-    expect(STARTING_GOLD).toBeGreaterThan(0);
+    expect(STARTING_GOLD).toBe(10);
     expect(WIN_GOLD_REWARD).toBeGreaterThan(0);
   });
 });

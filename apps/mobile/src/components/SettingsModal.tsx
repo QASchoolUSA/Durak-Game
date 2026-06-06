@@ -395,7 +395,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
       <ConfirmDialog
         visible={wipeConfirmVisible}
         title="Clear saved data?"
-        message="This wipes all local app storage (name, settings, session). You cannot undo this."
+        message="This clears your name, settings, and saved session. Your online account stays signed in. You cannot undo this."
         confirmLabel="Clear"
         cancelLabel="Cancel"
         onConfirm={() => void handleConfirmWipe()}

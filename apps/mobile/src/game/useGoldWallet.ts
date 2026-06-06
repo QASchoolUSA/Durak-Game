@@ -6,7 +6,9 @@ import { useGameStore } from "./store";
 export function useGoldWallet() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const goldHydrated = useGameStore((s) => s.goldHydrated);
+  const creditHydrated = useGameStore((s) => s.creditHydrated);
   const syncGoldBalance = useGameStore((s) => s.syncGoldBalance);
+  const syncCreditBalance = useGameStore((s) => s.syncCreditBalance);
   const ensuredRef = useRef(false);
 
   const ensureWallet = useMutation(api.wallets.ensureWallet);
@@ -16,15 +18,34 @@ export function useGoldWallet() {
   );
 
   useEffect(() => {
-    if (isLoading || !isAuthenticated || !goldHydrated || ensuredRef.current) return;
+    if (
+      isLoading ||
+      !isAuthenticated ||
+      !goldHydrated ||
+      !creditHydrated ||
+      ensuredRef.current
+    ) {
+      return;
+    }
     ensuredRef.current = true;
 
+    const state = useGameStore.getState();
     void ensureWallet({
-      localBalance: useGameStore.getState().goldBalance,
+      localGoldBalance: state.goldBalance,
+      localCreditBalance: state.creditBalance,
     }).then((result) => {
       syncGoldBalance(result.goldBalance);
+      syncCreditBalance(result.creditBalance);
     });
-  }, [isLoading, isAuthenticated, goldHydrated, ensureWallet, syncGoldBalance]);
+  }, [
+    isLoading,
+    isAuthenticated,
+    goldHydrated,
+    creditHydrated,
+    ensureWallet,
+    syncGoldBalance,
+    syncCreditBalance,
+  ]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -37,4 +58,10 @@ export function useGoldWallet() {
       syncGoldBalance(wallet.goldBalance);
     }
   }, [wallet?.goldBalance, syncGoldBalance]);
+
+  useEffect(() => {
+    if (wallet?.creditBalance != null) {
+      syncCreditBalance(wallet.creditBalance);
+    }
+  }, [wallet?.creditBalance, syncCreditBalance]);
 }

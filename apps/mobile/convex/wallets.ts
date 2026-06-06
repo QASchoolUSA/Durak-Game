@@ -2,8 +2,11 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import {
   GRAVEYARD_GOLD_COST,
+  MATCH_BUY_IN,
+  MAX_CREDIT_MIGRATION,
   MAX_WALLET_MIGRATION,
   REVEAL_GOLD_COST,
+  STARTING_CREDITS,
   STARTING_GOLD,
   WIN_GOLD_REWARD,
 } from "./lib/goldEconomy";
@@ -14,6 +17,10 @@ async function getWalletDoc(ctx: { db: any }, userId: string) {
     .query("wallets")
     .withIndex("by_userId", (q: any) => q.eq("userId", userId))
     .first();
+}
+
+function resolveCreditBalance(wallet: { creditBalance?: number } | null | undefined): number {
+  return wallet?.creditBalance ?? STARTING_CREDITS;
 }
 
 async function deductGold(
@@ -41,38 +48,85 @@ async function deductGold(
   return goldBalance;
 }
 
+async function awardCredits(
+  ctx: { db: any },
+  userId: string,
+  amount: number,
+  reason: string,
+): Promise<number> {
+  const wallet = await getWalletDoc(ctx, userId);
+  if (!wallet) {
+    throw new Error("Wallet not found");
+  }
+
+  const creditBalance = resolveCreditBalance(wallet) + Math.max(0, Math.floor(amount));
+  await ctx.db.patch(wallet._id, {
+    creditBalance,
+    updatedAt: Date.now(),
+    lastReason: reason,
+  });
+  return creditBalance;
+}
+
 export const getWallet = query({
   args: {},
   handler: async (ctx) => {
     const userId = await requireUserId(ctx);
     const wallet = await getWalletDoc(ctx, userId);
-    return { goldBalance: wallet?.goldBalance ?? null };
+    return {
+      goldBalance: wallet?.goldBalance ?? null,
+      creditBalance: wallet ? resolveCreditBalance(wallet) : null,
+    };
   },
 });
 
 export const ensureWallet = mutation({
   args: {
-    localBalance: v.optional(v.number()),
+    localGoldBalance: v.optional(v.number()),
+    localCreditBalance: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const existing = await getWalletDoc(ctx, userId);
     if (existing) {
-      return { goldBalance: existing.goldBalance };
+      const patch: Record<string, number> = {};
+      if (existing.creditBalance == null) {
+        const migrated = Math.min(
+          MAX_CREDIT_MIGRATION,
+          Math.max(
+            STARTING_CREDITS,
+            Math.floor(args.localCreditBalance ?? STARTING_CREDITS),
+          ),
+        );
+        patch.creditBalance = migrated;
+      }
+      if (Object.keys(patch).length > 0) {
+        await ctx.db.patch(existing._id, { ...patch, updatedAt: Date.now() });
+      }
+      const updated = await getWalletDoc(ctx, userId);
+      return {
+        goldBalance: updated!.goldBalance,
+        creditBalance: resolveCreditBalance(updated),
+      };
     }
 
-    const migrated = Math.min(
+    const goldBalance = Math.min(
       MAX_WALLET_MIGRATION,
-      Math.max(STARTING_GOLD, Math.floor(args.localBalance ?? STARTING_GOLD)),
+      Math.max(STARTING_GOLD, Math.floor(args.localGoldBalance ?? STARTING_GOLD)),
+    );
+    const creditBalance = Math.min(
+      MAX_CREDIT_MIGRATION,
+      Math.max(STARTING_CREDITS, Math.floor(args.localCreditBalance ?? STARTING_CREDITS)),
     );
 
     await ctx.db.insert("wallets", {
       userId,
-      goldBalance: migrated,
+      goldBalance,
+      creditBalance,
       updatedAt: Date.now(),
     });
 
-    return { goldBalance: migrated };
+    return { goldBalance, creditBalance };
   },
 });
 
@@ -110,46 +164,54 @@ export const awardGold = mutation({
   },
 });
 
+async function assertWinner(
+  ctx: { db: any },
+  userId: string,
+  roomId: any,
+) {
+  const room = await ctx.db.get(roomId);
+  if (!room || room.status !== "finished" || !room.gameState) {
+    throw new Error("Game not finished");
+  }
+
+  const member = room.members.find(
+    (m: { userId: string; playerId?: string; isBot: boolean }) =>
+      m.userId === userId && !m.isBot,
+  );
+  if (!member?.playerId) {
+    throw new Error("Not a member");
+  }
+
+  const state = room.gameState as {
+    phase: string;
+    finishedOrder: string[];
+    loserId: string | null;
+  };
+
+  if (state.phase !== "gameOver" || state.loserId === null) {
+    throw new Error("No winner");
+  }
+
+  if (state.finishedOrder[0] !== member.playerId) {
+    throw new Error("Only the winner earns rewards");
+  }
+
+  return { room, wallet: await getWalletDoc(ctx, userId) };
+}
+
 export const awardWinGold = mutation({
   args: {
     roomId: v.id("rooms"),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
-    const room = await ctx.db.get(args.roomId);
-    if (!room || room.status !== "finished" || !room.gameState) {
-      throw new Error("Game not finished");
-    }
-
-    const wallet = await getWalletDoc(ctx, userId);
+    const { wallet } = await assertWinner(ctx, userId, args.roomId);
     if (!wallet) {
       throw new Error("Wallet not found");
     }
 
     if (wallet.lastWinAwardRoomId === args.roomId) {
       return { goldBalance: wallet.goldBalance, awarded: 0 };
-    }
-
-    const member = room.members.find(
-      (m: { userId: string; playerId?: string; isBot: boolean }) =>
-        m.userId === userId && !m.isBot,
-    );
-    if (!member?.playerId) {
-      throw new Error("Not a member");
-    }
-
-    const state = room.gameState as {
-      phase: string;
-      finishedOrder: string[];
-      loserId: string | null;
-    };
-
-    if (state.phase !== "gameOver" || state.loserId === null) {
-      throw new Error("No winner");
-    }
-
-    if (state.finishedOrder[0] !== member.playerId) {
-      throw new Error("Only the winner earns gold");
     }
 
     const goldBalance = wallet.goldBalance + WIN_GOLD_REWARD;
@@ -161,6 +223,37 @@ export const awardWinGold = mutation({
     });
 
     return { goldBalance, awarded: WIN_GOLD_REWARD };
+  },
+});
+
+export const awardWinCredits = mutation({
+  args: {
+    roomId: v.id("rooms"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const { room, wallet } = await assertWinner(ctx, userId, args.roomId);
+    if (!wallet) {
+      throw new Error("Wallet not found");
+    }
+
+    if (wallet.lastCreditAwardRoomId === args.roomId) {
+      return {
+        creditBalance: resolveCreditBalance(wallet),
+        awarded: 0,
+      };
+    }
+
+    const pot = MATCH_BUY_IN * room.config.numPlayers;
+    const creditBalance = resolveCreditBalance(wallet) + pot;
+    await ctx.db.patch(wallet._id, {
+      creditBalance,
+      updatedAt: Date.now(),
+      lastReason: "win_pot",
+      lastCreditAwardRoomId: args.roomId,
+    });
+
+    return { creditBalance, awarded: pot };
   },
 });
 

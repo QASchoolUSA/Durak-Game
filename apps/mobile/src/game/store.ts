@@ -19,12 +19,17 @@ import { trigger } from "../feedback/haptics";
 import { submitOnlineMove } from "./onlineBridge";
 import type { RoomView } from "./onlineTypes";
 import { gameplayFingerprint, namesEqual } from "./gameStateCompare";
-import { clearRoomSession } from "./onlineSessionStorage";
+import { clearPlaySession } from "./onlineSessionStorage";
 import {
   getStoredGameConfig,
   setStoredGameConfig,
   type StoredGameConfig,
 } from "./gameConfigStorage";
+import { STARTING_CREDITS } from "./creditEconomy";
+import {
+  getStoredCreditBalance,
+  setStoredCreditBalance,
+} from "./creditStorage";
 import {
   STARTING_GOLD,
   WIN_GOLD_REWARD,
@@ -122,6 +127,8 @@ interface GameStore {
   submittingMove: boolean;
   goldBalance: number;
   goldHydrated: boolean;
+  creditBalance: number;
+  creditHydrated: boolean;
   setPlayMode: (mode: PlayMode) => void;
   setNumPlayers: (n: number) => void;
   setVariant: (variant: GameVariant) => void;
@@ -154,6 +161,8 @@ interface GameStore {
   trySpendGold: (amount: number) => boolean;
   rollbackGoldSpend: (amount: number) => void;
   awardGoldLocal: (amount: number) => void;
+  syncCreditBalance: (balance: number) => void;
+  awardCreditsLocal: (amount: number) => void;
 }
 
 let aiTimer: ReturnType<typeof setTimeout> | null = null;
@@ -298,6 +307,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     submittingMove: false,
     goldBalance: STARTING_GOLD,
     goldHydrated: false,
+    creditBalance: STARTING_CREDITS,
+    creditHydrated: false,
 
     setPlayMode: (playMode) => set({ playMode }),
 
@@ -407,6 +418,10 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       if (view.status === "playing" && view.gameState) {
         const nextGame = view.gameState;
+        const rematchFromResult = prev.screen === "result";
+        if (rematchFromResult) {
+          cancelResultTimer();
+        }
         const reactionChanged =
           Boolean(view.recentReaction) &&
           view.recentReaction?.at !== prev.remoteReaction?.at;
@@ -415,6 +430,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           (prev.pendingReveal?.expiresAt ?? 0) !== (nextPendingReveal?.expiresAt ?? 0) ||
           (prev.pendingReveal?.card.id ?? null) !== (nextPendingReveal?.card.id ?? null);
         const sameGameplay =
+          !rematchFromResult &&
           prev.game != null &&
           prev.screen === "game" &&
           prev.humanId === yourId &&
@@ -433,7 +449,16 @@ export const useGameStore = create<GameStore>((set, get) => {
           return;
         }
 
-        set({ ...base, playMode: "online", screen: "game", game: nextGame });
+        set({
+          ...base,
+          playMode: "online",
+          screen: "game",
+          game: nextGame,
+          pendingReveal: null,
+          submittingMove: false,
+          returnSnapshot: null,
+          returnExpiresAt: 0,
+        });
         return;
       }
 
@@ -511,7 +536,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       cancelAi();
       clearReturnWindow();
       cancelResultTimer();
-      void clearRoomSession();
+      void clearPlaySession();
       set({
         screen: "home",
         game: null,
@@ -527,6 +552,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         lastConsumedReactionAt: 0,
         pendingReveal: null,
         submittingMove: false,
+        pot: 0,
         humanId: HUMAN_ID,
         names: { [HUMAN_ID]: "You" },
       });
@@ -642,6 +668,20 @@ export const useGameStore = create<GameStore>((set, get) => {
       void setStoredGoldBalance(next);
     },
 
+    syncCreditBalance: (balance) => {
+      const safe = Math.max(0, Math.floor(balance));
+      set({ creditBalance: safe, creditHydrated: true });
+      void setStoredCreditBalance(safe);
+    },
+
+    awardCreditsLocal: (amount) => {
+      const bonus = Math.max(0, Math.floor(amount));
+      if (bonus <= 0) return;
+      const next = get().creditBalance + bonus;
+      set({ creditBalance: next });
+      void setStoredCreditBalance(next);
+    },
+
     clearReturnWindow,
 
     pauseForOverlay: () => {
@@ -709,6 +749,19 @@ export async function loadGold(): Promise<void> {
   }
 }
 
+export async function loadCredits(): Promise<void> {
+  try {
+    const balance = await getStoredCreditBalance();
+    useGameStore.setState({ creditBalance: balance, creditHydrated: true });
+  } catch {
+    useGameStore.setState({ creditHydrated: true });
+  }
+}
+
 export function awardWinGoldLocal(): void {
   useGameStore.getState().awardGoldLocal(WIN_GOLD_REWARD);
+}
+
+export function awardWinCreditsLocal(pot: number): void {
+  useGameStore.getState().awardCreditsLocal(pot);
 }

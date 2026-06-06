@@ -6,7 +6,11 @@ import { trigger } from "../feedback/haptics";
 import { playSound } from "../feedback/sounds";
 import { formatOnlineMutationError } from "./onlineMutationErrors";
 import { registerOnlineMoveSubmit, registerOnlineReturn } from "./onlineBridge";
-import { loadRoomSession, saveRoomSession } from "./onlineSessionStorage";
+import {
+  clearPlaySession,
+  isPlaySessionExpired,
+  loadPlaySession,
+} from "./onlineSessionStorage";
 import { useGameStore } from "./store";
 
 const GAME_START_FEEDBACK_GRACE_MS = 1500;
@@ -135,12 +139,16 @@ export function useOnlineGame() {
     reconnectAttemptedRef.current = true;
 
     void (async () => {
-      const stored = await loadRoomSession();
-      if (!stored) return;
+      const stored = await loadPlaySession();
+      if (!stored?.online) return;
+      if (isPlaySessionExpired(stored)) {
+        await clearPlaySession();
+        return;
+      }
       if (useGameStore.getState().onlineRoomId) return;
       enterOnlineLobby({
-        roomId: stored.roomId,
-        displayName: stored.displayName,
+        roomId: stored.online.roomId,
+        displayName: stored.online.displayName,
         code: "",
         isHost: false,
       });
@@ -154,16 +162,6 @@ export function useOnlineGame() {
       goHome();
     }
   }, [roomView, playMode, onlineRoomId, goHome, setOnlineStatusMessage]);
-
-  useEffect(() => {
-    if (playMode === "online" && onlineRoomId) {
-      const name = useGameStore.getState().onlineDisplayName;
-      void saveRoomSession({
-        roomId: onlineRoomId,
-        displayName: name,
-      });
-    }
-  }, [playMode, onlineRoomId]);
 
   useEffect(() => {
     if (playMode !== "online" || !onlineRoomId || !isAuthenticated) return;

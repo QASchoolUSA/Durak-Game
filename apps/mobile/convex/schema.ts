@@ -83,8 +83,10 @@ export default defineSchema({
   wallets: defineTable({
     userId: v.string(),
     goldBalance: v.number(),
+    creditBalance: v.optional(v.number()),
     updatedAt: v.number(),
     lastReason: v.optional(v.string()),
     lastWinAwardRoomId: v.optional(v.id("rooms")),
+    lastCreditAwardRoomId: v.optional(v.id("rooms")),
   }).index("by_userId", ["userId"]),
 });

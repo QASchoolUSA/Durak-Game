@@ -2,13 +2,15 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { colors, radius } from "../theme";
 import { useUiTheme } from "../theme/UiThemeContext";
+import { CoinIcon } from "./CoinIcon";
 import { EconomyChip } from "./EconomyChip";
 import { formatEconomyAmount } from "./economyFormat";
 
 export interface EconomyBarProps {
   goldBalance: number;
+  creditBalance: number;
   pot?: number;
-  buyIn?: number;
+  variant?: "home" | "game";
 }
 
 function SegmentDivider({ color }: { color: string }) {
@@ -17,13 +19,17 @@ function SegmentDivider({ color }: { color: string }) {
 
 export function EconomyBar({
   goldBalance,
+  creditBalance,
   pot = 0,
-  buyIn = 0,
+  variant = "home",
 }: EconomyBarProps) {
   const ui = useUiTheme();
   const dividerColor = ui.panelBorderSoft;
 
-  const a11yLabel = `Pot ${pot.toLocaleString("en-US")}, buy-in ${buyIn.toLocaleString("en-US")}, gold ${goldBalance.toLocaleString("en-US")}`;
+  const a11yLabel =
+    variant === "game"
+      ? `Pot ${pot.toLocaleString("en-US")}, credits ${creditBalance.toLocaleString("en-US")}, gold ${goldBalance.toLocaleString("en-US")}`
+      : `Credits ${creditBalance.toLocaleString("en-US")}, gold ${goldBalance.toLocaleString("en-US")}`;
 
   return (
     <View
@@ -37,30 +43,34 @@ export function EconomyBar({
       accessibilityRole="summary"
       accessibilityLabel={a11yLabel}
     >
+      {variant === "game" && (
+        <>
+          <EconomyChip
+            icon="◆"
+            value={formatEconomyAmount(pot)}
+            valueColor={ui.accent}
+            accessibilityLabel={`Pot ${pot.toLocaleString("en-US")}`}
+            iconWellStyle={{
+              backgroundColor: ui.accentSoft,
+              borderColor: ui.accent,
+            }}
+          />
+          <SegmentDivider color={dividerColor} />
+        </>
+      )}
       <EconomyChip
-        icon="◆"
-        value={formatEconomyAmount(pot)}
-        valueColor={ui.accent}
-        accessibilityLabel={`Pot ${pot.toLocaleString("en-US")}`}
+        icon={<CoinIcon variant="credit" size={16} />}
+        value={formatEconomyAmount(creditBalance)}
+        valueColor={colors.success}
+        accessibilityLabel={`Credits ${creditBalance.toLocaleString("en-US")}`}
         iconWellStyle={{
-          backgroundColor: ui.accentSoft,
-          borderColor: ui.accent,
+          backgroundColor: "rgba(70, 167, 88, 0.15)",
+          borderColor: "rgba(70, 167, 88, 0.45)",
         }}
       />
       <SegmentDivider color={dividerColor} />
       <EconomyChip
-        icon="↥"
-        value={formatEconomyAmount(buyIn)}
-        valueColor={ui.textMuted}
-        accessibilityLabel={`Buy-in ${buyIn.toLocaleString("en-US")}`}
-        iconWellStyle={{
-          backgroundColor: ui.feltEdge,
-          borderColor: ui.panelBorderSoft,
-        }}
-      />
-      <SegmentDivider color={dividerColor} />
-      <EconomyChip
-        icon="🪙"
+        icon={<CoinIcon variant="gold" size={16} />}
         value={formatEconomyAmount(goldBalance)}
         valueColor={colors.gold}
         accessibilityLabel={`Gold ${goldBalance.toLocaleString("en-US")}`}

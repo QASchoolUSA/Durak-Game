@@ -2,12 +2,17 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Animated as RNAnimated, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { Background } from "../components/Background";
 import { Confetti } from "../components/Confetti";
 import { MenuButton } from "../components/MenuButton";
 import { useReduceMotion } from "../hooks/useReduceMotion";
-import { useGameStore, awardWinGoldLocal } from "../game/store";
+import { CoinIcon } from "../components/CoinIcon";
+import {
+  useGameStore,
+  awardWinCreditsLocal,
+  awardWinGoldLocal,
+} from "../game/store";
 import { WIN_GOLD_REWARD } from "../game/goldEconomy";
 import { trigger } from "../feedback/haptics";
 import { clearRoomSession } from "../game/onlineSessionStorage";
@@ -43,7 +48,7 @@ function GoldPrizeCounter({ amount }: { amount: number }) {
 
   return (
     <View style={styles.prizeRow}>
-      <Text style={styles.prizeCoin}>🪙</Text>
+      <CoinIcon variant="gold" size={20} />
       <RNAnimated.Text style={[styles.prizeAmount, { color: colors.gold }]}>
         {animVal.interpolate({
           inputRange: [0, amount],
@@ -70,7 +75,7 @@ function PrizeCounter({ amount }: { amount: number }) {
 
   return (
     <View style={styles.prizeRow}>
-      <Text style={styles.prizeCoin}>💰</Text>
+      <CoinIcon variant="credit" size={20} />
       <RNAnimated.Text style={styles.prizeAmount}>
         {animVal.interpolate({
           inputRange: [0, amount],
@@ -140,24 +145,43 @@ export function ResultScreen() {
   const numPlayers = useGameStore((s) => s.numPlayers);
   const playMode     = useGameStore((s) => s.playMode);
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
+  const onlineIsHost = useGameStore((s) => s.onlineIsHost);
+  const screen = useGameStore((s) => s.screen);
+  const { isAuthenticated } = useConvexAuth();
   const startGame  = useGameStore((s) => s.startGame);
   const goHome     = useGameStore((s) => s.goHome);
   const syncGoldBalance = useGameStore((s) => s.syncGoldBalance);
+  const syncCreditBalance = useGameStore((s) => s.syncCreditBalance);
   const { width }  = useWindowDimensions();
   const lay        = layoutFor(width);
 
-  const returnToLobby = useMutation(api.rooms.returnToLobby);
+  const rematch = useMutation(api.rooms.rematch);
   const awardWinGold = useMutation(api.wallets.awardWinGold);
+  const awardWinCredits = useMutation(api.wallets.awardWinCredits);
   const leaveRoom = useMutation(api.rooms.leaveRoom);
   const [returning, setReturning] = useState(false);
+  const leftResultRef = useRef(false);
+
+  const roomView = useQuery(
+    api.rooms.getRoomView,
+    playMode === "online" && onlineRoomId && isAuthenticated
+      ? { roomId: onlineRoomId as Id<"rooms"> }
+      : "skip",
+  );
+
+  useEffect(() => {
+    if (roomView?.status === "playing") {
+      setReturning(false);
+    }
+  }, [roomView?.status]);
 
   const handlePlayAgain = useCallback(async () => {
     if (playMode === "online") {
-      if (!onlineRoomId || returning) return;
+      if (!onlineRoomId || returning || !onlineIsHost) return;
       setReturning(true);
       trigger("confirm");
       try {
-        await returnToLobby({
+        await rematch({
           roomId: onlineRoomId as Id<"rooms">,
         });
       } catch {
@@ -166,17 +190,29 @@ export function ResultScreen() {
       }
       return;
     }
+    leftResultRef.current = true;
     startGame(numPlayers);
   }, [
     playMode,
     onlineRoomId,
+    onlineIsHost,
     returning,
-    returnToLobby,
+    rematch,
     startGame,
     numPlayers,
   ]);
 
+  useEffect(() => {
+    if (playMode !== "solo" || screen !== "result") return;
+    const timer = setTimeout(() => {
+      if (leftResultRef.current) return;
+      startGame(numPlayers);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [playMode, screen, startGame, numPlayers]);
+
   const handleMainMenu = useCallback(async () => {
+    leftResultRef.current = true;
     if (playMode === "online" && onlineRoomId) {
       try {
         await leaveRoom({
@@ -217,6 +253,7 @@ export function ResultScreen() {
   const humanWon = !humanLost && !isDraw;
   const humanRank1 = (game?.finishedOrder[0] ?? null) === humanId;
   const goldAwardedRef = useRef(false);
+  const creditsAwardedRef = useRef(false);
 
   useEffect(() => {
     if (humanWon) trigger("success");
@@ -243,6 +280,29 @@ export function ResultScreen() {
     onlineRoomId,
     awardWinGold,
     syncGoldBalance,
+  ]);
+
+  useEffect(() => {
+    if (!humanRank1 || creditsAwardedRef.current) return;
+    creditsAwardedRef.current = true;
+    if (playMode === "online" && onlineRoomId) {
+      void awardWinCredits({
+        roomId: onlineRoomId as Id<"rooms">,
+      })
+        .then((result) => syncCreditBalance(result.creditBalance))
+        .catch(() => {
+          awardWinCreditsLocal(pot);
+        });
+    } else {
+      awardWinCreditsLocal(pot);
+    }
+  }, [
+    humanRank1,
+    playMode,
+    onlineRoomId,
+    pot,
+    awardWinCredits,
+    syncCreditBalance,
   ]);
 
   return (
@@ -318,13 +378,21 @@ export function ResultScreen() {
             entering={FadeInDown.delay(600).duration(350)}
             style={styles.actions}
           >
-            <MenuButton
-              label="PLAY AGAIN"
-              variant="primary"
-              onPress={handlePlayAgain}
-              icon="▶"
-              disabled={returning}
-            />
+            {playMode === "online" && !onlineIsHost ? (
+              <Text style={[styles.waitingHost, { color: ui.textMuted }]}>
+                {returning || roomView?.status === "playing"
+                  ? "Starting next round…"
+                  : "Waiting for host to start the next round…"}
+              </Text>
+            ) : (
+              <MenuButton
+                label={playMode === "online" ? "NEXT ROUND" : "PLAY AGAIN"}
+                variant="primary"
+                onPress={handlePlayAgain}
+                icon="▶"
+                disabled={returning}
+              />
+            )}
             <MenuButton
               label="MAIN MENU"
               variant="ghost"
@@ -348,6 +416,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xl,
     gap: spacing.lg,
+  },
+
+  waitingHost: {
+    ...typography.body,
+    textAlign: "center",
+    paddingVertical: spacing.md,
   },
 
   // Hero

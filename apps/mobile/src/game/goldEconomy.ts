@@ -1,6 +1,6 @@
 /** Gold coin costs and rewards (client + tests). Mirror in convex/lib/goldEconomy.ts. */
 
-export const STARTING_GOLD = 100;
+export const STARTING_GOLD = 10;
 export const MAX_WALLET_MIGRATION = 500;
 export const WIN_GOLD_REWARD = 10;
 

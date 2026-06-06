@@ -47,8 +47,7 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   const lay        = layoutFor(width);
   const playerNameHydrated = useGameStore((s) => s.playerNameHydrated);
   const goldBalance = useGameStore((s) => s.goldBalance);
-  const pot = useGameStore((s) => s.pot);
-  const buyIn = useGameStore((s) => s.buyIn);
+  const creditBalance = useGameStore((s) => s.creditBalance);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
 
@@ -64,9 +63,13 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
 
   return (
     <Background variant="home">
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.goldCorner}>
-          <EconomyBar pot={pot} buyIn={buyIn} goldBalance={goldBalance} />
+      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+        <View style={[styles.topBar, { paddingHorizontal: lay.hPad }]}>
+          <EconomyBar
+            variant="home"
+            creditBalance={creditBalance}
+            goldBalance={goldBalance}
+          />
         </View>
         <View style={[styles.content, { paddingHorizontal: lay.hPad }]}>
           <HeroPanel maxWidth={lay.maxContent} reduceMotion={reduceMotion}>
@@ -320,12 +323,11 @@ function GlowTitle({ reduceMotion }: { reduceMotion: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  safe:    { flex: 1 },
-  goldCorner: {
-    position: "absolute",
-    top: spacing.sm,
-    right: spacing.md,
-    zIndex: 2,
+  safe: { flex: 1 },
+  topBar: {
+    alignItems: "flex-end",
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
   },
   content: {
     flex:           1,

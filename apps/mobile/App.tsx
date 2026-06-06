@@ -5,12 +5,19 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { loadPreferences } from "./src/game/preferencesStore";
-import { loadGameConfig, loadGold, loadPlayerName, useGameStore } from "./src/game/store";
+import {
+  loadCredits,
+  loadGameConfig,
+  loadGold,
+  loadPlayerName,
+  useGameStore,
+} from "./src/game/store";
 import { convex, convexEnabled } from "./src/game/convexClient";
 import { convexTokenStorage } from "./src/game/convexTokenStorage";
 import { AuthBootstrap } from "./src/game/useAuthBootstrap";
 import { useGoldWallet } from "./src/game/useGoldWallet";
 import { useOnlineGame } from "./src/game/useOnlineGame";
+import { usePlaySessionIdle } from "./src/game/usePlaySessionIdle";
 import { OnlineStatusBanner } from "./src/components/OnlineStatusBanner";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { LobbyScreen } from "./src/screens/LobbyScreen";
@@ -61,7 +68,13 @@ class ScreenErrorBoundary extends Component<
 }
 
 function OnlineGameSync() {
+  usePlaySessionIdle();
   useOnlineGame();
+  return null;
+}
+
+function PlaySessionIdleSync() {
+  usePlaySessionIdle();
   return null;
 }
 
@@ -71,7 +84,14 @@ function GoldWalletSync() {
 }
 
 function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
-  if (!convex) return <>{children}</>;
+  if (!convex) {
+    return (
+      <>
+        <PlaySessionIdleSync />
+        {children}
+      </>
+    );
+  }
   return (
     <ConvexAuthProvider client={convex} storage={convexTokenStorage}>
       <AuthBootstrap />
@@ -88,7 +108,13 @@ export default function App() {
   const [rulesVisible, setRulesVisible] = useState(false);
 
   useEffect(() => {
-    void Promise.all([loadPreferences(), loadGameConfig(), loadPlayerName(), loadGold()]);
+    void Promise.all([
+      loadPreferences(),
+      loadGameConfig(),
+      loadPlayerName(),
+      loadGold(),
+      loadCredits(),
+    ]);
   }, []);
 
   const content = (

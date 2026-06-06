@@ -9,6 +9,7 @@ import {
 import { trigger } from "../feedback/haptics";
 import { DOCK_ROW_HEIGHT, useDockPillStyles } from "./dockPill";
 import { spacing } from "../theme";
+import { CoinIcon } from "./CoinIcon";
 
 function ReturnPill() {
   const dockPillStyles = useDockPillStyles();
@@ -66,7 +67,10 @@ function CostBadge({ cost }: { cost: number }) {
   if (cost <= 0) return null;
   return (
     <View style={dockPillStyles.badge}>
-      <Text style={dockPillStyles.badgeText}>🪙{cost}</Text>
+      <View style={styles.costBadgeRow}>
+        <CoinIcon variant="gold" size={12} />
+        <Text style={dockPillStyles.badgeText}>{cost}</Text>
+      </View>
     </View>
   );
 }
@@ -214,5 +218,10 @@ const styles = StyleSheet.create({
   label: {
     flexShrink: 1,
     fontSize: 12,
+  },
+  costBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
   },
 });

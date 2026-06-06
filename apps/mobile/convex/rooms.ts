@@ -54,6 +54,7 @@ const AI_DELAY = { easy: 1400, medium: 750, hard: 320 } as const;
 const CLEANUP_BATCH_SIZE = 100;
 const RETURN_WINDOW_MS = 3000;
 const REVEAL_DISPLAY_MS = 4000;
+const REMATCH_FALLBACK_MS = 2 * 60 * 1000;
 
 const roomConfigValidator = v.object({
   numPlayers: v.number(),
@@ -175,6 +176,14 @@ async function applyGameUpdate(
   if (next.phase === "playing") {
     await ctx.scheduler.runAfter(0, internal.rooms.processBotTurns, { roomId });
   }
+
+  if (status === "finished") {
+    await ctx.scheduler.runAfter(
+      REMATCH_FALLBACK_MS,
+      internal.rooms.autoReturnToLobby,
+      { roomId },
+    );
+  }
 }
 
 async function removeMemberFromRoom(
@@ -260,7 +269,7 @@ export const joinRoom = mutation({
       .withIndex("by_code", (q) => q.eq("code", args.code.trim()))
       .first();
 
-    if (!room || room.status !== "lobby") {
+    if (!room || (room.status !== "lobby" && room.status !== "finished")) {
       throw new Error("Room not found or game already started");
     }
 
@@ -466,6 +475,62 @@ export const setRoomDifficulty = mutation({
   },
 });
 
+async function beginNextRound(
+  ctx: MutationCtx,
+  roomId: Id<"rooms">,
+  room: RoomDoc,
+  options: {
+    autoFillEmptySeats?: boolean;
+    members?: RoomDoc["members"];
+    config?: RoomDoc["config"];
+  } = {},
+) {
+  const autoFill = options.autoFillEmptySeats !== false;
+  let members = options.members ?? [...room.members];
+  let config = options.config ?? { ...room.config };
+
+  if (autoFill) {
+    members = lobbyHumans(members);
+    for (let seat = 0; seat < room.config.numPlayers; seat++) {
+      if (!memberAtSeat(members, seat)) {
+        addBotAtSeat(members, seat);
+      }
+    }
+  }
+
+  members.sort((a, b) => a.seatIndex - b.seatIndex);
+  const playerIds: PlayerId[] = members.map((_, i) => `p${i}`);
+  const membersWithIds = members.map((m, i) => ({
+    ...m,
+    playerId: playerIds[i]!,
+  }));
+
+  const rules = onlineRules(config);
+  const gameState = createGame(playerIds, {
+    seed: (Math.random() * 2 ** 32) >>> 0,
+    rules,
+  });
+
+  await ctx.db.patch(roomId, {
+    status: "playing",
+    config,
+    members: membersWithIds,
+    turnTimerSeconds: DEFAULT_TURN_SECONDS,
+    turnDeadlineAt: undefined,
+    turnClockPlayerId: undefined,
+    returnWindow: undefined,
+    pendingReveal: undefined,
+    recentReaction: undefined,
+    ...touchFields(),
+    version: room.version + 1,
+  });
+
+  const updated = await ctx.db.get(roomId);
+  if (updated) {
+    await applyGameUpdate(ctx, roomId, updated, gameState);
+  }
+}
+
 export const startGame = mutation({
   args: {
     roomId: v.id("rooms"),
@@ -502,47 +567,45 @@ export const startGame = mutation({
     let config = { ...room.config };
 
     if (autoFill || args.soloWithAi === true) {
-      for (let seat = 0; seat < room.config.numPlayers; seat++) {
-        if (!memberAtSeat(members, seat)) {
-          addBotAtSeat(members, seat);
-        }
-      }
-    } else {
-      if (members.length < 2) {
-        throw new Error("Need at least 2 players");
-      }
-      members = members
-        .sort((a, b) => a.seatIndex - b.seatIndex)
-        .map((m, i) => ({ ...m, seatIndex: i }));
-      config = { ...config, numPlayers: members.length };
+      await beginNextRound(ctx, args.roomId, room, { autoFillEmptySeats: true });
+      return;
     }
 
-    members.sort((a, b) => a.seatIndex - b.seatIndex);
-    const playerIds: PlayerId[] = members.map((_, i) => `p${i}`);
-    const membersWithIds = members.map((m, i) => ({
-      ...m,
-      playerId: playerIds[i]!,
-    }));
+    if (members.length < 2) {
+      throw new Error("Need at least 2 players");
+    }
+    members = members
+      .sort((a, b) => a.seatIndex - b.seatIndex)
+      .map((m, i) => ({ ...m, seatIndex: i }));
+    config = { ...config, numPlayers: members.length };
 
-    const rules = onlineRules(config);
-    const gameState = createGame(playerIds, {
-      seed: (Math.random() * 2 ** 32) >>> 0,
-      rules,
-    });
-
-    await ctx.db.patch(args.roomId, {
-      status: "playing",
+    await beginNextRound(ctx, args.roomId, room, {
+      autoFillEmptySeats: false,
+      members,
       config,
-      members: membersWithIds,
-      turnTimerSeconds: DEFAULT_TURN_SECONDS,
-      ...touchFields(),
-      version: room.version + 1,
     });
+  },
+});
 
-    const updated = await ctx.db.get(args.roomId);
-    if (updated) {
-      await applyGameUpdate(ctx, args.roomId, updated, gameState);
+export const rematch = mutation({
+  args: {
+    roomId: v.id("rooms"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const room = await ctx.db.get(args.roomId);
+    if (!room || room.status !== "finished") {
+      throw new Error("Cannot start rematch");
     }
+    if (!isHost(room, userId)) {
+      throw new Error("Only the host can start the next round");
+    }
+    if (humanMemberCount(room.members) < 1) {
+      throw new Error("Need at least one player");
+    }
+
+    await beginNextRound(ctx, args.roomId, room, { autoFillEmptySeats: true });
+    return { started: true };
   },
 });
 
@@ -693,8 +756,7 @@ export const useGraveyardAbility = mutation({
       throw new Error("Not a member of this room");
     }
 
-    const graveCost =
-      room.config.playStyle === "abilities" ? 0 : GRAVEYARD_GOLD_COST;
+    const graveCost = GRAVEYARD_GOLD_COST;
     const goldBalance = await deductGold(ctx, userId, graveCost, "graveyard");
     return { goldBalance };
   },
@@ -726,8 +788,7 @@ export const useRevealAbility = mutation({
       args.cardIndex,
     );
 
-    const revealCost =
-      room.config.playStyle === "abilities" ? 0 : REVEAL_GOLD_COST;
+    const revealCost = REVEAL_GOLD_COST;
     const goldBalance = await deductGold(ctx, userId, revealCost, "reveal");
 
     const now = Date.now();
@@ -826,12 +887,35 @@ export const getRoomByCode = query({
       .query("rooms")
       .withIndex("by_code", (q) => q.eq("code", args.code.trim()))
       .first();
-    if (!room || room.status !== "lobby") return null;
+    if (!room || (room.status !== "lobby" && room.status !== "finished")) return null;
     return {
       roomId: room._id,
       humanCount: humanMemberCount(room.members),
       maxPlayers: room.config.numPlayers,
     };
+  },
+});
+
+export const autoReturnToLobby = internalMutation({
+  args: {
+    roomId: v.id("rooms"),
+  },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    if (!room || room.status !== "finished") return;
+
+    await ctx.db.patch(args.roomId, {
+      status: "lobby",
+      gameState: undefined,
+      turnDeadlineAt: undefined,
+      turnClockPlayerId: undefined,
+      returnWindow: undefined,
+      pendingReveal: undefined,
+      recentReaction: undefined,
+      members: lobbyHumans(room.members),
+      ...touchFields(),
+      version: room.version + 1,
+    });
   },
 });
 
@@ -858,7 +942,7 @@ export const cleanupStaleRooms = internalMutation({
     for (const room of candidates) {
       const touched = room.lastTouchedAt ?? room.lastMoveAt;
       const stale =
-        room.status === "lobby"
+        room.status === "lobby" || room.status === "finished"
           ? touched < lobbyCutoff
           : touched < playingCutoff;
       if (stale) {
