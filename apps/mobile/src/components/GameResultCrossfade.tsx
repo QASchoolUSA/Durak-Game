@@ -188,6 +188,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   layer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
 });

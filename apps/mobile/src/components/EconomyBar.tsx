@@ -9,7 +9,6 @@ import { formatEconomyAmount } from "./economyFormat";
 export interface EconomyBarProps {
   goldBalance: number;
   creditBalance: number;
-  pot?: number;
   variant?: "home" | "game";
 }
 
@@ -20,16 +19,12 @@ function SegmentDivider({ color }: { color: string }) {
 export function EconomyBar({
   goldBalance,
   creditBalance,
-  pot = 0,
   variant = "home",
 }: EconomyBarProps) {
   const ui = useUiTheme();
   const dividerColor = ui.panelBorderSoft;
 
-  const a11yLabel =
-    variant === "game"
-      ? `Pot ${pot.toLocaleString("en-US")}, credits ${creditBalance.toLocaleString("en-US")}, gold ${goldBalance.toLocaleString("en-US")}`
-      : `Credits ${creditBalance.toLocaleString("en-US")}, gold ${goldBalance.toLocaleString("en-US")}`;
+  const a11yLabel = `Credits ${creditBalance.toLocaleString("en-US")}, gold ${goldBalance.toLocaleString("en-US")}`;
 
   return (
     <View
@@ -43,21 +38,6 @@ export function EconomyBar({
       accessibilityRole="summary"
       accessibilityLabel={a11yLabel}
     >
-      {variant === "game" && (
-        <>
-          <EconomyChip
-            icon="◆"
-            value={formatEconomyAmount(pot)}
-            valueColor={ui.accent}
-            accessibilityLabel={`Pot ${pot.toLocaleString("en-US")}`}
-            iconWellStyle={{
-              backgroundColor: ui.accentSoft,
-              borderColor: ui.accent,
-            }}
-          />
-          <SegmentDivider color={dividerColor} />
-        </>
-      )}
       <EconomyChip
         icon={<CoinIcon variant="credit" size={16} />}
         value={formatEconomyAmount(creditBalance)}

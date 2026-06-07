@@ -38,6 +38,7 @@ import { AbilityDock } from "../components/AbilityDock";
 import { GraveyardSheet } from "../components/GraveyardSheet";
 import { PendingRevealOverlay } from "../components/PendingRevealOverlay";
 import { RevealSheet } from "../components/RevealSheet";
+import { GameMenuModal } from "../components/GameMenuModal";
 import {
   ReactionsHost,
   type ReactionsHostRef,
@@ -46,6 +47,8 @@ import { Hand, HAND_ANCHOR_ID } from "../components/Hand";
 import { PlayerSeat, seatAnchorId } from "../components/PlayerSeat";
 import { HumanPlayerChip } from "../components/HumanPlayerChip";
 import { EconomyBar } from "../components/EconomyBar";
+import { EconomyChip } from "../components/EconomyChip";
+import { formatEconomyAmount } from "../components/economyFormat";
 import {
   GRAVEYARD_GOLD_COST,
   REVEAL_GOLD_COST,
@@ -215,6 +218,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const showBeatTransferChoice = beatTransferChoice.active;
 
   const [takeConfirmOpen, setTakeConfirmOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [graveyardOpen, setGraveyardOpen] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
   const [tableExitKind, setTableExitKind] = useState<TableExitKind>("toDiscard");
@@ -965,6 +969,9 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     }
     goHome();
   }, [playMode, onlineRoomId, forfeit, goHome]);
+  const handleMenu = useCallback(() => {
+    setMenuOpen(true);
+  }, []);
 
   if (!game || !view) {
     if (playMode === "online") {
@@ -1019,7 +1026,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     <Background variant="game">
       {Platform.OS === "ios" && <StatusBar hidden />}
       <GameLayoutProvider>
-      <SafeAreaView style={styles.safe} edges={["top"]}>
+      <SafeAreaView style={styles.safe} edges={["left", "right"]}>
         <View
           style={[
             styles.gameColumn,
@@ -1029,38 +1036,49 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             },
           ]}
         >
-        <View style={[styles.header, { paddingHorizontal: 0, paddingTop: lay.s(spacing.xs) }]}>
+
+        <View style={[styles.header, { position: "relative", paddingHorizontal: 0, paddingTop: Math.max(insets.top + 5, 30), alignItems: "flex-start" }]}>
           <View style={styles.headerLeft}>
             <EconomyBar
               variant="game"
-              pot={pot}
               creditBalance={creditBalance}
               goldBalance={goldBalance}
             />
           </View>
 
+          <View style={[StyleSheet.absoluteFill, { alignItems: "center", top: Math.max(insets.top + 5, 30), zIndex: 10 }]} pointerEvents="box-none">
+            <View style={{ backgroundColor: ui.panelBg, borderRadius: radius.pill, borderWidth: 1, borderColor: ui.panelBorderSoft, paddingHorizontal: 3, paddingVertical: 2 }}>
+              <EconomyChip
+                icon="◆"
+                value={formatEconomyAmount(pot)}
+                valueColor={ui.accent}
+                accessibilityLabel={`Pot ${pot.toLocaleString("en-US")}`}
+                iconWellStyle={{
+                  backgroundColor: ui.accentSoft,
+                  borderColor: ui.accent,
+                }}
+              />
+            </View>
+          </View>
+
           <View style={styles.headerActions}>
-            {onOpenSettings && (
-              <Pressable
-                style={[
-                  styles.headerBtn,
-                  { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
-                ]}
-                onPress={onOpenSettings}
-                hitSlop={10}
-              >
-                <Text style={[styles.headerBtnText, { color: ui.textMuted }]}>⚙</Text>
-              </Pressable>
-            )}
             <Pressable
               style={[
                 styles.headerBtn,
-                { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
+                {
+                  backgroundColor: ui.panelBg,
+                  borderColor: ui.panelBorderSoft,
+                  flexDirection: "row",
+                  width: "auto",
+                  paddingHorizontal: 16,
+                  gap: spacing.sm,
+                },
               ]}
-              onPress={handleExit}
+              onPress={handleMenu}
               hitSlop={10}
             >
-              <Text style={[styles.headerBtnText, { color: ui.textMuted }]}>✕</Text>
+              <Text style={[styles.headerBtnText, { color: ui.textPrimary }]}>☰</Text>
+              <Text style={[styles.headerBtnText, { color: ui.textPrimary, fontSize: 13, fontWeight: "700" }]}>Menu</Text>
             </Pressable>
           </View>
         </View>
@@ -1073,6 +1091,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               paddingHorizontal: 0,
               paddingTop: denseTable ? 2 : lay.s(spacing.sm),
               paddingBottom: denseTable ? lay.s(spacing.xs) : lay.s(spacing.lg),
+              marginTop: Math.max(insets.top - 10, 0),
               gap: lay.s(spacing.sm),
             },
           ]}
@@ -1288,6 +1307,19 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         cancelLabel="Cancel"
         onConfirm={confirmTake}
         onCancel={() => setTakeConfirmOpen(false)}
+      />
+
+      <GameMenuModal
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onOpenSettings={() => {
+          setMenuOpen(false);
+          onOpenSettings?.();
+        }}
+        onLeaveGame={() => {
+          setMenuOpen(false);
+          handleExit();
+        }}
       />
 
       {(abilitiesMode || goldAbilitiesEnabled) && (

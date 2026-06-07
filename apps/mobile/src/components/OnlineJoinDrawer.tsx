@@ -361,7 +361,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
               </View>
               <View style={styles.header}>
                 <Text style={[styles.title, { color: ui.accent }]}>JOIN GAME</Text>
-                <Text style={[styles.headerSub, { color: ui.textFaint }]}>
+                <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
                   Swipe down to close
                 </Text>
               </View>
@@ -384,7 +384,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
             }}
             scrollEventThrottle={16}
           >
-            <Text style={[styles.sub, { color: ui.textFaint }]}>
+            <Text style={[styles.sub, { color: ui.textPrimary }]}>
               Enter the room code from your friend
             </Text>
             {trimmedCode.length === 6 && (
@@ -397,7 +397,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
               </Text>
             )}
 
-            <Text style={[styles.label, { color: ui.textFaint }]}>ROOM CODE</Text>
+            <Text style={[styles.label, { color: ui.textMuted }]}>ROOM CODE</Text>
             <TextInput
               ref={codeInputRef}
               style={[
@@ -514,11 +514,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   sub: {
-    ...typography.body,
+    ...typography.heading,
+    fontWeight: "800",
     marginBottom: spacing.sm,
   },
   label: {
     ...typography.caption,
+    fontWeight: "500",
     letterSpacing: 1,
     marginTop: spacing.sm,
   },

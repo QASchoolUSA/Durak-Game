@@ -303,7 +303,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               </View>
               <View style={styles.header}>
                 <Text style={[styles.title, { color: ui.accent }]}>SETTINGS</Text>
-                <Text style={[styles.headerSub, { color: ui.textFaint }]}>
+                <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
                   Swipe down to close
                 </Text>
               </View>
@@ -320,7 +320,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             ]}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={[styles.sectionLabel, { color: ui.textFaint }]}>
+            <Text style={[styles.sectionLabel, { color: ui.textPrimary }]}>
               PROFILE
             </Text>
             <View
@@ -329,10 +329,10 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                 { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
               ]}
             >
-              <Text style={[styles.profileLabel, { color: ui.textFaint }]}>
+              <Text style={[styles.profileLabel, { color: ui.textPrimary }]}>
                 Display name
               </Text>
-              <Text style={[styles.profileHint, { color: ui.textFaint }]}>
+              <Text style={[styles.profileHint, { color: ui.textMuted }]}>
                 Used in online games. Tap ✓ to save changes.
               </Text>
               <View style={styles.profileInputRow}>
@@ -398,7 +398,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               )}
             </View>
 
-            <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textFaint }]}>
+            <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textPrimary }]}>
               AUDIO & FEEDBACK
             </Text>
             <View
@@ -412,7 +412,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               <Row label="Haptic Feedback" value={hapticsEnabled} onToggle={handleHapticsToggle} />
             </View>
 
-            <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textFaint }]}>
+            <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textPrimary }]}>
               GAMEPLAY
             </Text>
             <View
@@ -445,7 +445,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                       <Text
                         style={[
                           styles.turnChipText,
-                          { color: active ? ui.accent : ui.textMuted },
+                          { color: active ? ui.accent : ui.textPrimary },
                         ]}
                       >
                         {turnSecondsLabel(option)}
@@ -456,7 +456,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               </View>
             </View>
 
-            <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textFaint }]}>
+            <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textPrimary }]}>
               APPEARANCE
             </Text>
             <View
@@ -470,7 +470,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
 
             {__DEV__ && (
               <>
-                <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textFaint }]}>
+                <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textPrimary }]}>
                   TESTING
                 </Text>
                 <View
@@ -583,8 +583,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   profileLabel: {
-    ...typography.caption,
-    letterSpacing: 0.5,
+    ...typography.heading,
+    fontWeight: "800",
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
     paddingBottom: spacing.xs,
@@ -601,6 +601,7 @@ const styles = StyleSheet.create({
   devHint: {
     ...typography.caption,
     textAlign: "center",
+    color: "rgba(255, 255, 255, 0.6)",
   },
   profileInputRow: {
     flexDirection: "row",
@@ -651,22 +652,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
-  rowLabel: { ...typography.body },
+  rowLabel: { ...typography.heading, fontWeight: "800" },
   rowDivider: {
     height: 1,
     marginHorizontal: spacing.md,
   },
   optionLabel: {
-    ...typography.body,
-    fontWeight: "700",
+    ...typography.heading,
+    fontWeight: "800",
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
   },
   optionHint: {
     ...typography.caption,
+    fontWeight: "500",
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingBottom: spacing.sm,
     lineHeight: 20,
   },
   turnRow: {
@@ -684,9 +686,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    minHeight: 54,
+    justifyContent: "center",
   },
   turnChipText: {
-    ...typography.caption,
+    ...typography.heading,
     fontWeight: "800",
   },
   version: {

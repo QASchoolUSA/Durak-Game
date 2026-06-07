@@ -176,7 +176,7 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
               </View>
               <View style={styles.header}>
                 <Text style={[styles.title, { color: ui.accent }]}>HOW TO PLAY</Text>
-                <Text style={[styles.headerSub, { color: ui.textFaint }]}>
+                <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
                   Swipe down to close
                 </Text>
               </View>
@@ -193,7 +193,7 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
             ]}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={[styles.intro, { color: ui.textMuted }]}>
+            <Text style={[styles.intro, { color: ui.textPrimary }]}>
               Durak (Дурак) is one of Russia's most beloved card games. Simple to
               learn, rich in strategy — the last player with cards is the fool.
             </Text>
