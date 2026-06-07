@@ -12,7 +12,8 @@ import { useCardTheme } from "../theme/CardThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { MeasuredAnchor } from "./MeasuredAnchor";
 import { Card } from "./Card";
-import { cardSize, radius } from "../theme";
+import { radius } from "../theme";
+import { useGameLayoutContext } from "../theme/GameLayoutContext";
 
 export interface DeckPileProps {
   deckCount: number;
@@ -35,7 +36,8 @@ function DeckPileComponent({
 }: DeckPileProps) {
   const theme = useCardTheme();
   const ui = useUiTheme();
-  const { w, h } = cardSize.small;
+  const { cardSizes } = useGameLayoutContext();
+  const { w, h } = cardSizes.small;
   const suitColor = isRed(trumpSuit) ? theme.suitRed : theme.suitBlack;
   const rank = RANK_LABELS[trumpCard.rank];
   const symbol = SUIT_SYMBOLS[trumpSuit];

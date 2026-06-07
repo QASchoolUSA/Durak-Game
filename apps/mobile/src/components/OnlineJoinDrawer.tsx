@@ -31,6 +31,7 @@ import { saveRoomSession } from "../game/onlineSessionStorage";
 import { useOnlineAuth } from "../game/useAuthBootstrap";
 import { useGameStore } from "../game/store";
 import { colors, radius, spacing, typography } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 
@@ -70,7 +71,11 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
   ];
   const { height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const drawerH = Math.round(screenH * DRAWER_HEIGHT_RATIO);
+  const lay = useGameLayout();
+  const drawerH = Math.min(
+    Math.round(screenH * DRAWER_HEIGHT_RATIO),
+    screenH - insets.top - lay.s(spacing.md),
+  );
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(false);
@@ -324,7 +329,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
     transform: [{ translateY: ty.value + keyboardLift.value }],
   }));
 
-  const scrollPaddingBottom = Math.max(insets.bottom, spacing.lg) + spacing.lg;
+  const scrollPaddingBottom = Math.max(insets.bottom, lay.s(spacing.lg)) + lay.s(spacing.lg);
 
   return (
     <Modal

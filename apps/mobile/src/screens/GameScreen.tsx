@@ -83,6 +83,8 @@ import {
   resolveDropFromBounds,
 } from "../game/dropZones";
 import { colors, radius, shadows, spacing, typography } from "../theme";
+import { GameLayoutProvider } from "../theme/GameLayoutContext";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
 import { useReduceMotion } from "../hooks/useReduceMotion";
@@ -166,6 +168,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const useRevealAbility = useMutation(api.rooms.useRevealAbility);
   const ui = useUiTheme();
   const insets = useSafeAreaInsets();
+  const lay = useGameLayout();
   const reduceMotion = useReduceMotion();
   const pauseForOverlay = useGameStore((s) => s.pauseForOverlay);
   const resumeFromOverlay = useGameStore((s) => s.resumeFromOverlay);
@@ -362,12 +365,16 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         slotWidth: tableSlotSize.width,
         slotHeight: tableSlotSize.height,
         hasTransferChoice: showBeatTransferChoice,
+        baseCardW: lay.cardSizes.table.w,
+        baseCardH: lay.cardSizes.table.h,
       }),
     [
       game?.table.length,
       tableSlotSize.width,
       tableSlotSize.height,
       showBeatTransferChoice,
+      lay.cardSizes.table.w,
+      lay.cardSizes.table.h,
     ],
   );
 
@@ -538,6 +545,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     beatTransferChoice.transferIndices.join(","),
     tablePairCount,
   ]);
+
+  useEffect(() => {
+    setZoneRemeasureKey((k) => k + 1);
+  }, [tableLayout.scale, lay.cardSizes.table.w, lay.cardSizes.hand.w]);
 
   const onDropZoneLayout = useCallback(
     (zone: DropZone) => {
@@ -1007,8 +1018,18 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   return (
     <Background variant="game">
       {Platform.OS === "ios" && <StatusBar hidden />}
+      <GameLayoutProvider>
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.gameColumn,
+            {
+              maxWidth: lay.isTablet ? lay.maxContent : undefined,
+              paddingHorizontal: lay.hPad,
+            },
+          ]}
+        >
+        <View style={[styles.header, { paddingHorizontal: 0, paddingTop: lay.s(spacing.xs) }]}>
           <View style={styles.headerLeft}>
             <EconomyBar
               variant="game"
@@ -1044,7 +1065,18 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
           </View>
         </View>
 
-        <View style={[styles.opponents, denseTable && styles.opponentsDense]}>
+        <View
+          style={[
+            styles.opponents,
+            denseTable && styles.opponentsDense,
+            {
+              paddingHorizontal: 0,
+              paddingTop: denseTable ? 2 : lay.s(spacing.sm),
+              paddingBottom: denseTable ? lay.s(spacing.xs) : lay.s(spacing.lg),
+              gap: lay.s(spacing.sm),
+            },
+          ]}
+        >
           {opponents.map((id) => {
             const role = seatRoleForFinished(game, id);
             const oppFinished = game.finishedOrder.includes(id);
@@ -1083,7 +1115,11 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         <View style={styles.middle}>
           {/* Felt surface — visual grounding for the play area */}
           <View
-            style={[styles.tableSlot, denseTable && styles.tableSlotDense]}
+            style={[
+              styles.tableSlot,
+              denseTable && styles.tableSlotDense,
+              { paddingLeft: lay.s(spacing.sm) },
+            ]}
             onLayout={handleTableSlotLayout}
           >
             <TableArea
@@ -1106,7 +1142,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               onDropZoneRemoved={showBeatTransferChoice ? onDropZoneRemoved : undefined}
             />
           </View>
-          <View style={styles.deckSlot}>
+          <View style={[styles.deckSlot, { paddingRight: lay.s(spacing.md) }]}>
             <DeckPile
               deckCount={displayedDeckCount}
               trumpCard={game.trumpCard}
@@ -1192,7 +1228,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
           <View
             style={[
               styles.humanSeatRow,
-              { paddingBottom: insets.bottom },
+              {
+                paddingHorizontal: lay.s(spacing.xl),
+                paddingBottom: Math.max(insets.bottom, lay.s(spacing.sm)),
+              },
             ]}
           >
             <HumanPlayerChip
@@ -1237,7 +1276,9 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             soundMode={playMode === "online" ? "online" : "solo"}
           />
         )}
+        </View>
       </SafeAreaView>
+      </GameLayoutProvider>
 
       <ConfirmDialog
         visible={takeConfirmOpen}
@@ -1293,6 +1334,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   safe: { flex: 1 },
+  gameColumn: {
+    flex: 1,
+    width: "100%",
+    alignSelf: "center",
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",

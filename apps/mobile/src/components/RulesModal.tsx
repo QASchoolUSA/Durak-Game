@@ -19,6 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { spacing, typography } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 
@@ -79,7 +80,11 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
   ];
   const { height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const drawerH = Math.round(screenH * 0.90);
+  const lay = useGameLayout();
+  const drawerH = Math.min(
+    Math.round(screenH * 0.90),
+    screenH - insets.top - lay.s(spacing.md),
+  );
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(visible);
@@ -184,7 +189,7 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
             style={styles.scroll}
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: Math.max(insets.bottom, spacing.lg) + spacing.lg },
+              { paddingBottom: Math.max(insets.bottom, lay.s(spacing.lg)) + lay.s(spacing.lg) },
             ]}
             showsVerticalScrollIndicator={false}
           >

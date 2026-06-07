@@ -24,6 +24,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { colors, radius, spacing, typography } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { AppearancePicker } from "./AppearancePicker";
@@ -56,7 +57,11 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const tableTheme = useTableTheme();
   const { height: screenH } = useWindowDimensions();
   const insets  = useSafeAreaInsets();
-  const drawerH = Math.round(screenH * DRAWER_HEIGHT_RATIO);
+  const lay = useGameLayout();
+  const drawerH = Math.min(
+    Math.round(screenH * DRAWER_HEIGHT_RATIO),
+    screenH - insets.top - lay.s(spacing.md),
+  );
 
   const sheetGradient = tableTheme.backgroundGradient ?? [
     tableTheme.backgroundColor,
@@ -311,7 +316,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             style={styles.scroll}
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: Math.max(insets.bottom, spacing.lg) + spacing.lg },
+              { paddingBottom: Math.max(insets.bottom, lay.s(spacing.lg)) + lay.s(spacing.lg) },
             ]}
             showsVerticalScrollIndicator={false}
           >

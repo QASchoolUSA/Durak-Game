@@ -26,6 +26,7 @@ import { useGameStore } from "../game/store";
 import { DifficultyPicker } from "./DifficultyPicker";
 import { MenuButton } from "./MenuButton";
 import { colors, radius, spacing, typography } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
@@ -100,7 +101,11 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   ];
   const { height: screenH } = useWindowDimensions();
   const insets  = useSafeAreaInsets();
-  const drawerH = Math.round(screenH * 0.88);
+  const lay = useGameLayout();
+  const drawerH = Math.min(
+    Math.round(screenH * 0.88),
+    screenH - insets.top - lay.s(spacing.md),
+  );
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(false);
@@ -473,7 +478,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
               style={[
                 styles.footer,
                 {
-                  paddingBottom: Math.max(insets.bottom, spacing.md),
+                  paddingBottom: Math.max(insets.bottom, lay.s(spacing.lg)),
                   backgroundColor: ui.panelBg,
                   borderTopColor: ui.panelBorderSoft,
                 },

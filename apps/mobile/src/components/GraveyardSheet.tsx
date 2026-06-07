@@ -22,7 +22,8 @@ import type { Card as CardModel, Suit } from "@durak/game-core";
 import { SUIT_SYMBOLS, isRed } from "@durak/game-core";
 import { Card } from "./Card";
 import { sortHandForDisplay } from "../game/handSort";
-import { CARD_ASPECT, colors, layoutFor, radius, spacing, typography } from "../theme";
+import { CARD_ASPECT, colors, radius, spacing, typography } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 
@@ -30,9 +31,7 @@ const SPRING_IN = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
 const BACKDROP_FULL = 0.76;
 
-const GRAVE_CARD_W = 46;
-const GRAVE_CARD_H = Math.round(GRAVE_CARD_W * CARD_ASPECT);
-const GRID_GAP = spacing.sm;
+const BASE_GRAVE_CARD_W = 46;
 
 const SUIT_ORDER: Suit[] = ["clubs", "diamonds", "hearts", "spades"];
 
@@ -95,11 +94,17 @@ function SuitPanel({
   suitCards,
   trumpSuit,
   columns,
+  cardW,
+  cardH,
+  gridGap,
 }: {
   suit: Suit;
   suitCards: CardModel[];
   trumpSuit: Suit;
   columns: number;
+  cardW: number;
+  cardH: number;
+  gridGap: number;
 }) {
   const ui = useUiTheme();
   const isTrump = suit === trumpSuit;
@@ -147,15 +152,15 @@ function SuitPanel({
       <View
         style={[
           styles.grid,
-          { width: columns * (GRAVE_CARD_W + GRID_GAP) - GRID_GAP },
+          { width: columns * (cardW + gridGap) - gridGap },
         ]}
       >
         {suitCards.map((card) => (
           <Card
             key={card.id}
             card={card}
-            width={GRAVE_CARD_W}
-            height={GRAVE_CARD_H}
+            width={cardW}
+            height={cardH}
             trump={isTrump}
           />
         ))}
@@ -171,10 +176,17 @@ export function GraveyardSheet({ visible, onClose, cards, trumpSuit }: Graveyard
     tableTheme.backgroundColor,
     tableTheme.backgroundColor,
   ];
-  const { width: screenW, height: screenH } = useWindowDimensions();
+  const { height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const drawerH = Math.round(screenH * 0.72);
-  const columns = layoutFor(screenW).isTablet ? 5 : 4;
+  const lay = useGameLayout();
+  const graveCardW = lay.s(BASE_GRAVE_CARD_W);
+  const graveCardH = Math.round(graveCardW * CARD_ASPECT);
+  const gridGap = lay.s(spacing.sm);
+  const drawerH = Math.min(
+    Math.round(screenH * 0.72),
+    screenH - insets.top - lay.s(spacing.md),
+  );
+  const columns = lay.isTablet ? 5 : 4;
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(visible);
@@ -301,7 +313,7 @@ export function GraveyardSheet({ visible, onClose, cards, trumpSuit }: Graveyard
             style={styles.scroll}
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: Math.max(insets.bottom, spacing.lg) + spacing.lg },
+              { paddingBottom: Math.max(insets.bottom, lay.s(spacing.lg)) + lay.s(spacing.lg) },
             ]}
             showsVerticalScrollIndicator={false}
           >
@@ -317,6 +329,9 @@ export function GraveyardSheet({ visible, onClose, cards, trumpSuit }: Graveyard
                   suitCards={suitCards}
                   trumpSuit={trumpSuit}
                   columns={columns}
+                  cardW={graveCardW}
+                  cardH={graveCardH}
+                  gridGap={gridGap}
                 />
               ))
             )}
@@ -451,7 +466,7 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: GRID_GAP,
+    gap: spacing.sm,
     justifyContent: "flex-start",
     alignSelf: "center",
   },

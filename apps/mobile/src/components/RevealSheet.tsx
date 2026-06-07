@@ -28,7 +28,8 @@ import { sortHandForDisplay } from "../game/handSort";
 import { useCardTheme } from "../theme/CardThemeContext";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
-import { CARD_ASPECT, layoutFor, radius, spacing, typography } from "../theme";
+import { CARD_ASPECT, radius, spacing, typography } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 
 const SPRING_IN = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
@@ -39,9 +40,7 @@ const FLIP_DURATION_MS = 450;
 /** Fraction of screen height for the reveal drawer (smaller than graveyard/config). */
 const DRAWER_HEIGHT_RATIO = 0.52;
 
-const REVEAL_CARD_W = 64;
-const REVEAL_CARD_H = Math.round(REVEAL_CARD_W * CARD_ASPECT);
-const GRID_GAP = spacing.sm;
+const BASE_REVEAL_CARD_W = 64;
 
 export interface RevealOpponent {
   id: string;
@@ -67,15 +66,12 @@ function initialSelectedId(opponents: RevealOpponent[]): string | null {
   return opponents.length === 1 ? opponents[0]!.id : null;
 }
 
-const REVEAL_DISPLAY_CARD_W = Math.round(REVEAL_CARD_W * 2.55);
-const REVEAL_DISPLAY_CARD_H = Math.round(REVEAL_DISPLAY_CARD_W * CARD_ASPECT);
-
 function RevealCardBack({
-  width = REVEAL_CARD_W,
-  height = REVEAL_CARD_H,
+  width,
+  height,
 }: {
-  width?: number;
-  height?: number;
+  width: number;
+  height: number;
 }) {
   const theme = useCardTheme();
   return (
@@ -97,10 +93,14 @@ function FlippableRevealCard({
   card,
   trumpSuit,
   onFlipComplete,
+  displayW,
+  displayH,
 }: {
   card: CardModel;
   trumpSuit: Suit;
   onFlipComplete: () => void;
+  displayW: number;
+  displayH: number;
 }) {
   const [flipDone, setFlipDone] = useState(false);
   const progress = useSharedValue(0);
@@ -132,8 +132,8 @@ function FlippableRevealCard({
       <View style={styles.revealedCardWrap}>
         <Card
           card={card}
-          width={REVEAL_DISPLAY_CARD_W}
-          height={REVEAL_DISPLAY_CARD_H}
+          width={displayW}
+          height={displayH}
           trump={isTrump}
         />
       </View>
@@ -141,15 +141,15 @@ function FlippableRevealCard({
   }
 
   return (
-    <View style={styles.flipContainer}>
+    <View style={[styles.flipContainer, { width: displayW, height: displayH }]}>
       <Animated.View style={[styles.flipSide, backStyle]} pointerEvents="none">
-        <RevealCardBack width={REVEAL_DISPLAY_CARD_W} height={REVEAL_DISPLAY_CARD_H} />
+        <RevealCardBack width={displayW} height={displayH} />
       </Animated.View>
       <Animated.View style={[styles.flipSide, faceStyle]} pointerEvents="none">
         <Card
           card={card}
-          width={REVEAL_DISPLAY_CARD_W}
-          height={REVEAL_DISPLAY_CARD_H}
+          width={displayW}
+          height={displayH}
           trump={isTrump}
         />
       </Animated.View>
@@ -164,10 +164,19 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents, onRevealCa
     tableTheme.backgroundColor,
     tableTheme.backgroundColor,
   ];
-  const { width: screenW, height: screenH } = useWindowDimensions();
+  const { height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const drawerH = Math.round(screenH * DRAWER_HEIGHT_RATIO);
-  const columns = layoutFor(screenW).isTablet ? 5 : 4;
+  const lay = useGameLayout();
+  const revealCardW = lay.s(BASE_REVEAL_CARD_W);
+  const revealCardH = Math.round(revealCardW * CARD_ASPECT);
+  const displayCardW = Math.round(revealCardW * 2.55);
+  const displayCardH = Math.round(displayCardW * CARD_ASPECT);
+  const gridGap = lay.s(spacing.sm);
+  const drawerH = Math.min(
+    Math.round(screenH * DRAWER_HEIGHT_RATIO),
+    screenH - insets.top - lay.s(spacing.md),
+  );
+  const columns = lay.isTablet ? 5 : 4;
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(visible);
@@ -374,7 +383,7 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents, onRevealCa
         ? "Tap a card to peek · Swipe down to close"
         : "Pick an opponent with 2+ cards · Swipe down to close";
 
-  const bodyPaddingBottom = Math.max(insets.bottom, spacing.lg) + spacing.lg;
+  const bodyPaddingBottom = Math.max(insets.bottom, lay.s(spacing.lg)) + lay.s(spacing.lg);
 
   return (
     <Modal
@@ -456,7 +465,10 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents, onRevealCa
                 <View
                   style={[
                     styles.grid,
-                    { maxWidth: columns * (REVEAL_CARD_W + GRID_GAP) },
+                    {
+                      maxWidth: columns * (revealCardW + gridGap),
+                      gap: gridGap,
+                    },
                   ]}
                 >
                   {sortedCards.map((card, cardIndex) => (
@@ -466,7 +478,7 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents, onRevealCa
                       accessibilityRole="button"
                       accessibilityLabel="Reveal this card"
                     >
-                      <RevealCardBack />
+                      <RevealCardBack width={revealCardW} height={revealCardH} />
                     </Pressable>
                   ))}
                 </View>
@@ -478,6 +490,8 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents, onRevealCa
                     card={revealedCard}
                     trumpSuit={trumpSuit}
                     onFlipComplete={handleFlipComplete}
+                    displayW={displayCardW}
+                    displayH={displayCardH}
                   />
                 </View>
               )}
@@ -581,7 +595,6 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: GRID_GAP,
     justifyContent: "flex-start",
     alignSelf: "center",
   },
@@ -596,8 +609,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   flipContainer: {
-    width: REVEAL_DISPLAY_CARD_W,
-    height: REVEAL_DISPLAY_CARD_H,
     alignItems: "center",
     justifyContent: "center",
   },

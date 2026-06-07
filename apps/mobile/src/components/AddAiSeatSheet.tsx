@@ -19,6 +19,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import type { Difficulty } from "../game/store";
 import { trigger } from "../feedback/haptics";
 import { radius, spacing, typography } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { DifficultyPicker } from "./DifficultyPicker";
@@ -47,7 +48,9 @@ export function AddAiSeatSheet({
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const insets = useSafeAreaInsets();
-  const sheetH = SHEET_BODY_HEIGHT + insets.bottom;
+  const lay = useGameLayout();
+  const sheetBodyH = lay.s(SHEET_BODY_HEIGHT);
+  const sheetH = sheetBodyH + insets.bottom;
 
   const sheetGradient = tableTheme.backgroundGradient ?? [
     tableTheme.backgroundColor,
@@ -218,7 +221,7 @@ export function AddAiSeatSheet({
             style={[
               styles.footer,
               {
-                paddingBottom: Math.max(insets.bottom, spacing.md),
+                paddingBottom: Math.max(insets.bottom, lay.s(spacing.lg)),
                 borderTopColor: ui.panelBorderSoft,
               },
             ]}
