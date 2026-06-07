@@ -1,6 +1,7 @@
 /** Central design tokens — one cohesive, professional look across the whole game. */
 
 import { PixelRatio } from "react-native";
+import { BASE_CARD_SIZES } from "./gameLayout";
 
 export const colors = {
   // ── Table felt ──────────────────────────────────────────────────────────────
@@ -147,31 +148,44 @@ export const CARD_ASPECT = 1.4;
 
 const snap = (n: number) => PixelRatio.roundToNearestPixel(n);
 
+export {
+  BASE_CARD_SIZES,
+  MIN_CARD_W,
+  REF_WIDTH,
+  REF_HEIGHT,
+  SCALE_MIN,
+  SCALE_MAX,
+  TABLET_BREAKPOINT,
+  computeGameLayout,
+  layoutFor,
+} from "./gameLayout";
+export type { GameLayoutResult, GameLayoutInput, CardDimensions } from "./gameLayout";
+export { useGameLayout } from "./useGameLayout";
+export { GameLayoutProvider, useGameLayoutContext } from "./GameLayoutContext";
+
+/** @deprecated Unscaled reference sizes — use useGameLayout().cardSizes in UI code. */
 export const cardSize = {
-  /** Cards in the human player's hand — sized for comfortable drag targets. */
-  hand:  { w: snap(76), h: snap(Math.round(76 * CARD_ASPECT)) },
-  /** Cards resting on the table. */
-  table: { w: 62, h: Math.round(62 * CARD_ASPECT) },
-  /** Deck pile + trump peek on the right edge. */
-  small: { w: 48, h: Math.round(48 * CARD_ASPECT) },
-  /** Decorative fan cards on the home screen. */
-  fan:   { w: 68, h: Math.round(68 * CARD_ASPECT) },
+  hand: {
+    w: snap(BASE_CARD_SIZES.hand),
+    h: snap(Math.round(BASE_CARD_SIZES.hand * CARD_ASPECT)),
+  },
+  table: {
+    w: BASE_CARD_SIZES.table,
+    h: Math.round(BASE_CARD_SIZES.table * CARD_ASPECT),
+  },
+  small: {
+    w: BASE_CARD_SIZES.small,
+    h: Math.round(BASE_CARD_SIZES.small * CARD_ASPECT),
+  },
+  fan: {
+    w: BASE_CARD_SIZES.fan,
+    h: Math.round(BASE_CARD_SIZES.fan * CARD_ASPECT),
+  },
 };
 
 export const timing = {
   /** Default turn timer length (overridden by Settings preference). */
   turnSeconds: 12,
 };
-
-/** Responsive layout helper — call with useWindowDimensions().width. */
-export function layoutFor(windowWidth: number) {
-  const isTablet = windowWidth >= 768;
-  return {
-    isTablet,
-    maxContent: isTablet ? 520 : Math.min(windowWidth - 32, 420),
-    cardScale:  isTablet ? 1.35 : 1.0,
-    hPad:       isTablet ? 40 : 20,
-  };
-}
 
 export type SeatColor = string;

@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import type { PlayerId } from "@durak/game-core";
 import { anchorCenter, type AnchorRect } from "./MeasuredAnchor";
-import { cardSize } from "../theme";
+import { useGameLayoutContext } from "../theme/GameLayoutContext";
 import { dealSequenceDurationMs, type QueuedDealStep } from "../game/dealSequence";
 import { CardFlightOverlay, type CardFlightStep } from "./CardFlightOverlay";
 
@@ -30,7 +30,8 @@ function DealFlightOverlayComponent({
   onDealSound,
   playMode,
 }: DealFlightOverlayProps) {
-  const { w: cardW, h: cardH } = cardSize.small;
+  const { cardSizes } = useGameLayoutContext();
+  const { w: cardW, h: cardH } = cardSizes.small;
 
   const flightQueue = useMemo((): CardFlightStep[] => {
     if (!origins || queue.length === 0) return [];

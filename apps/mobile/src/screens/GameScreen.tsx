@@ -38,6 +38,7 @@ import { AbilityDock } from "../components/AbilityDock";
 import { GraveyardSheet } from "../components/GraveyardSheet";
 import { PendingRevealOverlay } from "../components/PendingRevealOverlay";
 import { RevealSheet } from "../components/RevealSheet";
+import { GameMenuModal } from "../components/GameMenuModal";
 import {
   ReactionsHost,
   type ReactionsHostRef,
@@ -46,6 +47,8 @@ import { Hand, HAND_ANCHOR_ID } from "../components/Hand";
 import { PlayerSeat, seatAnchorId } from "../components/PlayerSeat";
 import { HumanPlayerChip } from "../components/HumanPlayerChip";
 import { EconomyBar } from "../components/EconomyBar";
+import { EconomyChip } from "../components/EconomyChip";
+import { formatEconomyAmount } from "../components/economyFormat";
 import {
   GRAVEYARD_GOLD_COST,
   REVEAL_GOLD_COST,
@@ -83,6 +86,8 @@ import {
   resolveDropFromBounds,
 } from "../game/dropZones";
 import { colors, radius, shadows, spacing, typography } from "../theme";
+import { GameLayoutProvider } from "../theme/GameLayoutContext";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
 import { useReduceMotion } from "../hooks/useReduceMotion";
@@ -166,6 +171,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const useRevealAbility = useMutation(api.rooms.useRevealAbility);
   const ui = useUiTheme();
   const insets = useSafeAreaInsets();
+  const lay = useGameLayout();
   const reduceMotion = useReduceMotion();
   const pauseForOverlay = useGameStore((s) => s.pauseForOverlay);
   const resumeFromOverlay = useGameStore((s) => s.resumeFromOverlay);
@@ -212,6 +218,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const showBeatTransferChoice = beatTransferChoice.active;
 
   const [takeConfirmOpen, setTakeConfirmOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [graveyardOpen, setGraveyardOpen] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
   const [tableExitKind, setTableExitKind] = useState<TableExitKind>("toDiscard");
@@ -362,12 +369,16 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         slotWidth: tableSlotSize.width,
         slotHeight: tableSlotSize.height,
         hasTransferChoice: showBeatTransferChoice,
+        baseCardW: lay.cardSizes.table.w,
+        baseCardH: lay.cardSizes.table.h,
       }),
     [
       game?.table.length,
       tableSlotSize.width,
       tableSlotSize.height,
       showBeatTransferChoice,
+      lay.cardSizes.table.w,
+      lay.cardSizes.table.h,
     ],
   );
 
@@ -538,6 +549,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     beatTransferChoice.transferIndices.join(","),
     tablePairCount,
   ]);
+
+  useEffect(() => {
+    setZoneRemeasureKey((k) => k + 1);
+  }, [tableLayout.scale, lay.cardSizes.table.w, lay.cardSizes.hand.w]);
 
   const onDropZoneLayout = useCallback(
     (zone: DropZone) => {
@@ -954,6 +969,9 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     }
     goHome();
   }, [playMode, onlineRoomId, forfeit, goHome]);
+  const handleMenu = useCallback(() => {
+    setMenuOpen(true);
+  }, []);
 
   if (!game || !view) {
     if (playMode === "online") {
@@ -1007,44 +1025,81 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   return (
     <Background variant="game">
       {Platform.OS === "ios" && <StatusBar hidden />}
-      <SafeAreaView style={styles.safe} edges={["top"]}>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
+      <GameLayoutProvider>
+      <SafeAreaView style={styles.safe} edges={["left", "right"]}>
+        <View
+          style={[
+            styles.gameColumn,
+            {
+              maxWidth: lay.isTablet ? lay.maxContent : undefined,
+              paddingHorizontal: lay.hPad,
+            },
+          ]}
+        >
+
+        <View style={[styles.header, { position: "relative", paddingHorizontal: 0, paddingTop: Math.max(insets.top + 5, 30), alignItems: "flex-start" }]}>
+          {/* Empty left view to balance flex layout for the menu button in the main header */}
+          <View style={styles.headerLeft} pointerEvents="none" />
+
+          {/* Economy bar - Left aligned */}
+          <View style={[StyleSheet.absoluteFill, { flexDirection: "row", alignItems: "flex-start", justifyContent: "flex-start", top: Math.max(insets.top + 5, 30), zIndex: 10 }]} pointerEvents="box-none">
             <EconomyBar
               variant="game"
-              pot={pot}
               creditBalance={creditBalance}
               goldBalance={goldBalance}
             />
           </View>
 
+          {/* Pot - Exactly mathematically centered */}
+          <View style={[StyleSheet.absoluteFill, { flexDirection: "row", alignItems: "flex-start", justifyContent: "center", top: Math.max(insets.top + 5, 30), zIndex: 10 }]} pointerEvents="box-none">
+            <View style={{ backgroundColor: ui.panelBg, borderRadius: radius.pill, borderWidth: 1, borderColor: ui.panelBorderSoft, paddingHorizontal: 3, paddingVertical: 2 }}>
+              <EconomyChip
+                icon="◆"
+                value={formatEconomyAmount(pot)}
+                valueColor={ui.accent}
+                accessibilityLabel={`Pot ${pot.toLocaleString("en-US")}`}
+                iconWellStyle={{
+                  backgroundColor: ui.accentSoft,
+                  borderColor: ui.accent,
+                }}
+              />
+            </View>
+          </View>
+
           <View style={styles.headerActions}>
-            {onOpenSettings && (
-              <Pressable
-                style={[
-                  styles.headerBtn,
-                  { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
-                ]}
-                onPress={onOpenSettings}
-                hitSlop={10}
-              >
-                <Text style={[styles.headerBtnText, { color: ui.textMuted }]}>⚙</Text>
-              </Pressable>
-            )}
             <Pressable
               style={[
                 styles.headerBtn,
-                { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
+                {
+                  backgroundColor: ui.panelBg,
+                  borderColor: ui.panelBorderSoft,
+                  flexDirection: "row",
+                  width: "auto",
+                  paddingHorizontal: 16,
+                  gap: spacing.sm,
+                },
               ]}
-              onPress={handleExit}
+              onPress={handleMenu}
               hitSlop={10}
             >
-              <Text style={[styles.headerBtnText, { color: ui.textMuted }]}>✕</Text>
+              <Text style={[styles.headerBtnText, { color: ui.textPrimary }]}>☰</Text>
+              <Text style={[styles.headerBtnText, { color: ui.textPrimary, fontSize: 13, fontWeight: "700" }]}>Menu</Text>
             </Pressable>
           </View>
         </View>
 
-        <View style={[styles.opponents, denseTable && styles.opponentsDense]}>
+        <View
+          style={[
+            styles.opponents,
+            denseTable && styles.opponentsDense,
+            {
+              paddingHorizontal: 0,
+              paddingTop: denseTable ? 6 : lay.s(spacing.lg),
+              paddingBottom: denseTable ? lay.s(spacing.xs) : lay.s(spacing.sm),
+              gap: lay.s(spacing.sm),
+            },
+          ]}
+        >
           {opponents.map((id) => {
             const role = seatRoleForFinished(game, id);
             const oppFinished = game.finishedOrder.includes(id);
@@ -1083,7 +1138,11 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         <View style={styles.middle}>
           {/* Felt surface — visual grounding for the play area */}
           <View
-            style={[styles.tableSlot, denseTable && styles.tableSlotDense]}
+            style={[
+              styles.tableSlot,
+              denseTable && styles.tableSlotDense,
+              { paddingLeft: lay.s(spacing.sm) },
+            ]}
             onLayout={handleTableSlotLayout}
           >
             <TableArea
@@ -1106,7 +1165,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               onDropZoneRemoved={showBeatTransferChoice ? onDropZoneRemoved : undefined}
             />
           </View>
-          <View style={styles.deckSlot}>
+          <View style={[styles.deckSlot, { paddingRight: 0 }]}>
             <DeckPile
               deckCount={displayedDeckCount}
               trumpCard={game.trumpCard}
@@ -1192,7 +1251,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
           <View
             style={[
               styles.humanSeatRow,
-              { paddingBottom: insets.bottom },
+              {
+                paddingHorizontal: lay.s(spacing.xl),
+                paddingBottom: Math.max(insets.bottom, lay.s(spacing.sm)),
+              },
             ]}
           >
             <HumanPlayerChip
@@ -1237,7 +1299,9 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             soundMode={playMode === "online" ? "online" : "solo"}
           />
         )}
+        </View>
       </SafeAreaView>
+      </GameLayoutProvider>
 
       <ConfirmDialog
         visible={takeConfirmOpen}
@@ -1247,6 +1311,19 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         cancelLabel="Cancel"
         onConfirm={confirmTake}
         onCancel={() => setTakeConfirmOpen(false)}
+      />
+
+      <GameMenuModal
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onOpenSettings={() => {
+          setMenuOpen(false);
+          onOpenSettings?.();
+        }}
+        onLeaveGame={() => {
+          setMenuOpen(false);
+          handleExit();
+        }}
       />
 
       {(abilitiesMode || goldAbilitiesEnabled) && (
@@ -1293,6 +1370,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   safe: { flex: 1 },
+  gameColumn: {
+    flex: 1,
+    width: "100%",
+    alignSelf: "center",
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -1304,6 +1386,14 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "nowrap",
+    minWidth: 0,
+  },
+  economyGroup: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
     flexWrap: "nowrap",
     minWidth: 0,
   },

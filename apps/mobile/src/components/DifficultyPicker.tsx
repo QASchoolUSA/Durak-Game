@@ -80,13 +80,13 @@ export function DifficultyPicker({ value, onChange }: DifficultyPickerProps) {
             <Text
               style={[
                 styles.label,
-                { color: ui.textMuted },
+                { color: ui.textPrimary },
                 active && { color: d.color },
               ]}
             >
               {d.label}
             </Text>
-            <Text style={[styles.desc, { color: ui.textFaint }]}>{d.desc}</Text>
+            <Text style={[styles.desc, { color: ui.textMuted }, active && { color: ui.textPrimary }]}>{d.desc}</Text>
           </Pressable>
         );
       })}
@@ -98,15 +98,16 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: spacing.sm },
   btn: {
     flex: 1,
-    height: 64,
+    minHeight: 66,
     borderRadius: radius.panel,
     borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
     gap: 4,
+    paddingVertical: spacing.sm,
   },
   pipRow: { flexDirection: "row", gap: 4 },
   pip: { width: 6, height: 6, borderRadius: 3 },
-  label: { ...typography.caption, fontWeight: "800" },
-  desc: { ...typography.label, letterSpacing: 0.3 },
+  label: { ...typography.heading, fontWeight: "800" },
+  desc: { ...typography.caption, fontWeight: "500", letterSpacing: 0.1 },
 });

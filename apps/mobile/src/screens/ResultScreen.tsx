@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { InteractionManager, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { InteractionManager, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { Background } from "../components/Background";
@@ -14,7 +14,8 @@ import { chargeBuyIn } from "../game/chargeBuyIn";
 import { convexEnabled } from "../game/convexClient";
 import { clearRoomSession } from "../game/onlineSessionStorage";
 import { useOnlineAuth } from "../game/useAuthBootstrap";
-import { layoutFor, colors, radius, shadows, spacing, typography } from "../theme";
+import { colors, radius, shadows, spacing, typography } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -116,8 +117,7 @@ export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
   const setOnlineStatusMessage = useGameStore((s) => s.setOnlineStatusMessage);
   const goHome = useGameStore((s) => s.goHome);
   const { ensureAuthenticated } = useOnlineAuth();
-  const { width } = useWindowDimensions();
-  const lay = layoutFor(width);
+  const lay = useGameLayout();
 
   const rematch = useMutation(api.rooms.rematch);
   const leaveRoom = useMutation(api.rooms.leaveRoom);
@@ -254,10 +254,24 @@ export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
     <Background variant="game">
       {showConfetti && <Confetti />}
       <SafeAreaView style={styles.safe}>
-        <View style={[styles.content, { maxWidth: lay.maxContent }]}>
+        <View
+          style={[
+            styles.content,
+            {
+              maxWidth: lay.maxContent,
+              paddingHorizontal: lay.hPad,
+              gap: lay.s(spacing.lg),
+              paddingVertical: lay.s(spacing.xl),
+            },
+          ]}
+        >
           <View style={styles.hero}>
-            <Text style={styles.heroEmoji}>{emoji}</Text>
-            <Text style={[styles.heroTitle, { color: headlineColor }]}>{headline}</Text>
+            <Text style={[styles.heroEmoji, { fontSize: lay.s(64), marginBottom: lay.s(spacing.xs) }]}>
+              {emoji}
+            </Text>
+            <Text style={[lay.typography.display, styles.heroTitle, { color: headlineColor }]}>
+              {headline}
+            </Text>
             {humanRank1 && !isDraw && (
               <Text style={[styles.heroSub, { color: ui.textMuted }]}>
                 {names[loser!] ?? loser} is the fool!

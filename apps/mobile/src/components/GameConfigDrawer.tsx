@@ -26,6 +26,7 @@ import { useGameStore } from "../game/store";
 import { DifficultyPicker } from "./DifficultyPicker";
 import { MenuButton } from "./MenuButton";
 import { colors, radius, spacing, typography } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
@@ -100,7 +101,11 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   ];
   const { height: screenH } = useWindowDimensions();
   const insets  = useSafeAreaInsets();
-  const drawerH = Math.round(screenH * 0.88);
+  const lay = useGameLayout();
+  const drawerH = Math.min(
+    Math.round(screenH * 0.96),
+    screenH - insets.top - lay.s(spacing.xs),
+  );
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(false);
@@ -326,7 +331,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
               </View>
               <View style={styles.header}>
                 <Text style={[styles.headerTitle, { color: ui.accent }]}>NEW GAME</Text>
-                <Text style={[styles.headerSub, { color: ui.textFaint }]}>
+                <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
                   Swipe down to cancel
                 </Text>
               </View>
@@ -473,7 +478,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
               style={[
                 styles.footer,
                 {
-                  paddingBottom: Math.max(insets.bottom, spacing.md),
+                  paddingBottom: Math.max(insets.bottom, lay.s(spacing.lg)),
                   backgroundColor: ui.panelBg,
                   borderTopColor: ui.panelBorderSoft,
                 },
@@ -515,7 +520,7 @@ function SectionLabel({ label, badge }: { label: string; badge?: string }) {
   const ui = useUiTheme();
   return (
     <View style={styles.sectionLabelRow}>
-      <Text style={[styles.sectionLabelText, { color: ui.textFaint }]}>{label}</Text>
+      <Text style={[styles.sectionLabelText, { color: ui.textPrimary }]}>{label}</Text>
       {badge && (
         <View
           style={[
@@ -523,7 +528,7 @@ function SectionLabel({ label, badge }: { label: string; badge?: string }) {
             { borderColor: ui.panelBorderSoft, backgroundColor: ui.accentSoft },
           ]}
         >
-          <Text style={[styles.badgePillText, { color: ui.textFaint }]}>{badge}</Text>
+          <Text style={[styles.badgePillText, { color: ui.textPrimary }]}>{badge}</Text>
         </View>
       )}
     </View>
@@ -571,7 +576,7 @@ function PlayerCountStrip({
               <Text
                 style={[
                   styles.playerChipNum,
-                  { color: ui.textFaint },
+                  { color: ui.textPrimary },
                   active && { color: ui.accent },
                 ]}
               >
@@ -584,7 +589,7 @@ function PlayerCountStrip({
           );
         })}
       </View>
-      <Text style={[styles.playerHintLine, { color: ui.textFaint }]}>
+      <Text style={[styles.playerHintLine, { color: ui.textMuted }]}>
         {playerCountHint(value, playMode)}
       </Text>
     </View>
@@ -736,7 +741,7 @@ function ToggleBtn({ label, desc, active, disabled, onPress }: {
       <Text
         style={[
           styles.toggleLabel,
-          { color: ui.textMuted },
+          { color: ui.textPrimary },
           active && { color: ui.accent },
         ]}
       >
@@ -745,8 +750,8 @@ function ToggleBtn({ label, desc, active, disabled, onPress }: {
       <Text
         style={[
           styles.toggleDesc,
-          { color: ui.textFaint },
-          active && { color: ui.accentMuted },
+          { color: ui.textMuted },
+          active && { color: ui.textPrimary },
         ]}
         numberOfLines={2}
       >
@@ -922,17 +927,17 @@ const styles = StyleSheet.create({
   toggleRow: { flexDirection: "row", gap: spacing.sm },
   toggleBtn: {
     flex: 1,
-    minHeight: 54,
+    minHeight: 66,
     borderRadius: radius.panel,
     borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
   },
-  toggleLabel: { ...typography.body, fontWeight: "800", textAlign: "center" },
-  toggleDesc: { ...typography.label, letterSpacing: 0.3, textAlign: "center" },
+  toggleLabel: { ...typography.heading, fontWeight: "800", textAlign: "center" },
+  toggleDesc: { ...typography.caption, fontWeight: "500", textAlign: "center", lineHeight: 16, letterSpacing: 0.1 },
   nameInput: {
     borderWidth: 1,
     borderRadius: radius.panel,

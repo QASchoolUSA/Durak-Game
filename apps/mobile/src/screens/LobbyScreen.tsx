@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useMutation, useQuery, useConvexAuth } from "convex/react";
@@ -21,7 +20,8 @@ import { clearRoomSession } from "../game/onlineSessionStorage";
 import type { Difficulty } from "../game/store";
 import { useGameStore } from "../game/store";
 import { useUiTheme } from "../theme/UiThemeContext";
-import { layoutFor, radius, spacing, typography } from "../theme";
+import { radius, spacing, typography } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 
 type RoomMemberView = {
   displayName: string;
@@ -33,8 +33,7 @@ type RoomMemberView = {
 
 export function LobbyScreen() {
   const ui = useUiTheme();
-  const { width } = useWindowDimensions();
-  const lay = layoutFor(width);
+  const lay = useGameLayout();
 
   const { isAuthenticated } = useConvexAuth();
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);

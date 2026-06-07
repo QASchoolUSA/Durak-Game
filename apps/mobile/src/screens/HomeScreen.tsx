@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { InteractionManager, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { InteractionManager, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, {
@@ -20,7 +21,8 @@ import { OnlineJoinDrawer } from "../components/OnlineJoinDrawer";
 import { MenuButton } from "../components/MenuButton";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
-import { layoutFor, radius, spacing, typography } from "../theme";
+import { radius, spacing, typography } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useReduceMotion } from "../hooks/useReduceMotion";
 import { EconomyBar } from "../components/EconomyBar";
 import { useGameStore } from "../game/store";
@@ -42,8 +44,8 @@ const TITLE_LETTERS = ["D", "U", "R", "A", "K"] as const;
 export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   const ui = useUiTheme();
   const reduceMotion = useReduceMotion();
-  const { width }  = useWindowDimensions();
-  const lay        = layoutFor(width);
+  const lay = useGameLayout();
+  const insets = useSafeAreaInsets();
   const playerNameHydrated = useGameStore((s) => s.playerNameHydrated);
   const goldBalance = useGameStore((s) => s.goldBalance);
   const creditBalance = useGameStore((s) => s.creditBalance);
@@ -85,9 +87,17 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
             goldBalance={goldBalance}
           />
         </View>
-        <View style={[styles.content, { paddingHorizontal: lay.hPad }]}>
+        <View
+          style={[
+            styles.content,
+            {
+              paddingHorizontal: lay.hPad,
+              paddingBottom: Math.max(insets.bottom, lay.s(spacing.md)),
+            },
+          ]}
+        >
           <HeroPanel maxWidth={lay.maxContent}>
-            <View style={styles.fanWrap}>
+            <View style={[styles.fanWrap, { height: lay.s(150), marginBottom: lay.s(spacing.sm) }]}>
               {decorReady ? (
                 <CardFan animate={showAnimatedDecor} />
               ) : null}
@@ -187,10 +197,17 @@ function HeroPanel({
 
 function StaticTitle() {
   const ui = useUiTheme();
+  const { s } = useGameLayout();
+  const titleSize = s(62);
 
   return (
     <View style={styles.titleBlock}>
-      <Text style={[styles.heroTitle, { color: ui.accent, textShadowColor: ui.accent }]}>
+      <Text
+        style={[
+          styles.heroTitle,
+          { color: ui.accent, textShadowColor: ui.accent, fontSize: titleSize },
+        ]}
+      >
         DURAK
       </Text>
       <View style={styles.titleOrnament}>
@@ -213,12 +230,14 @@ function TitleLetter({
   wave,
   accent,
   accentMuted,
+  titleSize,
 }: {
   char: string;
   glow: SharedValue<number>;
   wave: SharedValue<number>;
   accent: string;
   accentMuted: string;
+  titleSize: number;
 }) {
   const letterStyle = useAnimatedStyle(() => ({
     transform: [
@@ -236,14 +255,18 @@ function TitleLetter({
   return (
     <View style={styles.letterWrap}>
       <Animated.Text
-        style={[styles.heroTitleShadow, { color: accentMuted }, shadowStyle]}
+        style={[
+          styles.heroTitleShadow,
+          { color: accentMuted, fontSize: titleSize },
+          shadowStyle,
+        ]}
       >
         {char}
       </Animated.Text>
       <Animated.Text
         style={[
           styles.heroTitle,
-          { color: accent, textShadowColor: accent },
+          { color: accent, textShadowColor: accent, fontSize: titleSize },
           letterStyle,
         ]}
       >
@@ -255,6 +278,8 @@ function TitleLetter({
 
 function GlowTitle() {
   const ui = useUiTheme();
+  const { s } = useGameLayout();
+  const titleSize = s(62);
   const glow = useSharedValue(0);
   const ornament = useSharedValue(0);
   const wave = useSharedValue(0);
@@ -310,6 +335,7 @@ function GlowTitle() {
             wave={wave}
             accent={ui.accent}
             accentMuted={ui.accentMuted}
+            titleSize={titleSize}
           />
         ))}
       </View>

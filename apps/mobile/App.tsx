@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   homeLayerHidden: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     opacity: 0,
     zIndex: -1,
   },

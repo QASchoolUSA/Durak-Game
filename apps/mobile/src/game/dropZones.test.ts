@@ -4,6 +4,7 @@ import {
   type DropZone,
   boundsForTableOverlap,
   hitRect,
+  pairLayoutWidth,
   pointInRect,
   releaseLockedZone,
   resolveDropFromBounds,
@@ -194,6 +195,15 @@ describe("releaseLockedZone", () => {
 
   it("releases lock when center moves far away", () => {
     expect(releaseLockedZone(bounds(400, 400), defend, transfer)).toBe(false);
+  });
+});
+
+describe("pairLayoutWidth", () => {
+  it("scales pair width proportionally with card size", () => {
+    const full = pairLayoutWidth(true, 62, 20);
+    const scaled = pairLayoutWidth(true, 54, 17);
+    expect(scaled).toBeLessThan(full);
+    expect(scaled).toBeGreaterThan(54);
   });
 });
 

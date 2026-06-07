@@ -31,13 +31,14 @@ import { saveRoomSession } from "../game/onlineSessionStorage";
 import { useOnlineAuth } from "../game/useAuthBootstrap";
 import { useGameStore } from "../game/store";
 import { colors, radius, spacing, typography } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 
 const SPRING_IN = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
 const BACKDROP_FULL = 0.76;
-const DRAWER_HEIGHT_RATIO = 0.48;
+const DRAWER_HEIGHT_RATIO = 0.40;
 const ROOM_CODE_ACCESSORY_ID = "joinRoomCodeAccessory";
 
 /** Space between bottom of join button and top of keyboard accessory bar */
@@ -47,13 +48,13 @@ const ACCESSORY_BAR_HEIGHT = 44;
 /** Extra lift beyond measured overflow for the compact drawer */
 const EXTRA_SHEET_LIFT = 6;
 /** Safety cap so a bad measure never launches the sheet off-screen */
-const MAX_SHEET_LIFT = 220;
+const MAX_SHEET_LIFT = 350;
 
 type FocusedField = "code";
 
 function capSheetLift(lift: number, keyboardHeight: number): number {
   if (lift <= 0) return 0;
-  return Math.min(lift + EXTRA_SHEET_LIFT, MAX_SHEET_LIFT, keyboardHeight * 0.65);
+  return Math.min(lift + EXTRA_SHEET_LIFT, MAX_SHEET_LIFT, keyboardHeight * 0.95);
 }
 
 export interface OnlineJoinDrawerProps {
@@ -70,7 +71,11 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
   ];
   const { height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const drawerH = Math.round(screenH * DRAWER_HEIGHT_RATIO);
+  const lay = useGameLayout();
+  const drawerH = Math.min(
+    Math.round(screenH * DRAWER_HEIGHT_RATIO),
+    screenH - insets.top - lay.s(spacing.md),
+  );
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(false);
@@ -85,6 +90,13 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
 
   const [code, setCode] = useState("");
   const [joining, setJoining] = useState(false);
+  const [accessoryId, setAccessoryId] = useState(ROOM_CODE_ACCESSORY_ID);
+
+  useEffect(() => {
+    if (visible) {
+      setAccessoryId(`${ROOM_CODE_ACCESSORY_ID}-${Date.now()}`);
+    }
+  }, [visible]);
   const [error, setError] = useState<string | null>(null);
 
   const joinRoom = useMutation(api.rooms.joinRoom);
@@ -324,7 +336,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
     transform: [{ translateY: ty.value + keyboardLift.value }],
   }));
 
-  const scrollPaddingBottom = Math.max(insets.bottom, spacing.lg) + spacing.lg;
+  const scrollPaddingBottom = Math.max(insets.bottom, lay.s(spacing.lg)) + lay.s(spacing.lg);
 
   return (
     <Modal
@@ -356,7 +368,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
               </View>
               <View style={styles.header}>
                 <Text style={[styles.title, { color: ui.accent }]}>JOIN GAME</Text>
-                <Text style={[styles.headerSub, { color: ui.textFaint }]}>
+                <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
                   Swipe down to close
                 </Text>
               </View>
@@ -379,7 +391,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
             }}
             scrollEventThrottle={16}
           >
-            <Text style={[styles.sub, { color: ui.textFaint }]}>
+            <Text style={[styles.sub, { color: ui.textPrimary }]}>
               Enter the room code from your friend
             </Text>
             {trimmedCode.length === 6 && (
@@ -392,7 +404,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
               </Text>
             )}
 
-            <Text style={[styles.label, { color: ui.textFaint }]}>ROOM CODE</Text>
+            <Text style={[styles.label, { color: ui.textMuted }]}>ROOM CODE</Text>
             <TextInput
               ref={codeInputRef}
               style={[
@@ -411,7 +423,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
               keyboardType="number-pad"
               maxLength={6}
               inputAccessoryViewID={
-                Platform.OS === "ios" ? ROOM_CODE_ACCESSORY_ID : undefined
+                Platform.OS === "ios" ? accessoryId : undefined
               }
               onFocus={handleCodeFocus}
             />
@@ -440,7 +452,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
       </GestureHandlerRootView>
 
       {Platform.OS === "ios" && (
-        <InputAccessoryView nativeID={ROOM_CODE_ACCESSORY_ID}>
+        <InputAccessoryView nativeID={accessoryId}>
           <View
             style={[
               styles.accessoryBar,
@@ -509,11 +521,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   sub: {
-    ...typography.body,
+    ...typography.heading,
+    fontWeight: "800",
     marginBottom: spacing.sm,
   },
   label: {
     ...typography.caption,
+    fontWeight: "500",
     letterSpacing: 1,
     marginTop: spacing.sm,
   },

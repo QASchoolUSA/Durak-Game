@@ -15,10 +15,9 @@ export function computeHandLayout(
   cardW: number,
   cardH: number,
   count: number,
+  hPad = 20,
 ): HandLayout {
   if (count <= 1) return { spacing: 0, rotPerSlot: 0 };
-
-  const hPad = 20;
   const mid = (count - 1) / 2;
   // Slightly less fan than before — smoother edges when rotated on screen.
   const rotPerSlot = count >= 6 ? 1.4 : count >= 4 ? 1.75 : 2.2;

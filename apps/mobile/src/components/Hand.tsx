@@ -29,7 +29,8 @@ import {
 } from "../game/dropZoneWorklet";
 import type { DealKind } from "../game/dealSequence";
 import { MeasuredAnchor, type AnchorRect } from "./MeasuredAnchor";
-import { cardSize, radius } from "../theme";
+import { radius } from "../theme";
+import { useGameLayoutContext } from "../theme/GameLayoutContext";
 
 const handCardClip =
   Platform.OS === "ios"
@@ -125,6 +126,8 @@ interface HandCardProps {
   layoutWidth: number;
   spacing: number;
   rotPerSlot: number;
+  cardW: number;
+  cardH: number;
   trump: boolean;
   isNew: boolean;
   instantDeal: boolean;
@@ -143,6 +146,8 @@ const HandCard = React.memo(function HandCard({
   layoutWidth,
   spacing,
   rotPerSlot,
+  cardW,
+  cardH,
   trump,
   isNew,
   instantDeal,
@@ -153,7 +158,8 @@ const HandCard = React.memo(function HandCard({
   dragY,
   press,
 }: HandCardProps) {
-  const { w, h } = cardSize.hand;
+  const w = cardW;
+  const h = cardH;
   const mid = (total - 1) / 2;
   const rel = slotIndex - mid;
 
@@ -264,8 +270,7 @@ const HandCard = React.memo(function HandCard({
       <Animated.View
         style={[
           styles.cardClip,
-          { width: w, height: h, borderRadius: radius.card },
-          handCardClip,
+          { width: w, height: h },
           cardTransformStyle,
         ]}
       >
@@ -325,12 +330,14 @@ function HandComponent({
   hoverDefendIndexSV,
   hoverTransferIndexSV,
 }: HandProps) {
-  const { width } = useWindowDimensions();
-  const { w, h } = cardSize.hand;
+  const { width: windowWidth } = useWindowDimensions();
+  const { cardSizes, hPad } = useGameLayoutContext();
+  const { w, h } = cardSizes.hand;
   const touchLayerRef = useRef<View>(null);
   const layerOriginRef = useRef<{ x: number; y: number } | null>(null);
   const mountedRef = useRef(true);
   const [gesturesEnabled, setGesturesEnabled] = useState(!instantDeal && !dealingInProgress);
+  const [containerWidth, setContainerWidth] = useState(windowWidth);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -391,7 +398,7 @@ function HandComponent({
   }, [newIdSet, onCardsDealt, instantDeal, dealOverlayMode]);
 
   const total = visibleCards.length;
-  const { spacing, rotPerSlot } = computeHandLayout(width, w, h, total);
+  const { spacing, rotPerSlot } = computeHandLayout(containerWidth, w, h, total, hPad);
   const handHeight = h + TOUCH_PAD_BOTTOM + 4;
 
   const activeSlot = useSharedValue(-1);
@@ -409,7 +416,7 @@ function HandComponent({
   const lastHoverKey = useSharedValue(-1);
 
   const layoutSV = useSharedValue<HandHitLayout>({
-    width,
+    width: containerWidth,
     total,
     spacing,
     rotPerSlot,
@@ -420,7 +427,7 @@ function HandComponent({
 
   useEffect(() => {
     layoutSV.value = {
-      width,
+      width: containerWidth,
       total,
       spacing,
       rotPerSlot,
@@ -428,7 +435,7 @@ function HandComponent({
       cardH: h,
       handH: handHeight,
     };
-  }, [width, total, spacing, rotPerSlot, w, h, handHeight, layoutSV]);
+  }, [containerWidth, total, spacing, rotPerSlot, w, h, handHeight, layoutSV]);
 
   useEffect(() => {
     playableMaskSV.value = visibleCards.map(
@@ -443,6 +450,14 @@ function HandComponent({
       layerOriginY.value = y;
     });
   }, [layerOriginX, layerOriginY]);
+
+  const handleTouchLayerLayout = useCallback((e: any) => {
+    reportLayerOrigin();
+    const layoutW = e.nativeEvent.layout.width;
+    if (layoutW > 0) {
+      setContainerWidth(layoutW);
+    }
+  }, [reportLayerOrigin]);
 
   const setDragActive = useCallback(
     (cardId: string | null) => {
@@ -781,7 +796,7 @@ function HandComponent({
         <GestureDetector gesture={pan}>
           <View
             ref={touchLayerRef}
-            onLayout={reportLayerOrigin}
+            onLayout={handleTouchLayerLayout}
             style={[styles.touchLayer, { height: handHeight }]}
           >
             <View style={[styles.fanHost, { height: handHeight }]}>
@@ -791,9 +806,11 @@ function HandComponent({
                   card={card}
                   slotIndex={slotIndex}
                   total={total}
-                  layoutWidth={width}
+                  layoutWidth={containerWidth}
                   spacing={spacing}
                   rotPerSlot={rotPerSlot}
+                  cardW={w}
+                  cardH={h}
                   trump={card.suit === trumpSuit}
                   isNew={!effectiveInstantDeal && newIdSet.has(card.id)}
                   instantDeal={effectiveInstantDeal}
@@ -822,8 +839,10 @@ const styles = StyleSheet.create({
     width: "100%",
     overflow: "visible",
   },
-  card: { position: "absolute" },
-  cardClip: { overflow: "hidden" },
+  card: { position: "absolute", left: 0 },
+  cardClip: {
+    overflow: "visible",
+  },
   dragGlow: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "#000",

@@ -19,6 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { spacing, typography } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 
@@ -79,7 +80,11 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
   ];
   const { height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const drawerH = Math.round(screenH * 0.90);
+  const lay = useGameLayout();
+  const drawerH = Math.min(
+    Math.round(screenH * 0.90),
+    screenH - insets.top - lay.s(spacing.md),
+  );
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(visible);
@@ -171,7 +176,7 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
               </View>
               <View style={styles.header}>
                 <Text style={[styles.title, { color: ui.accent }]}>HOW TO PLAY</Text>
-                <Text style={[styles.headerSub, { color: ui.textFaint }]}>
+                <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
                   Swipe down to close
                 </Text>
               </View>
@@ -184,11 +189,11 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
             style={styles.scroll}
             contentContainerStyle={[
               styles.content,
-              { paddingBottom: Math.max(insets.bottom, spacing.lg) + spacing.lg },
+              { paddingBottom: Math.max(insets.bottom, lay.s(spacing.lg)) + lay.s(spacing.lg) },
             ]}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={[styles.intro, { color: ui.textMuted }]}>
+            <Text style={[styles.intro, { color: ui.textPrimary }]}>
               Durak (Дурак) is one of Russia's most beloved card games. Simple to
               learn, rich in strategy — the last player with cards is the fool.
             </Text>

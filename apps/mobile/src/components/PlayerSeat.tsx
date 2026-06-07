@@ -15,7 +15,8 @@ import { TakeSpeechBubble } from "./TakeSpeechBubble";
 import { useCardTheme } from "../theme/CardThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { MeasuredAnchor, type AnchorRect } from "./MeasuredAnchor";
-import { radius, cardSize } from "../theme";
+import { radius } from "../theme";
+import { useGameLayoutContext } from "../theme/GameLayoutContext";
 
 export type { SeatRole };
 
@@ -46,9 +47,10 @@ const SPRING = { damping: 16, stiffness: 280, mass: 0.7 };
 
 function MiniFan({ count, pulseToken = 0 }: { count: number; pulseToken?: number }) {
   const theme = useCardTheme();
+  const { cardSizes } = useGameLayoutContext();
   const shown = Math.min(count, 6);
-  const cardW = Math.round(cardSize.small.w * 0.52);
-  const cardH = Math.round(cardSize.small.h * 0.52);
+  const cardW = Math.round(cardSizes.small.w * 0.52);
+  const cardH = Math.round(cardSizes.small.h * 0.52);
   const stride = 8;
   const fanScale = useSharedValue(1);
 

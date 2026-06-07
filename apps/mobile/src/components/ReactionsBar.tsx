@@ -28,6 +28,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useGameStore } from "../game/store";
 import { radius, spacing } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
@@ -63,7 +64,8 @@ const ReactionsHostComponent = forwardRef<ReactionsHostRef>(function ReactionsHo
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const insets = useSafeAreaInsets();
-  const sheetH = SHEET_HEIGHT + insets.bottom;
+  const lay = useGameLayout();
+  const sheetH = lay.s(SHEET_HEIGHT) + insets.bottom;
 
   const sheetGradient = tableTheme.backgroundGradient ?? [
     tableTheme.backgroundColor,
@@ -207,7 +209,7 @@ const ReactionsHostComponent = forwardRef<ReactionsHostRef>(function ReactionsHo
             <Text style={[styles.sheetTitle, { color: ui.textPrimary }]}>
               Pick a reaction
             </Text>
-            <View style={[styles.grid, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+            <View style={[styles.grid, { paddingBottom: Math.max(insets.bottom, lay.s(spacing.lg)) }]}>
               {REACTIONS.map(({ emoji, label }) => (
                 <Pressable
                   key={emoji}

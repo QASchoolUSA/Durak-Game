@@ -8,7 +8,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useCardTheme } from "../theme/CardThemeContext";
-import { cardSize, radius } from "../theme";
+import { radius } from "../theme";
+import { useGameLayoutContext } from "../theme/GameLayoutContext";
 
 import type { CardFlightStep } from "../game/cardFlight";
 import { cardFlightDurationMs } from "../game/cardFlight";
@@ -35,7 +36,8 @@ function CardFlightOverlayComponent({
   soundMode = "solo",
 }: CardFlightOverlayProps) {
   const theme = useCardTheme();
-  const { w: cardW, h: cardH } = cardSize.small;
+  const { cardSizes } = useGameLayoutContext();
+  const { w: cardW, h: cardH } = cardSizes.small;
 
   const x = useSharedValue(0);
   const y = useSharedValue(0);
