@@ -1,5 +1,6 @@
 import React from "react";
-import { Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { PixelRatio, Platform, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   type Card as CardModel,
   RANK_LABELS,
@@ -314,17 +315,14 @@ function CardFace({
   const centerFont = Math.round(width * 0.55);
 
   return (
-    <View
+    <LinearGradient
+      colors={["#FFFFFF", theme.face]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={[
         styles.base,
         styles.faceRoot,
-        {
-          width,
-          height,
-          backgroundColor: theme.face,
-          borderColor: trump ? colors.gold : theme.faceEdge,
-          borderWidth: trump ? 2 : 1,
-        },
+        StyleSheet.absoluteFill,
       ]}
     >
       <CardCorner
@@ -352,7 +350,7 @@ function CardFace({
         width={width}
         height={height}
       />
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -367,13 +365,14 @@ function CardBack({
   theme: CardTheme;
   compact?: boolean;
 }) {
-  const panelColor = theme.backLight ?? theme.back;
+  const startColor = theme.backLight ?? theme.back;
+  const endColor = theme.back;
 
   return (
     <View
       style={[
         styles.base,
-        { width, height, backgroundColor: theme.back },
+        StyleSheet.absoluteFill,
       ]}
     >
       <View
@@ -382,7 +381,12 @@ function CardBack({
           { borderColor: theme.backAccent },
         ]}
       />
-      <View style={[styles.backPanel, { backgroundColor: panelColor }]}>
+      <LinearGradient
+        colors={[startColor, endColor]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.backPanel}
+      >
         <View
           style={[
             styles.backFrameOuter,
@@ -404,10 +408,12 @@ function CardBack({
             />
           </>
         )}
-      </View>
+      </LinearGradient>
     </View>
   );
 }
+
+const pixelSnap = (n: number) => PixelRatio.roundToNearestPixel(n);
 
 function CardComponent({
   card,
@@ -424,37 +430,75 @@ function CardComponent({
   const activeTheme = useCardTheme();
   const theme = themeOverride ?? activeTheme;
 
+  const isFaceDown = faceDown || !card;
+  const isTrump = !isFaceDown && trump;
+
+  // Pixel-snap dimensions to prevent sub-pixel blurriness
+  const w = pixelSnap(width);
+  const h = pixelSnap(height);
+
+  const borderColor = isFaceDown
+    ? "rgba(0,0,0,0.18)"
+    : isTrump
+      ? colors.goldBright
+      : theme.faceEdge;
+
   return (
     <View
       style={[
-        styles.shadow,
-        { width, height, borderRadius: radius.card },
+        styles.cardShadow,
+        {
+          width: w,
+          height: h,
+          borderRadius: radius.card,
+        },
         highlighted && styles.highlight,
         dimmed && styles.dimmed,
         style,
       ]}
     >
-      {faceDown || !card ? (
-        <CardBack width={width} height={height} theme={theme} compact={compact} />
-      ) : (
-        <CardFace card={card} width={width} height={height} trump={trump} theme={theme} />
-      )}
+      {/* Rasterised card body — rendered at native resolution for pixel-perfect edges */}
+      <View
+        style={[
+          styles.cardBody,
+          {
+            width: w,
+            height: h,
+            borderRadius: radius.card,
+            backgroundColor: isFaceDown ? theme.back : theme.face,
+            borderWidth: isTrump ? 1.5 : 1,
+            borderColor,
+          },
+        ]}
+        shouldRasterizeIOS
+        renderToHardwareTextureAndroid
+      >
+        {isFaceDown ? (
+          <CardBack width={w} height={h} theme={theme} compact={compact} />
+        ) : (
+          <CardFace card={card} width={w} height={h} trump={trump} theme={theme} />
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  shadow: {
+  cardShadow: {
     shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
+    shadowOpacity: 0.30,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  cardBody: {
+    overflow: "hidden",
     ...(Platform.OS === "ios" ? { borderCurve: "continuous" as const } : {}),
   },
   base: {
     borderRadius: radius.card,
     overflow: "hidden",
+    ...(Platform.OS === "ios" ? { borderCurve: "continuous" as const } : {}),
   },
   faceRoot: {
     position: "relative",

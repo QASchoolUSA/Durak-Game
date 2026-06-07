@@ -1038,7 +1038,11 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         >
 
         <View style={[styles.header, { position: "relative", paddingHorizontal: 0, paddingTop: Math.max(insets.top + 5, 30), alignItems: "flex-start" }]}>
-          <View style={styles.headerLeft}>
+          {/* Empty left view to balance flex layout for the menu button in the main header */}
+          <View style={styles.headerLeft} pointerEvents="none" />
+
+          {/* Economy bar - Left aligned */}
+          <View style={[StyleSheet.absoluteFill, { flexDirection: "row", alignItems: "flex-start", justifyContent: "flex-start", top: Math.max(insets.top + 5, 30), zIndex: 10 }]} pointerEvents="box-none">
             <EconomyBar
               variant="game"
               creditBalance={creditBalance}
@@ -1046,7 +1050,8 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             />
           </View>
 
-          <View style={[StyleSheet.absoluteFill, { alignItems: "center", top: Math.max(insets.top + 5, 30), zIndex: 10 }]} pointerEvents="box-none">
+          {/* Pot - Exactly mathematically centered */}
+          <View style={[StyleSheet.absoluteFill, { flexDirection: "row", alignItems: "flex-start", justifyContent: "center", top: Math.max(insets.top + 5, 30), zIndex: 10 }]} pointerEvents="box-none">
             <View style={{ backgroundColor: ui.panelBg, borderRadius: radius.pill, borderWidth: 1, borderColor: ui.panelBorderSoft, paddingHorizontal: 3, paddingVertical: 2 }}>
               <EconomyChip
                 icon="◆"
@@ -1089,9 +1094,8 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             denseTable && styles.opponentsDense,
             {
               paddingHorizontal: 0,
-              paddingTop: denseTable ? 2 : lay.s(spacing.sm),
-              paddingBottom: denseTable ? lay.s(spacing.xs) : lay.s(spacing.lg),
-              marginTop: Math.max(insets.top - 10, 0),
+              paddingTop: denseTable ? 6 : lay.s(spacing.lg),
+              paddingBottom: denseTable ? lay.s(spacing.xs) : lay.s(spacing.sm),
               gap: lay.s(spacing.sm),
             },
           ]}
@@ -1161,7 +1165,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               onDropZoneRemoved={showBeatTransferChoice ? onDropZoneRemoved : undefined}
             />
           </View>
-          <View style={[styles.deckSlot, { paddingRight: lay.s(spacing.md) }]}>
+          <View style={[styles.deckSlot, { paddingRight: 0 }]}>
             <DeckPile
               deckCount={displayedDeckCount}
               trumpCard={game.trumpCard}
@@ -1382,6 +1386,14 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "nowrap",
+    minWidth: 0,
+  },
+  economyGroup: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
     flexWrap: "nowrap",
     minWidth: 0,
   },

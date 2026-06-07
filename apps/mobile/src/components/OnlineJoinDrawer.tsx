@@ -38,7 +38,7 @@ import { useUiTheme } from "../theme/UiThemeContext";
 const SPRING_IN = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
 const BACKDROP_FULL = 0.76;
-const DRAWER_HEIGHT_RATIO = 0.48;
+const DRAWER_HEIGHT_RATIO = 0.40;
 const ROOM_CODE_ACCESSORY_ID = "joinRoomCodeAccessory";
 
 /** Space between bottom of join button and top of keyboard accessory bar */
@@ -48,13 +48,13 @@ const ACCESSORY_BAR_HEIGHT = 44;
 /** Extra lift beyond measured overflow for the compact drawer */
 const EXTRA_SHEET_LIFT = 6;
 /** Safety cap so a bad measure never launches the sheet off-screen */
-const MAX_SHEET_LIFT = 220;
+const MAX_SHEET_LIFT = 350;
 
 type FocusedField = "code";
 
 function capSheetLift(lift: number, keyboardHeight: number): number {
   if (lift <= 0) return 0;
-  return Math.min(lift + EXTRA_SHEET_LIFT, MAX_SHEET_LIFT, keyboardHeight * 0.65);
+  return Math.min(lift + EXTRA_SHEET_LIFT, MAX_SHEET_LIFT, keyboardHeight * 0.95);
 }
 
 export interface OnlineJoinDrawerProps {
@@ -90,6 +90,13 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
 
   const [code, setCode] = useState("");
   const [joining, setJoining] = useState(false);
+  const [accessoryId, setAccessoryId] = useState(ROOM_CODE_ACCESSORY_ID);
+
+  useEffect(() => {
+    if (visible) {
+      setAccessoryId(`${ROOM_CODE_ACCESSORY_ID}-${Date.now()}`);
+    }
+  }, [visible]);
   const [error, setError] = useState<string | null>(null);
 
   const joinRoom = useMutation(api.rooms.joinRoom);
@@ -416,7 +423,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
               keyboardType="number-pad"
               maxLength={6}
               inputAccessoryViewID={
-                Platform.OS === "ios" ? ROOM_CODE_ACCESSORY_ID : undefined
+                Platform.OS === "ios" ? accessoryId : undefined
               }
               onFocus={handleCodeFocus}
             />
@@ -445,7 +452,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
       </GestureHandlerRootView>
 
       {Platform.OS === "ios" && (
-        <InputAccessoryView nativeID={ROOM_CODE_ACCESSORY_ID}>
+        <InputAccessoryView nativeID={accessoryId}>
           <View
             style={[
               styles.accessoryBar,

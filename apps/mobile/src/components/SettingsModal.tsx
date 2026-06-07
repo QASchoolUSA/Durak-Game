@@ -59,8 +59,8 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const insets  = useSafeAreaInsets();
   const lay = useGameLayout();
   const drawerH = Math.min(
-    Math.round(screenH * DRAWER_HEIGHT_RATIO),
-    screenH - insets.top - lay.s(spacing.md),
+    Math.round(screenH * 0.96),
+    screenH - insets.top - lay.s(spacing.xs),
   );
 
   const sheetGradient = tableTheme.backgroundGradient ?? [

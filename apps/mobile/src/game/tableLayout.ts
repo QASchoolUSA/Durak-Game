@@ -2,8 +2,8 @@
 
 import { pairLayoutWidth, TRANSFER_CHOICE_LAYOUT } from "./dropZones";
 
-export const BASE_TABLE_CARD_W = 62;
-export const BASE_TABLE_CARD_H = 87;
+export const BASE_TABLE_CARD_W = 72;
+export const BASE_TABLE_CARD_H = 101;
 
 const BASE_PAIR_PAD_W = 16;
 const BASE_DEFENSE_TOP = 14;
@@ -14,7 +14,7 @@ const BASE_GAP = 14;
 const TIGHT_GAP = 10;
 const SLOT_MARGIN = 8;
 /** Minimum readable table card width — matches MIN_CARD_W.table in gameLayout. */
-const MIN_TABLE_CARD_W = 54;
+const MIN_TABLE_CARD_W = 62;
 
 export interface TableLayoutInput {
   pairCount: number;

@@ -103,8 +103,8 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const insets  = useSafeAreaInsets();
   const lay = useGameLayout();
   const drawerH = Math.min(
-    Math.round(screenH * 0.88),
-    screenH - insets.top - lay.s(spacing.md),
+    Math.round(screenH * 0.96),
+    screenH - insets.top - lay.s(spacing.xs),
   );
 
   const [modalVisible, setModalVisible] = useState(false);

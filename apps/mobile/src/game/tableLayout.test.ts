@@ -66,8 +66,8 @@ describe("computeTableLayout", () => {
   it("uses tighter gap for five or more pairs", () => {
     const layout = computeTableLayout({
       pairCount: 6,
-      slotWidth: 300,
-      slotHeight: 250,
+      slotWidth: 400,
+      slotHeight: 300,
     });
     expect(layout.gap).toBe(10);
   });

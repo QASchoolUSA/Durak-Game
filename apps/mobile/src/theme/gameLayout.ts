@@ -23,15 +23,15 @@ export const REF_WIDTH = 390;
 export const REF_HEIGHT = 844;
 
 export const BASE_CARD_SIZES = {
-  hand: 76,
-  table: 62,
+  hand: 82,
+  table: 72,
   small: 48,
   fan: 68,
 } as const;
 
 export const MIN_CARD_W = {
-  hand: 68,
-  table: 54,
+  hand: 74,
+  table: 62,
   small: 42,
   fan: 60,
 } as const;
