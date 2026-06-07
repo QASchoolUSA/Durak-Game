@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
+  cancelAnimation,
   type SharedValue,
   useAnimatedStyle,
   useSharedValue,
@@ -39,6 +40,11 @@ const FAN_DROP_Y = 18;
 /** Wide enough for ±88px fan spread from center. */
 const FAN_WIDTH = w + FAN_SPREAD_X * 2;
 const FAN_HEIGHT = h + FAN_DROP_Y * 2 + 8;
+
+export interface CardFanProps {
+  /** When false, fan renders at full spread with no motion loops. */
+  animate?: boolean;
+}
 
 function FanCard({
   card,
@@ -87,12 +93,23 @@ function FanCard({
   );
 }
 
-export function CardFan() {
+export function CardFan({ animate = true }: CardFanProps) {
   const sway = useSharedValue(0);
-  const spread = useSharedValue(0);
+  const spread = useSharedValue(animate ? 0 : 1);
   const floatY = useSharedValue(0);
 
   useEffect(() => {
+    cancelAnimation(sway);
+    cancelAnimation(spread);
+    cancelAnimation(floatY);
+
+    if (!animate) {
+      spread.value = 1;
+      sway.value = 0;
+      floatY.value = 0;
+      return;
+    }
+
     spread.value = withTiming(1, {
       duration: 900,
       easing: Easing.out(Easing.cubic),
@@ -115,7 +132,7 @@ export function CardFan() {
       -1,
       true,
     );
-  }, [sway, spread, floatY]);
+  }, [animate, sway, spread, floatY]);
 
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: floatY.value }],

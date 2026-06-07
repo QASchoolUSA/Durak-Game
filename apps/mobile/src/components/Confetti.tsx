@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
+  makeMutable,
+  type SharedValue,
   useAnimatedStyle,
-  useSharedValue,
   withDelay,
   withTiming,
 } from "react-native-reanimated";
@@ -15,7 +16,7 @@ function sr(seed: number): number {
   return x - Math.floor(x);
 }
 
-const N = 28;
+const N = 12;
 
 interface Particle {
   id: number;
@@ -43,21 +44,22 @@ function buildParticles(confettiColors: string[]): Particle[] {
   }));
 }
 
-function Particle({ p }: { p: Particle }) {
-  const tx = useSharedValue(p.startX);
-  const ty = useSharedValue(0);
-  const op = useSharedValue(1);
+type ParticleMotion = {
+  tx: SharedValue<number>;
+  ty: SharedValue<number>;
+  op: SharedValue<number>;
+};
 
-  useEffect(() => {
-    tx.value = withDelay(p.delay, withTiming(p.startX + p.velX, { duration: p.duration }));
-    ty.value = withDelay(p.delay, withTiming(p.velY + 500, { duration: p.duration }));
-    op.value = withDelay(p.delay + p.duration * 0.55, withTiming(0, { duration: p.duration * 0.45 }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+function ConfettiDot({
+  p,
+  motion,
+}: {
+  p: Particle;
+  motion: ParticleMotion;
+}) {
   const aStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: tx.value }, { translateY: ty.value }],
-    opacity: op.value,
+    transform: [{ translateX: motion.tx.value }, { translateY: motion.ty.value }],
+    opacity: motion.op.value,
   }));
 
   return (
@@ -93,10 +95,32 @@ export function Confetti() {
     [ui.accent, ui.accentMuted, cardTheme.face, cardTheme.suitRed, cardTheme.backAccent],
   );
 
+  const motion = useMemo(
+    () =>
+      particles.map((p) => ({
+        tx: makeMutable(p.startX),
+        ty: makeMutable(0),
+        op: makeMutable(1),
+      })),
+    [particles],
+  );
+
+  useEffect(() => {
+    particles.forEach((p, i) => {
+      const { tx, ty, op } = motion[i]!;
+      tx.value = withDelay(p.delay, withTiming(p.startX + p.velX, { duration: p.duration }));
+      ty.value = withDelay(p.delay, withTiming(p.velY + 500, { duration: p.duration }));
+      op.value = withDelay(
+        p.delay + p.duration * 0.55,
+        withTiming(0, { duration: p.duration * 0.45 }),
+      );
+    });
+  }, [particles, motion]);
+
   return (
     <View style={styles.container} pointerEvents="none">
-      {particles.map((p) => (
-        <Particle key={p.id} p={p} />
+      {particles.map((p, i) => (
+        <ConfettiDot key={p.id} p={p} motion={motion[i]!} />
       ))}
     </View>
   );

@@ -45,13 +45,14 @@ import {
   setStoredCustomName,
   setStoredGuestName,
 } from "./playerNameStorage";
+import { getDevScenario, type DevScenarioId } from "../dev/debugScenarios";
 
 export type Screen = "home" | "lobby" | "game" | "result";
 export type Difficulty = "easy" | "medium" | "hard";
 export type PlayMode = "solo" | "online";
 
 const RETURN_WINDOW_MS = 3000;
-const RESULT_DELAY_MS = 400;
+const RESULT_DELAY_MS = 700;
 
 const HUMAN_ID: PlayerId = "you";
 const BOT_NAMES = ["Olga", "Ivan", "Dmitri", "Maria", "Sergey"];
@@ -146,6 +147,7 @@ interface GameStore {
   setSubmittingMove: (submitting: boolean) => void;
   clearPendingReveal: () => void;
   startGame: (n?: number) => void;
+  loadDevScenario: (id: DevScenarioId) => void;
   goHome: () => void;
   setOnlineStatusMessage: (message: string | null) => void;
   clearOnlineStatusMessage: () => void;
@@ -213,20 +215,16 @@ export const useGameStore = create<GameStore>((set, get) => {
     cancelAi();
     cancelResultTimer();
     settleSoloEconomy(next);
-    const delay = next.table.length === 0 ? RESULT_DELAY_MS : 0;
     set({
       game: next,
       lastMoveAt: Date.now(),
       returnSnapshot: null,
       returnExpiresAt: 0,
-      ...(delay === 0 ? { screen: "result" as const } : {}),
     });
-    if (delay > 0) {
-      resultTimer = setTimeout(() => {
-        resultTimer = null;
-        set({ screen: "result" });
-      }, delay);
-    }
+    resultTimer = setTimeout(() => {
+      resultTimer = null;
+      set({ screen: "result" });
+    }, RESULT_DELAY_MS);
   }
 
   function afterApply(next: GameState) {
@@ -476,21 +474,20 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       if (view.status === "finished" && view.gameState) {
         if (view.gameState.phase === "gameOver") {
-          const delay = view.gameState.table.length === 0 ? RESULT_DELAY_MS : 0;
           set({
             ...base,
             playMode: "online",
             game: view.gameState,
             pendingReveal: null,
             submittingMove: false,
-            ...(delay === 0 ? { screen: "result" as const } : { screen: "game" as const }),
+            ...(prev.screen === "result" ? { screen: "result" as const } : { screen: "game" as const }),
           });
-          if (delay > 0 && prev.screen !== "result") {
+          if (prev.screen !== "result") {
             cancelResultTimer();
             resultTimer = setTimeout(() => {
               resultTimer = null;
               set({ screen: "result" });
-            }, delay);
+            }, RESULT_DELAY_MS);
           }
         }
       }
@@ -547,6 +544,36 @@ export const useGameStore = create<GameStore>((set, get) => {
         onlineStatusMessage: null,
       });
       persistConfig(get());
+      scheduleAi();
+    },
+
+    loadDevScenario: (id) => {
+      if (!__DEV__) return;
+      cancelAi();
+      clearReturnWindow();
+      cancelResultTimer();
+      const scenario = getDevScenario(id).build();
+      const buyIn = get().buyIn;
+      set({
+        playMode: "solo",
+        screen: "game",
+        game: scenario.game,
+        names: scenario.names,
+        humanId: HUMAN_ID,
+        numPlayers: scenario.numPlayers,
+        lastMoveAt: Date.now(),
+        pot: buyIn * scenario.numPlayers,
+        onlineRoomId: null,
+        onlineRoomCode: null,
+        onlineIsHost: false,
+        onlineStatusMessage: null,
+        submittingMove: false,
+        pendingReveal: null,
+        returnSnapshot: null,
+        returnExpiresAt: 0,
+        turnDeadlineAt: null,
+        turnClockPlayerId: null,
+      });
       scheduleAi();
     },
 

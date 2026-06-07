@@ -1,17 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { InteractionManager, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, {
   Easing,
   FadeIn,
-  FadeInDown,
-  FadeInUp,
   interpolate,
   type SharedValue,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withRepeat,
   withSequence,
   withTiming,
@@ -40,6 +37,8 @@ const MENU_ITEMS = [
   { label: "HOW TO PLAY", variant: "ghost"     as const, icon: "?", action: "rules"    },
 ];
 
+const TITLE_LETTERS = ["D", "U", "R", "A", "K"] as const;
+
 export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   const ui = useUiTheme();
   const reduceMotion = useReduceMotion();
@@ -50,6 +49,19 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   const creditBalance = useGameStore((s) => s.creditBalance);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  const [decorReady, setDecorReady] = useState(reduceMotion);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      setDecorReady(true);
+      return;
+    }
+    setDecorReady(false);
+    const task = InteractionManager.runAfterInteractions(() => {
+      setDecorReady(true);
+    });
+    return () => task.cancel();
+  }, [reduceMotion]);
 
   const handleMenu = (action: string) => {
     if (action === "play" || action === "join") {
@@ -61,8 +73,10 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
     if (action === "rules") onOpenRules();
   };
 
+  const showAnimatedDecor = decorReady && !reduceMotion;
+
   return (
-    <Background variant="home">
+    <Background variant="home" deferAmbience={!decorReady}>
       <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
         <View style={[styles.topBar, { paddingHorizontal: lay.hPad }]}>
           <EconomyBar
@@ -72,42 +86,41 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
           />
         </View>
         <View style={[styles.content, { paddingHorizontal: lay.hPad }]}>
-          <HeroPanel maxWidth={lay.maxContent} reduceMotion={reduceMotion}>
-            <Animated.View
-              entering={reduceMotion ? undefined : FadeIn.duration(700)}
-              style={styles.fanWrap}
-            >
-              <CardFan />
-            </Animated.View>
-            <GlowTitle reduceMotion={reduceMotion} />
+          <HeroPanel maxWidth={lay.maxContent}>
+            <View style={styles.fanWrap}>
+              {decorReady ? (
+                <CardFan animate={showAnimatedDecor} />
+              ) : null}
+            </View>
+            {showAnimatedDecor ? (
+              <GlowTitle />
+            ) : (
+              <StaticTitle />
+            )}
           </HeroPanel>
 
-          <View style={[styles.menu, { maxWidth: lay.maxContent }]}>
-            {MENU_ITEMS.map((item, i) => (
-              <Animated.View
-                key={item.label}
-                entering={
-                  reduceMotion
-                    ? undefined
-                    : FadeInDown.delay(280 + i * 120).duration(480).easing(Easing.out(Easing.cubic))
-                }
-              >
-                <MenuButton
-                  label={item.label}
-                  variant={item.variant}
-                  onPress={() => handleMenu(item.action)}
-                  icon={item.icon}
-                />
-              </Animated.View>
-            ))}
-          </View>
-
-          <Animated.Text
-            entering={reduceMotion ? undefined : FadeInUp.delay(720).duration(500)}
-            style={[styles.version, { color: ui.textFaint }]}
+          <Animated.View
+            entering={
+              showAnimatedDecor
+                ? FadeIn.duration(250).easing(Easing.out(Easing.cubic))
+                : undefined
+            }
+            style={[styles.menu, { maxWidth: lay.maxContent }]}
           >
+            {MENU_ITEMS.map((item) => (
+              <MenuButton
+                key={item.label}
+                label={item.label}
+                variant={item.variant}
+                onPress={() => handleMenu(item.action)}
+                icon={item.icon}
+              />
+            ))}
+          </Animated.View>
+
+          <Text style={[styles.version, { color: ui.textFaint }]}>
             v1.0 · Durak Card Game
-          </Animated.Text>
+          </Text>
         </View>
       </SafeAreaView>
 
@@ -130,11 +143,9 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
 function HeroPanel({
   children,
   maxWidth,
-  reduceMotion,
 }: {
   children: React.ReactNode;
   maxWidth: number;
-  reduceMotion: boolean;
 }) {
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
@@ -145,10 +156,7 @@ function HeroPanel({
   ];
 
   return (
-    <Animated.View
-      entering={reduceMotion ? undefined : FadeInDown.duration(600)}
-      style={[styles.heroPanelWrap, { maxWidth, width: "100%" }]}
-    >
+    <View style={[styles.heroPanelWrap, { maxWidth, width: "100%" }]}>
       <View
         style={[styles.heroRingOuter, { borderColor: ui.panelBorderSoft }]}
         pointerEvents="none"
@@ -173,44 +181,45 @@ function HeroPanel({
         />
         {children}
       </LinearGradient>
-    </Animated.View>
+    </View>
   );
 }
 
-const TITLE_LETTERS = ["D", "U", "R", "A", "K"] as const;
+function StaticTitle() {
+  const ui = useUiTheme();
+
+  return (
+    <View style={styles.titleBlock}>
+      <Text style={[styles.heroTitle, { color: ui.accent, textShadowColor: ui.accent }]}>
+        DURAK
+      </Text>
+      <View style={styles.titleOrnament}>
+        <View style={[styles.ornamentLine, { width: 44, backgroundColor: ui.accent }]} />
+        <View
+          style={[
+            styles.ornamentDiamond,
+            { backgroundColor: ui.accent, borderColor: ui.accentMuted },
+          ]}
+        />
+        <View style={[styles.ornamentLine, { width: 44, backgroundColor: ui.accent }]} />
+      </View>
+    </View>
+  );
+}
 
 function TitleLetter({
   char,
-  index,
   glow,
+  wave,
   accent,
   accentMuted,
-  reduceMotion,
 }: {
   char: string;
-  index: number;
   glow: SharedValue<number>;
+  wave: SharedValue<number>;
   accent: string;
   accentMuted: string;
-  reduceMotion: boolean;
 }) {
-  const wave = useSharedValue(0);
-
-  useEffect(() => {
-    if (reduceMotion) return;
-    wave.value = withDelay(
-      index * 140,
-      withRepeat(
-        withSequence(
-          withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
-        ),
-        -1,
-        false,
-      ),
-    );
-  }, [wave, index, reduceMotion]);
-
   const letterStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: interpolate(wave.value, [0, 1], [0, -5]) },
@@ -225,14 +234,7 @@ function TitleLetter({
   }));
 
   return (
-    <Animated.View
-      entering={
-        reduceMotion
-          ? undefined
-          : FadeInDown.delay(index * 70).duration(420).easing(Easing.out(Easing.back(1.4)))
-      }
-      style={styles.letterWrap}
-    >
+    <View style={styles.letterWrap}>
       <Animated.Text
         style={[styles.heroTitleShadow, { color: accentMuted }, shadowStyle]}
       >
@@ -247,17 +249,17 @@ function TitleLetter({
       >
         {char}
       </Animated.Text>
-    </Animated.View>
+    </View>
   );
 }
 
-function GlowTitle({ reduceMotion }: { reduceMotion: boolean }) {
+function GlowTitle() {
   const ui = useUiTheme();
-  const glow = useSharedValue(reduceMotion ? 1 : 0);
-  const ornament = useSharedValue(reduceMotion ? 1 : 0);
+  const glow = useSharedValue(0);
+  const ornament = useSharedValue(0);
+  const wave = useSharedValue(0);
 
   useEffect(() => {
-    if (reduceMotion) return;
     glow.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.sin) }),
@@ -274,7 +276,15 @@ function GlowTitle({ reduceMotion }: { reduceMotion: boolean }) {
       -1,
       false,
     );
-  }, [glow, ornament, reduceMotion]);
+    wave.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      false,
+    );
+  }, [glow, ornament, wave]);
 
   const lineStyle = useAnimatedStyle(() => ({
     width: interpolate(ornament.value, [0, 1], [32, 56]),
@@ -292,15 +302,14 @@ function GlowTitle({ reduceMotion }: { reduceMotion: boolean }) {
   return (
     <View style={styles.titleBlock}>
       <View style={styles.titleRow}>
-        {TITLE_LETTERS.map((char, i) => (
+        {TITLE_LETTERS.map((char) => (
           <TitleLetter
             key={char}
             char={char}
-            index={i}
             glow={glow}
+            wave={wave}
             accent={ui.accent}
             accentMuted={ui.accentMuted}
-            reduceMotion={reduceMotion}
           />
         ))}
       </View>
@@ -432,6 +441,7 @@ const styles = StyleSheet.create({
     width:           7,
     height:          7,
     borderWidth:     1,
+    transform:       [{ rotate: "45deg" }],
   },
   menu: {
     width:      "100%",

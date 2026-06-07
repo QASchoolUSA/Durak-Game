@@ -19,16 +19,16 @@ import { useGoldWallet } from "./src/game/useGoldWallet";
 import { useOnlineGame } from "./src/game/useOnlineGame";
 import { usePlaySessionIdle } from "./src/game/usePlaySessionIdle";
 import { OnlineStatusBanner } from "./src/components/OnlineStatusBanner";
+import { GameResultCrossfade } from "./src/components/GameResultCrossfade";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { LobbyScreen } from "./src/screens/LobbyScreen";
-import { GameScreen } from "./src/screens/GameScreen";
-import { ResultScreen } from "./src/screens/ResultScreen";
 import { SettingsModal } from "./src/components/SettingsModal";
 import { RulesModal } from "./src/components/RulesModal";
 import { CardThemeProvider } from "./src/theme/CardThemeContext";
 import { TableThemeProvider } from "./src/theme/TableThemeContext";
 import { UiThemeProvider } from "./src/theme/UiThemeContext";
 import { PerfOverlay } from "./src/dev/PerfOverlay";
+import { DevScenarioTools } from "./src/dev/DevScenarioTools";
 import { colors } from "./src/theme";
 
 type ScreenErrorBoundaryProps = {
@@ -105,8 +105,10 @@ function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const screen = useGameStore((s) => s.screen);
+  const game = useGameStore((s) => s.game);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [rulesVisible, setRulesVisible] = useState(false);
+  const [homeMounted, setHomeMounted] = useState(screen === "home");
 
   useEffect(() => {
     void Promise.all([
@@ -118,24 +120,43 @@ export default function App() {
     ]);
   }, []);
 
+  useEffect(() => {
+    if (screen === "home") {
+      setHomeMounted(true);
+    }
+  }, [screen]);
+
+  const showHome = screen === "home";
+
   const content = (
-    <>
+    <View style={styles.appShell}>
       <OnlineStatusBanner />
       <PerfOverlay />
+      <DevScenarioTools />
       <StatusBar style="light" />
-      {screen === "home" && (
-        <HomeScreen
-          onOpenSettings={() => setSettingsVisible(true)}
-          onOpenRules={() => setRulesVisible(true)}
-        />
+      {homeMounted && (
+        <View
+          style={showHome ? styles.homeLayerActive : styles.homeLayerHidden}
+          pointerEvents={showHome ? "auto" : "none"}
+        >
+          <HomeScreen
+            onOpenSettings={() => setSettingsVisible(true)}
+            onOpenRules={() => setRulesVisible(true)}
+          />
+        </View>
       )}
       {screen === "lobby" && <LobbyScreen />}
-      {screen === "game" && (
-        <ScreenErrorBoundary screenName="GameScreen">
-          <GameScreen onOpenSettings={() => setSettingsVisible(true)} />
-        </ScreenErrorBoundary>
-      )}
-      {screen === "result" && <ResultScreen />}
+      <GameResultCrossfade
+        screen={screen}
+        game={game}
+        onOpenSettings={() => setSettingsVisible(true)}
+        errorBoundary={(children) => (
+          <ScreenErrorBoundary screenName="GameScreen">{children}</ScreenErrorBoundary>
+        )}
+        resultErrorBoundary={(children) => (
+          <ScreenErrorBoundary screenName="ResultScreen">{children}</ScreenErrorBoundary>
+        )}
+      />
 
       <SettingsModal
         visible={settingsVisible}
@@ -145,7 +166,7 @@ export default function App() {
         visible={rulesVisible}
         onClose={() => setRulesVisible(false)}
       />
-    </>
+    </View>
   );
 
   return (
@@ -164,6 +185,17 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  appShell: {
+    flex: 1,
+  },
+  homeLayerActive: {
+    flex: 1,
+  },
+  homeLayerHidden: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0,
+    zIndex: -1,
+  },
   fallback: {
     flex: 1,
     alignItems: "center",

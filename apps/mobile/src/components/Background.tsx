@@ -4,6 +4,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   Easing,
   interpolate,
+  makeMutable,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -18,12 +20,16 @@ export interface BackgroundProps {
   children: React.ReactNode;
   /** `home` — themed app chrome; `game` — themed playing-area color. */
   variant?: "home" | "game";
+  /** When true, skip animated sparkles and pulsing rings (plain gradient only). */
+  deferAmbience?: boolean;
 }
 
 function sr(seed: number): number {
   const x = Math.sin(seed + 1) * 10000;
   return x - Math.floor(x);
 }
+
+const SPARKLE_COUNT = 8;
 
 interface SparkleSpec {
   id: number;
@@ -45,28 +51,24 @@ function buildSparkles(count: number): SparkleSpec[] {
   }));
 }
 
-function Sparkle({ spec, color }: { spec: SparkleSpec; color: string }) {
-  const progress = useSharedValue(0);
+type SparkleMotion = {
+  progress: SharedValue<number>;
+};
 
-  useEffect(() => {
-    progress.value = withDelay(
-      spec.delay,
-      withRepeat(
-        withSequence(
-          withTiming(1, { duration: spec.duration * 0.45, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0, { duration: spec.duration * 0.55, easing: Easing.inOut(Easing.sin) }),
-        ),
-        -1,
-        false,
-      ),
-    );
-  }, [progress, spec.delay, spec.duration]);
-
+function SparkleDot({
+  spec,
+  color,
+  motion,
+}: {
+  spec: SparkleSpec;
+  color: string;
+  motion: SparkleMotion;
+}) {
   const aStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.5, 1], [0.08, 0.75, 0.08]),
+    opacity: interpolate(motion.progress.value, [0, 0.5, 1], [0.08, 0.75, 0.08]),
     transform: [
-      { translateY: interpolate(progress.value, [0, 1], [0, -18]) },
-      { scale: interpolate(progress.value, [0, 0.5, 1], [0.6, 1.2, 0.6]) },
+      { translateY: interpolate(motion.progress.value, [0, 1], [0, -18]) },
+      { scale: interpolate(motion.progress.value, [0, 0.5, 1], [0.6, 1.2, 0.6]) },
     ],
   }));
 
@@ -86,6 +88,45 @@ function Sparkle({ spec, color }: { spec: SparkleSpec; color: string }) {
         aStyle,
       ]}
     />
+  );
+}
+
+function SparkleLayer({ color }: { color: string }) {
+  const sparkles = useMemo(() => buildSparkles(SPARKLE_COUNT), []);
+  const motion = useMemo(
+    () => sparkles.map(() => ({ progress: makeMutable(0) })),
+    [sparkles],
+  );
+
+  useEffect(() => {
+    sparkles.forEach((spec, i) => {
+      const { progress } = motion[i]!;
+      progress.value = withDelay(
+        spec.delay,
+        withRepeat(
+          withSequence(
+            withTiming(1, {
+              duration: spec.duration * 0.45,
+              easing: Easing.inOut(Easing.sin),
+            }),
+            withTiming(0, {
+              duration: spec.duration * 0.55,
+              easing: Easing.inOut(Easing.sin),
+            }),
+          ),
+          -1,
+          false,
+        ),
+      );
+    });
+  }, [sparkles, motion]);
+
+  return (
+    <>
+      {sparkles.map((spec, i) => (
+        <SparkleDot key={spec.id} spec={spec} color={color} motion={motion[i]!} />
+      ))}
+    </>
   );
 }
 
@@ -160,23 +201,6 @@ function HomeDecorShapes({
       <View style={[styles.cornerArc, styles.cornerArcTL, { borderColor: ringFaint }]} />
       <View style={[styles.cornerArc, styles.cornerArcBR, { borderColor: ringFaint }]} />
 
-      <PulsingRing
-        size={width * 0.92}
-        left={width * 0.04 - width * 0.46}
-        top={height * 0.06}
-        borderColor={ringFaint}
-        borderWidth={1}
-        duration={9000}
-      />
-      <PulsingRing
-        size={width * 0.62}
-        left={width * 0.72 - width * 0.31}
-        top={height * 0.58}
-        borderColor={ring}
-        borderWidth={1.5}
-        duration={7200}
-      />
-
       <View style={[styles.diamond, { top: height * 0.14, right: width * 0.08, borderColor: diamond }]} />
       <View style={[styles.diamond, styles.diamondSm, { bottom: height * 0.22, left: width * 0.06, borderColor: diamond }]} />
       <View style={[styles.diamond, styles.diamondSm, { top: height * 0.72, right: width * 0.14, borderColor: diamond }]} />
@@ -187,9 +211,9 @@ function HomeDecorShapes({
   );
 }
 
-function HomeAmbience() {
+function HomeAmbience({ deferAmbience }: { deferAmbience: boolean }) {
   const ui = useUiTheme();
-  const sparkles = useMemo(() => buildSparkles(18), []);
+  const { width, height } = useWindowDimensions();
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -206,14 +230,36 @@ function HomeAmbience() {
         style={styles.spotlightTop}
       />
 
-      {sparkles.map((s) => (
-        <Sparkle key={s.id} spec={s} color={ui.accent} />
-      ))}
+      {!deferAmbience && (
+        <>
+          <PulsingRing
+            size={width * 0.92}
+            left={width * 0.04 - width * 0.46}
+            top={height * 0.06}
+            borderColor={ui.panelBorderSoft}
+            borderWidth={1}
+            duration={9000}
+          />
+          <PulsingRing
+            size={width * 0.62}
+            left={width * 0.72 - width * 0.31}
+            top={height * 0.58}
+            borderColor={ui.panelBorder}
+            borderWidth={1.5}
+            duration={7200}
+          />
+          <SparkleLayer color={ui.accent} />
+        </>
+      )}
     </View>
   );
 }
 
-export function Background({ children, variant = "home" }: BackgroundProps) {
+export function Background({
+  children,
+  variant = "home",
+  deferAmbience = false,
+}: BackgroundProps) {
   const tableTheme = useTableTheme();
   const ui = useUiTheme();
   const grad = tableTheme.backgroundGradient ?? [
@@ -249,7 +295,7 @@ export function Background({ children, variant = "home" }: BackgroundProps) {
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}
     >
-      <HomeAmbience />
+      <HomeAmbience deferAmbience={deferAmbience} />
 
       <View style={[styles.vignetteTop, { backgroundColor: ui.activeTint }]} pointerEvents="none" />
       <View style={[styles.vignetteBottom, { backgroundColor: ui.urgentBg }]} pointerEvents="none" />
