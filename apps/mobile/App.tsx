@@ -30,7 +30,6 @@ import { CardThemeProvider } from "./src/theme/CardThemeContext";
 import { TableThemeProvider } from "./src/theme/TableThemeContext";
 import { UiThemeProvider } from "./src/theme/UiThemeContext";
 import { PerfOverlay } from "./src/dev/PerfOverlay";
-import { DevScenarioTools } from "./src/dev/DevScenarioTools";
 import { colors } from "./src/theme";
 
 type ScreenErrorBoundaryProps = {
@@ -173,7 +172,6 @@ export default function App() {
     <View style={styles.appShell}>
       <OnlineStatusBanner />
       <PerfOverlay />
-      <DevScenarioTools />
       <StatusBar style="light" />
       {homeMounted && (
         <View

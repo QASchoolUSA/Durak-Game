@@ -83,4 +83,37 @@ describe("dealSequence", () => {
     expect(refillDisplayedCounts(prev).human).toBe(4);
     expect(humanHandIdsBeforeDeal(prev, "human").size).toBe(4);
   });
+
+  it("excludes taken table cards from defender refill steps after a take", () => {
+    const prev = createGame(["human", "B"], { seed: 4 });
+    prev.hands.human = prev.hands.human!.slice(0, 4);
+    prev.hands.B = prev.hands.B!.slice(0, 5);
+    prev.deck = prev.deck.slice(0, 4);
+    prev.defenderId = "human";
+    prev.takeInProgress = true;
+    prev.table = [
+      {
+        attack: { id: "t-a1", suit: "hearts", rank: 6 },
+        defense: { id: "t-d1", suit: "spades", rank: 10 },
+      },
+      {
+        attack: { id: "t-a2", suit: "clubs", rank: 7 },
+        defense: undefined,
+      },
+    ];
+
+    const next: GameState = structuredClone(prev);
+    next.takeInProgress = false;
+    next.table = [];
+    const taken = [prev.table[0]!.attack, prev.table[0]!.defense!, prev.table[1]!.attack];
+    next.hands.human = [...prev.hands.human!, ...taken];
+    next.hands.human!.push(next.deck.shift()!, next.deck.shift()!);
+    next.hands.B!.push(next.deck.shift()!);
+
+    const event = detectDealEvent(prev, next);
+    expect(event?.kind).toBe("refill");
+    expect(event!.steps.filter((s) => s.playerId === "human")).toHaveLength(2);
+    expect(event!.steps.filter((s) => s.playerId === "B")).toHaveLength(1);
+    expect(event!.steps).toHaveLength(3);
+  });
 });

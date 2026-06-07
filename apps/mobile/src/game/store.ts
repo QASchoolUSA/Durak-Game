@@ -47,7 +47,6 @@ import {
   setStoredCustomName,
   setStoredGuestName,
 } from "./playerNameStorage";
-import { getDevScenario, type DevScenarioId } from "../dev/debugScenarios";
 import { usePreferencesStore } from "./preferencesStore";
 import type { TurnSecondsOption } from "./turnTimerStorage";
 
@@ -157,7 +156,6 @@ interface GameStore {
   setSubmittingMove: (submitting: boolean) => void;
   clearPendingReveal: () => void;
   startGame: (n?: number, options?: { buyInCharged?: boolean }) => void;
-  loadDevScenario: (id: DevScenarioId) => void;
   goHome: () => void;
   setOnlineStatusMessage: (message: string | null) => void;
   clearOnlineStatusMessage: () => void;
@@ -579,36 +577,6 @@ export const useGameStore = create<GameStore>((set, get) => {
         onlineStatusMessage: null,
       });
       persistConfig(get());
-      scheduleAi();
-    },
-
-    loadDevScenario: (id) => {
-      if (!__DEV__) return;
-      cancelAi();
-      clearReturnWindow();
-      cancelResultTimer();
-      const scenario = getDevScenario(id).build();
-      const buyIn = get().buyIn;
-      set({
-        playMode: "solo",
-        screen: "game",
-        game: scenario.game,
-        names: scenario.names,
-        humanId: HUMAN_ID,
-        numPlayers: scenario.numPlayers,
-        lastMoveAt: Date.now(),
-        pot: buyIn * scenario.numPlayers,
-        onlineRoomId: null,
-        onlineRoomCode: null,
-        onlineIsHost: false,
-        onlineStatusMessage: null,
-        submittingMove: false,
-        pendingReveal: null,
-        returnSnapshot: null,
-        returnExpiresAt: 0,
-        turnDeadlineAt: null,
-        turnClockPlayerId: null,
-      });
       scheduleAi();
     },
 

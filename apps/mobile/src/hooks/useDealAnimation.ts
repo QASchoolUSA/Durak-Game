@@ -15,6 +15,7 @@ import {
   type DealKind,
   type QueuedDealStep,
 } from "../game/dealSequence";
+import { tableCardIdsFromPairs } from "../game/takeSequence";
 
 export const DEAL_REFILL_DELAY_MS = 450;
 const ORIGINS_FALLBACK_MS = 800;
@@ -44,6 +45,16 @@ function humanCardIdsForDealEvent(
   const prevLen = prevState
     ? (prevState.hands[humanId] ?? []).length
     : hand.length - humanStepCount;
+
+  if (
+    prevState?.takeInProgress &&
+    prevState.defenderId === humanId
+  ) {
+    const takenCount = tableCardIdsFromPairs(prevState.table).length;
+    const deckDrawStart = prevLen + takenCount;
+    return hand.slice(deckDrawStart, deckDrawStart + humanStepCount).map((c) => c.id);
+  }
+
   return hand.slice(prevLen, prevLen + humanStepCount).map((c) => c.id);
 }
 
@@ -61,6 +72,8 @@ export interface UseDealAnimationOptions {
   deckAnchor: AnchorRect | null;
   handAnchor: AnchorRect | null;
   seatAnchors: Record<PlayerId, AnchorRect | undefined>;
+  /** Pause refill flight overlay until take animation finishes. */
+  deferRefillOverlay?: boolean;
 }
 
 export interface UseDealAnimationResult {
@@ -83,6 +96,7 @@ export function useDealAnimation({
   deckAnchor,
   handAnchor,
   seatAnchors,
+  deferRefillOverlay = false,
 }: UseDealAnimationOptions): UseDealAnimationResult {
   const prevGameRef = useRef<GameState | null>(null);
   const pendingHumanCardsRef = useRef<string[]>([]);
@@ -97,6 +111,7 @@ export function useDealAnimation({
   const dealKindRef = useRef<DealKind | null>(null);
   const pendingCountsRef = useRef<Record<PlayerId, number>>({});
   const pendingDeckRef = useRef(0);
+  const pendingRefillQueueRef = useRef<QueuedDealStep[] | null>(null);
 
   const [dealingInProgress, setDealingInProgress] = useState(false);
   const [dealKind, setDealKind] = useState<DealKind | null>(null);
@@ -138,9 +153,20 @@ export function useDealAnimation({
       setRevealedHumanCardIds(allCardsRevealed(state, humanId));
       pendingHumanCardsRef.current = [];
       humanRevealIndexRef.current = 0;
+      pendingRefillQueueRef.current = null;
     },
     [humanId],
   );
+
+  const startRefillQueue = useCallback((queue: QueuedDealStep[]) => {
+    if (refillTimerRef.current) clearTimeout(refillTimerRef.current);
+    refillTimerRef.current = setTimeout(() => {
+      refillTimerRef.current = null;
+      setDealQueue(queue);
+      pendingDealRef.current = null;
+      pendingRefillQueueRef.current = null;
+    }, DEAL_REFILL_DELAY_MS);
+  }, []);
 
   const flushRoundToState = useCallback((revealedBatch: string[]) => {
     setDisplayedHandCounts({ ...pendingCountsRef.current });
@@ -242,12 +268,10 @@ export function useDealAnimation({
     const queue = buildDealQueue(event.steps, timingMode);
 
     if (event.kind === "refill") {
-      if (refillTimerRef.current) clearTimeout(refillTimerRef.current);
-      refillTimerRef.current = setTimeout(() => {
-        refillTimerRef.current = null;
-        setDealQueue(queue);
-        pendingDealRef.current = null;
-      }, DEAL_REFILL_DELAY_MS);
+      pendingRefillQueueRef.current = queue;
+      if (!deferRefillOverlay) {
+        startRefillQueue(queue);
+      }
       return () => {
         if (refillTimerRef.current) {
           clearTimeout(refillTimerRef.current);
@@ -258,7 +282,25 @@ export function useDealAnimation({
 
     setDealQueue(queue);
     pendingDealRef.current = null;
-  }, [originsReady, timingMode, pendingDealEpoch, deckAnchor, handAnchor, seatAnchors]);
+  }, [
+    originsReady,
+    timingMode,
+    pendingDealEpoch,
+    deckAnchor,
+    handAnchor,
+    seatAnchors,
+    deferRefillOverlay,
+    startRefillQueue,
+  ]);
+
+  useEffect(() => {
+    if (deferRefillOverlay || refillTimerRef.current) return;
+    const queue = pendingRefillQueueRef.current;
+    if (!queue || !dealingInProgressRef.current || dealKindRef.current !== "refill") {
+      return;
+    }
+    startRefillQueue(queue);
+  }, [deferRefillOverlay, startRefillQueue]);
 
   useEffect(() => {
     if (!dealingInProgress || originsReady || !game) return;

@@ -4,6 +4,7 @@ import {
   drawUpOrder,
   initialDealOrder,
 } from "@durak/game-core";
+import { tableCardIdsFromPairs } from "./takeSequence";
 
 export type DealKind = "initial" | "refill";
 
@@ -61,8 +62,15 @@ function handCounts(state: GameState): Record<PlayerId, number> {
 function buildRefillSteps(prev: GameState, next: GameState): DealStep[] {
   const prevCounts = handCounts(prev);
   const steps: DealStep[] = [];
+  const takenCount = prev.takeInProgress
+    ? tableCardIdsFromPairs(prev.table).length
+    : 0;
+
   for (const playerId of drawUpOrder(next)) {
-    const gained = (next.hands[playerId] ?? []).length - (prevCounts[playerId] ?? 0);
+    let gained = (next.hands[playerId] ?? []).length - (prevCounts[playerId] ?? 0);
+    if (prev.takeInProgress && playerId === prev.defenderId) {
+      gained = Math.max(0, gained - takenCount);
+    }
     for (let i = 0; i < gained; i++) {
       steps.push({ playerId, cardIndexInBatch: i });
     }

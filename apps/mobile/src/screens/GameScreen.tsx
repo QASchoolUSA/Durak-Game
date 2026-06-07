@@ -25,6 +25,7 @@ import { CardFlightOverlay } from "../components/CardFlightOverlay";
 import type { AnchorRect } from "../components/MeasuredAnchor";
 import { useDealAnimation } from "../hooks/useDealAnimation";
 import { useTakeAnimation } from "../hooks/useTakeAnimation";
+import { timeoutMoveFor } from "../game/autoMove";
 import type { QueuedDealStep } from "../game/dealSequence";
 import {
   isTableCardAnchorId,
@@ -281,28 +282,6 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     return out;
   }, [game, humanId, anchors]);
 
-  const dealAnimation = useDealAnimation({
-    game,
-    humanId,
-    playMode: playMode === "online" ? "online" : "solo",
-    reduceMotion,
-    deckAnchor,
-    handAnchor,
-    seatAnchors,
-  });
-
-  const {
-    dealingInProgress,
-    dealKind,
-    displayedHandCounts,
-    displayedDeckCount,
-    revealedHumanCardIds,
-    dealQueue,
-    frozenOrigins,
-    handleStepComplete,
-    handleDealComplete,
-  } = dealAnimation;
-
   const takeAnimation = useTakeAnimation({
     game,
     humanId,
@@ -321,6 +300,29 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     handleTakeStepComplete,
     handleTakeComplete,
   } = takeAnimation;
+
+  const dealAnimation = useDealAnimation({
+    game,
+    humanId,
+    playMode: playMode === "online" ? "online" : "solo",
+    reduceMotion,
+    deckAnchor,
+    handAnchor,
+    seatAnchors,
+    deferRefillOverlay: takeInProgress || takeQueue.length > 0,
+  });
+
+  const {
+    dealingInProgress,
+    dealKind,
+    displayedHandCounts,
+    displayedDeckCount,
+    revealedHumanCardIds,
+    dealQueue,
+    frozenOrigins,
+    handleStepComplete,
+    handleDealComplete,
+  } = dealAnimation;
 
   freezeAnchorsRef.current =
     frozenOrigins != null || dealQueue.length > 0 || takeQueue.length > 0;
@@ -758,6 +760,19 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     );
   }, [playMode, turnClockPlayerId, game, humanId, view?.mustAct, opponentsForClock]);
 
+  const handleTimeoutAutoPlay = useCallback(() => {
+    if (game) {
+      const move = timeoutMoveFor(game, humanId);
+      if (move?.type === "TAKE") {
+        pendingTakeSnapshotRef.current = {
+          cardIds: tableCardIdsFromPairs(game.table),
+          anchors: { ...tableCardAnchorsRef.current },
+        };
+      }
+    }
+    autoPlayHuman();
+  }, [game, humanId, autoPlayHuman]);
+
   const timerClock = useMemo(
     () => ({
       enabled:
@@ -770,7 +785,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       turnDeadlineAt,
       playMode,
       frameDeferMs: playMode === "online" ? ONLINE_TIMER_DEFER_MS : 0,
-      onTimeout: autoPlayHuman,
+      onTimeout: handleTimeoutAutoPlay,
     }),
     [
       timerEnabled,
@@ -781,7 +796,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       lastMoveAt,
       turnDeadlineAt,
       playMode,
-      autoPlayHuman,
+      handleTimeoutAutoPlay,
     ],
   );
 
