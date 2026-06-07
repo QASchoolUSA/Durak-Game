@@ -27,6 +27,8 @@ import {
   hitTestDropZones,
   type WorkletDropZone,
 } from "../game/dropZoneWorklet";
+import type { DealKind } from "../game/dealSequence";
+import { MeasuredAnchor, type AnchorRect } from "./MeasuredAnchor";
 import { cardSize, radius } from "../theme";
 
 const handCardClip =
@@ -47,6 +49,8 @@ const PEEK_LIFT = 5;
 const GESTURE_IDLE = 0;
 const GESTURE_PEEK = 1;
 const GESTURE_PLAY = 2;
+
+const HAND_ANCHOR_ID = "human-hand";
 
 const DEAL_FROM_X = 130;
 const DEAL_FROM_Y = -95;
@@ -124,6 +128,7 @@ interface HandCardProps {
   trump: boolean;
   isNew: boolean;
   instantDeal: boolean;
+  revealed: boolean;
   activeSlot: SharedValue<number>;
   gestureMode: SharedValue<number>;
   dragX: SharedValue<number>;
@@ -141,6 +146,7 @@ const HandCard = React.memo(function HandCard({
   trump,
   isNew,
   instantDeal,
+  revealed,
   activeSlot,
   gestureMode,
   dragX,
@@ -227,7 +233,7 @@ const HandCard = React.memo(function HandCard({
     }
 
     return {
-      opacity: fanTouchActive ? 0.85 : 1,
+      opacity: revealed ? (fanTouchActive ? 0.85 : 1) : 0,
       transform: [
         { translateX: tx.value },
         { translateY: ty.value },
@@ -275,8 +281,17 @@ export interface HandProps {
   playableIds: Set<string>;
   interactive: boolean;
   trumpSuit: string;
-  /** Skip staggered deal springs (online sync — avoids mount-time Reanimated burst). */
+  /** Skip staggered deal springs (overlay deal or accessibility). */
   instantDeal?: boolean;
+  /** Cards revealed by the flying deal overlay. */
+  revealedCardIds?: Set<string>;
+  /** When set, deal overlay controls which cards are visible. */
+  dealOverlayMode?: DealKind | null;
+  /** When true, take-flight overlay controls newly taken cards. */
+  takeOverlayActive?: boolean;
+  dealingInProgress?: boolean;
+  onHandAnchorLayout?: (anchorId: string, rect: AnchorRect) => void;
+  onHandAnchorRemoved?: (anchorId: string) => void;
   onPlay?: (card: CardModel) => void;
   onDropAt?: (card: CardModel, bounds: DragCardBounds) => void;
   onDragMove?: (bounds: DragCardBounds | null) => void;
@@ -294,6 +309,12 @@ function HandComponent({
   interactive,
   trumpSuit,
   instantDeal = false,
+  revealedCardIds,
+  dealOverlayMode = null,
+  takeOverlayActive = false,
+  dealingInProgress = false,
+  onHandAnchorLayout,
+  onHandAnchorRemoved,
   onPlay,
   onDropAt,
   onDragMove,
@@ -309,7 +330,7 @@ function HandComponent({
   const touchLayerRef = useRef<View>(null);
   const layerOriginRef = useRef<{ x: number; y: number } | null>(null);
   const mountedRef = useRef(true);
-  const [gesturesEnabled, setGesturesEnabled] = useState(!instantDeal);
+  const [gesturesEnabled, setGesturesEnabled] = useState(!instantDeal && !dealingInProgress);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -319,19 +340,30 @@ function HandComponent({
   }, []);
 
   useEffect(() => {
-    if (!instantDeal) {
+    if (dealingInProgress || takeOverlayActive) {
+      setGesturesEnabled(false);
+      return;
+    }
+    if (!instantDeal && !dealOverlayMode) {
       setGesturesEnabled(true);
       return;
     }
     setGesturesEnabled(false);
-    const id = setTimeout(() => setGesturesEnabled(true), 600);
+    const id = setTimeout(() => setGesturesEnabled(true), dealOverlayMode ? 0 : 600);
     return () => clearTimeout(id);
-  }, [instantDeal]);
+  }, [instantDeal, dealOverlayMode, dealingInProgress, takeOverlayActive]);
 
   const sortedCards = useMemo(
     () => sortHandForDisplay(cards, trumpSuit as Suit),
     [cards, trumpSuit],
   );
+
+  const overlayControlsVisibility = dealOverlayMode != null || takeOverlayActive;
+
+  const visibleCards = useMemo(() => {
+    if (!overlayControlsVisibility || revealedCardIds == null) return sortedCards;
+    return sortedCards.filter((c) => revealedCardIds.has(c.id));
+  }, [sortedCards, overlayControlsVisibility, revealedCardIds]);
 
   const prevIdsRef = useRef<Set<string>>(new Set());
   const newIdSet = useMemo(() => {
@@ -353,12 +385,12 @@ function HandComponent({
       dealtFiredRef.current = false;
       return;
     }
-    if (instantDeal || dealtFiredRef.current || !onCardsDealt) return;
+    if (instantDeal || dealtFiredRef.current || !onCardsDealt || dealOverlayMode) return;
     dealtFiredRef.current = true;
     onCardsDealt(newIdSet.size);
-  }, [newIdSet, onCardsDealt, instantDeal]);
+  }, [newIdSet, onCardsDealt, instantDeal, dealOverlayMode]);
 
-  const total = sortedCards.length;
+  const total = visibleCards.length;
   const { spacing, rotPerSlot } = computeHandLayout(width, w, h, total);
   const handHeight = h + TOUCH_PAD_BOTTOM + 4;
 
@@ -399,10 +431,10 @@ function HandComponent({
   }, [width, total, spacing, rotPerSlot, w, h, handHeight, layoutSV]);
 
   useEffect(() => {
-    playableMaskSV.value = sortedCards.map(
+    playableMaskSV.value = visibleCards.map(
       (c) => interactive && playableIds.has(c.id),
     );
-  }, [sortedCards, interactive, playableIds, playableMaskSV]);
+  }, [visibleCards, interactive, playableIds, playableMaskSV]);
 
   const reportLayerOrigin = useCallback(() => {
     touchLayerRef.current?.measureInWindow((x, y) => {
@@ -736,37 +768,47 @@ function HandComponent({
     lastHoverKey,
   ]);
 
+  const effectiveInstantDeal = instantDeal || dealOverlayMode != null || takeOverlayActive;
+
   return (
     <View style={[styles.container, { height: handHeight }]}>
-      <GestureDetector gesture={pan}>
-        <View
-          ref={touchLayerRef}
-          onLayout={reportLayerOrigin}
-          style={[styles.touchLayer, { height: handHeight }]}
-        >
-          <View style={[styles.fanHost, { height: handHeight }]}>
-            {sortedCards.map((card, slotIndex) => (
-              <HandCard
-                key={card.id}
-                card={card}
-                slotIndex={slotIndex}
-                total={total}
-                layoutWidth={width}
-                spacing={spacing}
-                rotPerSlot={rotPerSlot}
-                trump={card.suit === trumpSuit}
-                isNew={!instantDeal && newIdSet.has(card.id)}
-                instantDeal={instantDeal}
-                activeSlot={activeSlot}
-                gestureMode={gestureMode}
-                dragX={dragX}
-                dragY={dragY}
-                press={press}
-              />
-            ))}
+      <MeasuredAnchor
+        anchorId={HAND_ANCHOR_ID}
+        onAnchorLayout={onHandAnchorLayout}
+        onAnchorRemoved={onHandAnchorRemoved}
+        style={StyleSheet.flatten([styles.handAnchorLayer, { height: handHeight }])}
+      >
+        <GestureDetector gesture={pan}>
+          <View
+            ref={touchLayerRef}
+            onLayout={reportLayerOrigin}
+            style={[styles.touchLayer, { height: handHeight }]}
+          >
+            <View style={[styles.fanHost, { height: handHeight }]}>
+              {visibleCards.map((card, slotIndex) => (
+                <HandCard
+                  key={card.id}
+                  card={card}
+                  slotIndex={slotIndex}
+                  total={total}
+                  layoutWidth={width}
+                  spacing={spacing}
+                  rotPerSlot={rotPerSlot}
+                  trump={card.suit === trumpSuit}
+                  isNew={!effectiveInstantDeal && newIdSet.has(card.id)}
+                  instantDeal={effectiveInstantDeal}
+                  revealed
+                  activeSlot={activeSlot}
+                  gestureMode={gestureMode}
+                  dragX={dragX}
+                  dragY={dragY}
+                  press={press}
+                />
+              ))}
+            </View>
           </View>
-        </View>
-      </GestureDetector>
+        </GestureDetector>
+      </MeasuredAnchor>
     </View>
   );
 }
@@ -774,6 +816,7 @@ function HandComponent({
 const styles = StyleSheet.create({
   container: { justifyContent: "flex-end", alignItems: "center", overflow: "visible" },
   touchLayer: { alignSelf: "stretch", width: "100%", overflow: "visible" },
+  handAnchorLayer: { alignSelf: "stretch", width: "100%" },
   fanHost: {
     alignSelf: "stretch",
     width: "100%",
@@ -789,3 +832,4 @@ const styles = StyleSheet.create({
 });
 
 export const Hand = React.memo(HandComponent);
+export { HAND_ANCHOR_ID };

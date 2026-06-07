@@ -1,23 +1,12 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
 import type { SeatIndication, SeatRole } from "../game/selectors";
-import {
-  PlayerAvatar,
-  indicationColor,
-  indicationShadowColor,
-} from "./playerSeatShared";
+import { PlayerAvatar, indicationColor } from "./playerSeatShared";
 import { TakeSpeechBubble } from "./TakeSpeechBubble";
 import { SeatReactionBurst } from "./SeatReactionBurst";
 import { TurnTimerRing } from "./TurnTimerRing";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { radius, typography } from "../theme";
-
-const SPRING = { damping: 16, stiffness: 280, mass: 0.7 };
 
 const RING_FALLBACK = { width: 120, height: 38 };
 
@@ -53,10 +42,7 @@ function HumanPlayerChipComponent({
 }: HumanPlayerChipProps) {
   const ui = useUiTheme();
   const isTaking = role === "taking";
-  const showBorder =
-    !finished && indication != null && (onClock || isTaking);
   const ringColor = indication ? indicationColor(indication) : ui.accent;
-  const glowColor = indication ? indicationShadowColor(indication) : ui.accent;
 
   const [layoutSize, setLayoutSize] = useState({ width: 0, height: 0 });
   const layoutReady = layoutSize.width > 0 && layoutSize.height > 0;
@@ -70,21 +56,8 @@ function HumanPlayerChipComponent({
     );
   }, []);
 
-  const scale = useSharedValue(showBorder ? 1 : 0.96);
-  const opacity = useSharedValue(showBorder ? 1 : 0.9);
-
-  useEffect(() => {
-    scale.value = withSpring(showBorder ? 1 : 0.96, SPRING);
-    opacity.value = withSpring(showBorder ? 1 : 0.9, SPRING);
-  }, [showBorder, scale, opacity]);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
-
   return (
-    <Animated.View style={[styles.frame, animStyle]}>
+    <View style={styles.frame}>
       <View style={styles.shell} onLayout={onLayout}>
         <SeatReactionBurst playerId={playerId} />
         {isTaking && !finished && <TakeSpeechBubble />}
@@ -92,14 +65,10 @@ function HumanPlayerChipComponent({
           style={[
             styles.panel,
             { backgroundColor: ui.panelBg },
-            showBorder && [styles.active, { shadowColor: glowColor }],
             isTaking && !finished && styles.panelTaking,
             finished && styles.finished,
           ]}
         >
-          {showBorder && (
-            <View style={[styles.activeTint, { backgroundColor: ui.activeTint }]} pointerEvents="none" />
-          )}
           <Pressable
             style={({ pressed }) => [styles.pressable, pressed && styles.pressablePressed]}
             onPress={onPress}
@@ -135,7 +104,7 @@ function HumanPlayerChipComponent({
           />
         )}
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -157,16 +126,6 @@ const styles = StyleSheet.create({
   },
   panelTaking: {
     overflow: "visible",
-  },
-  active: {
-    shadowOpacity: 0.65,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 10,
-  },
-  activeTint: {
-    ...StyleSheet.absoluteFill,
-    zIndex: 0,
   },
   finished: { opacity: 0.45 },
   pressable: {

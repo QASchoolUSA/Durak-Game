@@ -4,19 +4,17 @@ import Animated, {
   FadeIn,
   useAnimatedStyle,
   useSharedValue,
+  withSequence,
   withSpring,
 } from "react-native-reanimated";
 import type { SeatIndication, SeatRole } from "../game/selectors";
-import {
-  PlayerAvatar,
-  indicationColor,
-  indicationShadowColor,
-} from "./playerSeatShared";
+import { PlayerAvatar, indicationColor } from "./playerSeatShared";
 import { SeatReactionBurst } from "./SeatReactionBurst";
 import { TurnTimerRing } from "./TurnTimerRing";
 import { TakeSpeechBubble } from "./TakeSpeechBubble";
 import { useCardTheme } from "../theme/CardThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
+import { MeasuredAnchor, type AnchorRect } from "./MeasuredAnchor";
 import { radius, cardSize } from "../theme";
 
 export type { SeatRole };
@@ -29,24 +27,49 @@ export interface PlayerSeatProps {
   cardCount: number;
   role: SeatRole;
   indication: SeatIndication | null;
-  active: boolean;
   onClock: boolean;
   turnProgress: number;
   timerEnabled?: boolean;
   showTimerRing?: boolean;
   finished?: boolean;
+  skipEnterAnimation?: boolean;
+  landingPulseToken?: number;
+  onSeatAnchorLayout?: (anchorId: string, rect: AnchorRect) => void;
+  onSeatAnchorRemoved?: (anchorId: string) => void;
+}
+
+export function seatAnchorId(playerId: string): string {
+  return `seat-${playerId}`;
 }
 
 const SPRING = { damping: 16, stiffness: 280, mass: 0.7 };
 
-function MiniFan({ count }: { count: number }) {
+function MiniFan({ count, pulseToken = 0 }: { count: number; pulseToken?: number }) {
   const theme = useCardTheme();
   const shown = Math.min(count, 6);
   const cardW = Math.round(cardSize.small.w * 0.52);
   const cardH = Math.round(cardSize.small.h * 0.52);
   const stride = 8;
+  const fanScale = useSharedValue(1);
+
+  useEffect(() => {
+    if (pulseToken <= 0) return;
+    fanScale.value = withSequence(
+      withSpring(1.08, { damping: 12, stiffness: 420, mass: 0.5 }),
+      withSpring(1, SPRING),
+    );
+  }, [pulseToken, fanScale]);
+
+  const fanStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: fanScale.value }],
+  }));
+
+  if (shown === 0) {
+    return <View style={{ width: cardW, height: cardH }} />;
+  }
+
   return (
-    <View style={{ width: (shown - 1) * stride + cardW, height: cardH }}>
+    <Animated.View style={[{ width: (shown - 1) * stride + cardW, height: cardH }, fanStyle]}>
       {Array.from({ length: shown }).map((_, i) => (
         <View
           key={i}
@@ -63,7 +86,7 @@ function MiniFan({ count }: { count: number }) {
           ]}
         />
       ))}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -73,20 +96,21 @@ function PlayerSeatComponent({
   cardCount,
   role,
   indication,
-  active,
   onClock,
   turnProgress,
   timerEnabled = true,
   showTimerRing = true,
   finished,
+  skipEnterAnimation = false,
+  landingPulseToken = 0,
+  onSeatAnchorLayout,
+  onSeatAnchorRemoved,
 }: PlayerSeatProps) {
   const isTaking = role === "taking";
-  const expanded = (active || isTaking) && !finished;
   const ui = useUiTheme();
-  const showBorder =
+  const showTimer =
     !finished && indication != null && (onClock || role === "taking");
   const ringColor = indication ? indicationColor(indication) : ui.accent;
-  const glowColor = indication ? indicationShadowColor(indication) : ui.accent;
 
   const [layoutSize, setLayoutSize] = useState({ width: 0, height: 0 });
   const layoutReady = layoutSize.width > 0 && layoutSize.height > 0;
@@ -100,103 +124,63 @@ function PlayerSeatComponent({
     );
   }, []);
 
-  const scale = useSharedValue(expanded ? 1 : 0.94);
-  const seatOpacity = useSharedValue(expanded ? 1 : 0.88);
-
-  useEffect(() => {
-    scale.value = withSpring(expanded ? 1 : 0.94, SPRING);
-    seatOpacity.value = withSpring(expanded ? 1 : 0.88, SPRING);
-  }, [expanded, scale, seatOpacity]);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: seatOpacity.value,
-  }));
-
-  const avatarSize = expanded ? 26 : 28;
-
-  const avatarEl = (
-    <View style={[styles.avatarWrap, { width: avatarSize, height: avatarSize }]}>
-      <PlayerAvatar name={name} size={avatarSize} />
-    </View>
-  );
-
   return (
     <View style={styles.outer}>
-      <Animated.View style={animStyle}>
-        <View style={styles.shell} onLayout={onLayout}>
-          <SeatReactionBurst playerId={playerId} />
-          {isTaking && !finished && <TakeSpeechBubble />}
-          <Animated.View
-            entering={FadeIn.duration(350)}
-            style={[
-              styles.panel,
-              { backgroundColor: ui.panelBg },
-              showBorder && [styles.active, { shadowColor: glowColor }],
-              isTaking && !finished && styles.panelTaking,
-              finished && styles.finished,
-            ]}
-          >
-            {showBorder && (
-              <View style={[styles.activeTint, { backgroundColor: ui.activeTint }]} pointerEvents="none" />
-            )}
-
-            <View style={[styles.body, expanded ? styles.bodyExpanded : styles.bodyCompact]}>
-              {expanded ? (
-                <View style={styles.topRow}>
-                  {avatarEl}
-                  <Text
-                    style={[styles.name, styles.nameExpanded, styles.nameSingleLine, { color: ui.textPrimary }]}
-                    numberOfLines={1}
-                  >
-                    {name}
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.compactHeader}>
-                  {avatarEl}
-                  <Text
-                    style={[styles.name, styles.nameCompact, styles.nameSingleLine, { color: ui.textPrimary }]}
-                    numberOfLines={1}
-                  >
-                    {name}
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.cardsRow}>
-                {expanded ? (
-                  <>
-                    <MiniFan count={cardCount} />
-                    <Text style={[styles.cardCount, { color: ui.textPrimary }]}>{cardCount}</Text>
-                  </>
-                ) : (
-                  <Text style={[styles.cardCountCompact, { color: ui.textPrimary }]}>
-                    {cardCount} cards
-                  </Text>
-                )}
+      <View style={styles.shell} onLayout={onLayout}>
+        <SeatReactionBurst playerId={playerId} />
+        {isTaking && !finished && <TakeSpeechBubble />}
+        <Animated.View
+          entering={skipEnterAnimation ? undefined : FadeIn.duration(350)}
+          style={[
+            styles.panel,
+            { backgroundColor: ui.panelBg },
+            isTaking && !finished && styles.panelTaking,
+            finished && styles.finished,
+          ]}
+        >
+          <View style={styles.body}>
+            <View style={styles.topRow}>
+              <View style={styles.avatarWrap}>
+                <PlayerAvatar name={name} size={28} />
               </View>
+              <Text
+                style={[styles.name, styles.nameSingleLine, { color: ui.textPrimary }]}
+                numberOfLines={1}
+              >
+                {name}
+              </Text>
             </View>
 
-            {finished && (
-              <View style={styles.roleBarFinished}>
-                <Text style={[styles.roleTextFinished, { color: ui.textFaint }]}>FINISHED</Text>
-              </View>
-            )}
-          </Animated.View>
-          {showBorder && timerEnabled && showTimerRing && (
-            <TurnTimerRing
-              visible={showBorder}
-              color={ringColor}
-              maxBorderRadius={radius.panel}
-              progress={turnProgress}
-              clockActive={onClock}
-              width={ringWidth}
-              height={ringHeight}
-            />
+            <View style={styles.cardsRow}>
+              <MeasuredAnchor
+                anchorId={seatAnchorId(playerId)}
+                onAnchorLayout={onSeatAnchorLayout}
+                onAnchorRemoved={onSeatAnchorRemoved}
+              >
+                <MiniFan count={cardCount} pulseToken={landingPulseToken} />
+              </MeasuredAnchor>
+              <Text style={[styles.cardCount, { color: ui.textPrimary }]}>{cardCount}</Text>
+            </View>
+          </View>
+
+          {finished && (
+            <View style={styles.roleBarFinished}>
+              <Text style={[styles.roleTextFinished, { color: ui.textFaint }]}>FINISHED</Text>
+            </View>
           )}
-        </View>
-      </Animated.View>
+        </Animated.View>
+        {showTimer && timerEnabled && showTimerRing && (
+          <TurnTimerRing
+            visible
+            color={ringColor}
+            maxBorderRadius={radius.panel}
+            progress={turnProgress}
+            clockActive={onClock}
+            width={ringWidth}
+            height={ringHeight}
+          />
+        )}
+      </View>
     </View>
   );
 }
@@ -218,44 +202,19 @@ const styles = StyleSheet.create({
     borderRadius: radius.panel,
     overflow: "hidden",
   },
-  active: {
-    shadowOpacity: 0.70,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 12,
-  },
   panelTaking: {
     overflow: "visible",
-  },
-  activeTint: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 0,
   },
   finished: { opacity: 0.45 },
 
   body: {
     gap: 6,
-  },
-  bodyExpanded: {
     padding: 8,
-  },
-  bodyCompact: {
-    padding: 7,
-    gap: 5,
   },
   topRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-  },
-  compactHeader: {
-    flexDirection: "column",
-    alignItems: "flex-start",
-    gap: 4,
   },
   avatarWrap: {
     position: "relative",
@@ -264,15 +223,10 @@ const styles = StyleSheet.create({
   },
   name: {
     fontWeight: "700",
+    fontSize: 11,
   },
   nameSingleLine: {
     flexShrink: 0,
-  },
-  nameExpanded: {
-    fontSize: 11,
-  },
-  nameCompact: {
-    fontSize: 11,
   },
   cardsRow: {
     flexDirection: "row",
@@ -286,10 +240,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   cardCount: {
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  cardCountCompact: {
     fontSize: 11,
     fontWeight: "800",
   },

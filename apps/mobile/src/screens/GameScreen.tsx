@@ -7,7 +7,6 @@ import {
   Text,
   View,
 } from "react-native";
-import Constants from "expo-constants";
 import { useSharedValue } from "react-native-reanimated";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -20,7 +19,18 @@ import {
 } from "@durak/game-core";
 import { Background } from "../components/Background";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { DeckPile } from "../components/DeckPile";
+import { DeckPile, DECK_ANCHOR_ID } from "../components/DeckPile";
+import { DealFlightOverlay } from "../components/DealFlightOverlay";
+import { CardFlightOverlay } from "../components/CardFlightOverlay";
+import type { AnchorRect } from "../components/MeasuredAnchor";
+import { useDealAnimation } from "../hooks/useDealAnimation";
+import { useTakeAnimation } from "../hooks/useTakeAnimation";
+import type { QueuedDealStep } from "../game/dealSequence";
+import {
+  isTableCardAnchorId,
+  tableCardIdsFromPairs,
+  type TakeSnapshot,
+} from "../game/takeSequence";
 import { AbilityDock } from "../components/AbilityDock";
 import { GraveyardSheet } from "../components/GraveyardSheet";
 import { PendingRevealOverlay } from "../components/PendingRevealOverlay";
@@ -29,8 +39,8 @@ import {
   ReactionsHost,
   type ReactionsHostRef,
 } from "../components/ReactionsBar";
-import { Hand } from "../components/Hand";
-import { PlayerSeat } from "../components/PlayerSeat";
+import { Hand, HAND_ANCHOR_ID } from "../components/Hand";
+import { PlayerSeat, seatAnchorId } from "../components/PlayerSeat";
 import { HumanPlayerChip } from "../components/HumanPlayerChip";
 import { EconomyBar } from "../components/EconomyBar";
 import {
@@ -74,10 +84,9 @@ import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
 import { useReduceMotion } from "../hooks/useReduceMotion";
 
-const TABLE_EXIT_RESET_MS = 450;
+const TABLE_EXIT_RESET_MS = 620;
 const ROUND_CLEAR_DELAY_MS = 120;
 const ONLINE_TIMER_DEFER_MS = 0;
-const isExpoGo = Constants.executionEnvironment === "storeClient";
 
 const STANDARD_COACH_STEPS: CoachStep[] = [
   {
@@ -223,6 +232,124 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const prevMustActRef = useRef(false);
   const prevMustActForTimerRef = useRef(false);
   const [tableSlotSize, setTableSlotSize] = useState({ width: 0, height: 0 });
+  const [anchors, setAnchors] = useState<Record<string, AnchorRect>>({});
+  const freezeAnchorsRef = useRef(false);
+  const tableCardAnchorsRef = useRef<Record<string, AnchorRect>>({});
+  const pendingTakeSnapshotRef = useRef<TakeSnapshot | null>(null);
+
+  const handleAnchorLayout = useCallback((anchorId: string, rect: AnchorRect) => {
+    if (isTableCardAnchorId(anchorId)) {
+      tableCardAnchorsRef.current = {
+        ...tableCardAnchorsRef.current,
+        [anchorId]: rect,
+      };
+    }
+    if (freezeAnchorsRef.current) return;
+    setAnchors((prev) => {
+      const existing = prev[anchorId];
+      if (
+        existing &&
+        existing.x === rect.x &&
+        existing.y === rect.y &&
+        existing.width === rect.width &&
+        existing.height === rect.height
+      ) {
+        return prev;
+      }
+      return { ...prev, [anchorId]: rect };
+    });
+  }, []);
+
+  const handleAnchorRemoved = useCallback((anchorId: string) => {
+    setAnchors((prev) => {
+      if (!(anchorId in prev)) return prev;
+      const next = { ...prev };
+      delete next[anchorId];
+      return next;
+    });
+  }, []);
+
+  const deckAnchor = anchors[DECK_ANCHOR_ID] ?? null;
+  const handAnchor = anchors[HAND_ANCHOR_ID] ?? null;
+  const seatAnchors = useMemo(() => {
+    const out: Record<PlayerId, AnchorRect | undefined> = {};
+    if (!game) return out;
+    for (const p of game.players) {
+      if (p === humanId) continue;
+      out[p] = anchors[seatAnchorId(p)];
+    }
+    return out;
+  }, [game, humanId, anchors]);
+
+  const dealAnimation = useDealAnimation({
+    game,
+    humanId,
+    playMode: playMode === "online" ? "online" : "solo",
+    reduceMotion,
+    deckAnchor,
+    handAnchor,
+    seatAnchors,
+  });
+
+  const {
+    dealingInProgress,
+    dealKind,
+    displayedHandCounts,
+    displayedDeckCount,
+    revealedHumanCardIds,
+    dealQueue,
+    frozenOrigins,
+    handleStepComplete,
+    handleDealComplete,
+  } = dealAnimation;
+
+  const takeAnimation = useTakeAnimation({
+    game,
+    humanId,
+    playMode: playMode === "online" ? "online" : "solo",
+    reduceMotion,
+    handAnchor,
+    tableCardAnchorsRef,
+    pendingTakeSnapshotRef,
+  });
+
+  const {
+    takeInProgress,
+    takeQueue,
+    revealedTakenCardIds,
+    suppressTableExit,
+    handleTakeStepComplete,
+    handleTakeComplete,
+  } = takeAnimation;
+
+  freezeAnchorsRef.current =
+    frozenOrigins != null || dealQueue.length > 0 || takeQueue.length > 0;
+
+  const handleStepCompleteRef = useRef(handleStepComplete);
+  handleStepCompleteRef.current = handleStepComplete;
+  const handleDealCompleteRef = useRef(handleDealComplete);
+  handleDealCompleteRef.current = handleDealComplete;
+
+  const handleDealSound = useCallback(() => {
+    trigger("deal");
+  }, []);
+
+  const handleDealStepComplete = useCallback((step: QueuedDealStep) => {
+    handleStepCompleteRef.current(step);
+  }, []);
+
+  const handleTakeCompleteStable = useCallback(() => {
+    handleTakeComplete();
+    tableCardAnchorsRef.current = {};
+  }, [handleTakeComplete]);
+
+  const handleDealCompleteStable = useCallback(() => {
+    handleDealCompleteRef.current();
+  }, []);
+
+  const handleTakeSound = useCallback(() => {
+    trigger("takeCards");
+  }, []);
 
   const tableLayout = useMemo(
     () =>
@@ -252,12 +379,12 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     [],
   );
 
-  const instantDeal = playMode === "online" || isExpoGo;
+  const instantDeal = reduceMotion;
 
   const handleCardsDealt = useCallback(() => {
-    if (instantDeal) return;
+    if (instantDeal || dealKind != null) return;
     trigger("deal");
-  }, [instantDeal]);
+  }, [instantDeal, dealKind]);
 
   const scheduleExitKindReset = useCallback(() => {
     if (exitResetTimerRef.current) clearTimeout(exitResetTimerRef.current);
@@ -536,10 +663,16 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   }, []);
 
   const confirmTake = useCallback(() => {
+    if (game) {
+      pendingTakeSnapshotRef.current = {
+        cardIds: tableCardIdsFromPairs(game.table),
+        anchors: { ...tableCardAnchorsRef.current },
+      };
+    }
     setTableExitKind("toHand");
     submitHuman({ type: "TAKE", player: humanId });
     setTakeConfirmOpen(false);
-  }, [submitHuman, humanId]);
+  }, [submitHuman, humanId, game]);
 
   useEffect(() => {
     if (!game) {
@@ -840,7 +973,8 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     (abilitiesMode || canAffordGold(goldBalance, REVEAL_GOLD_COST));
   const dockCanGraveyard =
     abilitiesMode || canAffordGold(goldBalance, GRAVEYARD_GOLD_COST);
-  const handInteractive = Boolean(view?.mustAct) && !submittingMove;
+  const handInteractive =
+    Boolean(view?.mustAct) && !submittingMove && !dealingInProgress && !takeInProgress;
   const humanIndication = humanOnClock
     ? (getSeatIndication(game, humanId, {
         mustAct: view?.mustAct,
@@ -913,14 +1047,16 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               key={id}
               playerId={id}
               name={names[id] ?? id}
-              cardCount={(game.hands[id] ?? []).length}
+              cardCount={displayedHandCounts[id] ?? (game.hands[id] ?? []).length}
               role={role}
               indication={oppIndication}
-              active={oppOnClock}
               onClock={oppOnClock}
               turnProgress={turnProgress}
               timerEnabled={timerEnabled}
               finished={oppFinished}
+              skipEnterAnimation={dealKind === "initial"}
+              onSeatAnchorLayout={handleAnchorLayout}
+              onSeatAnchorRemoved={handleAnchorRemoved}
             />
             );
           })}
@@ -938,6 +1074,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               trumpSuit={game.trumpSuit}
               layout={tableLayout}
               exitKind={tableExitKind}
+              suppressExitAnimation={suppressTableExit}
               choiceTargets={beatTransferChoice.choiceIndices}
               transferTargets={transferTargets}
               hoverDefendIndexSV={showBeatTransferChoice ? hoverDefendIndexSV : undefined}
@@ -945,15 +1082,20 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               dragActiveSV={showBeatTransferChoice ? dragActiveSV : undefined}
               reduceMotion={reduceMotion}
               remeasureKey={zoneRemeasureKey}
+              onTableCardAnchorLayout={handleAnchorLayout}
+              onTableCardAnchorRemoved={handleAnchorRemoved}
               onDropZoneLayout={showBeatTransferChoice ? onDropZoneLayout : undefined}
               onDropZoneRemoved={showBeatTransferChoice ? onDropZoneRemoved : undefined}
             />
           </View>
           <View style={styles.deckSlot}>
             <DeckPile
-              deckCount={game.deck.length}
+              deckCount={displayedDeckCount}
               trumpCard={game.trumpCard}
               trumpSuit={game.trumpSuit}
+              skipEnterAnimation={dealKind === "initial"}
+              onDeckAnchorLayout={handleAnchorLayout}
+              onDeckAnchorRemoved={handleAnchorRemoved}
             />
           </View>
         </View>
@@ -967,7 +1109,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
                 styles.takeBtn,
                 (!view.canTake || submittingMove) && styles.actionDisabled,
               ]}
-              disabled={!view.canTake || submittingMove}
+              disabled={!view.canTake || submittingMove || dealingInProgress || takeInProgress}
               onPress={() => {
                 trigger("uiTap");
                 setTakeConfirmOpen(true);
@@ -983,7 +1125,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
                 styles.doneBtn,
                 (!view.canPass || submittingMove) && styles.actionDisabled,
               ]}
-              disabled={!view.canPass || submittingMove}
+              disabled={!view.canPass || submittingMove || dealingInProgress || takeInProgress}
               onPress={() => submitHuman({ type: "PASS", player: humanId })}
             >
               <Text style={[styles.actionText, styles.doneText]}>DONE</Text>
@@ -996,6 +1138,14 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             interactive={handInteractive}
             trumpSuit={game.trumpSuit}
             instantDeal={instantDeal}
+            dealOverlayMode={dealKind}
+            takeOverlayActive={takeInProgress}
+            dealingInProgress={dealingInProgress || takeInProgress}
+            revealedCardIds={
+              takeInProgress ? revealedTakenCardIds : revealedHumanCardIds
+            }
+            onHandAnchorLayout={handleAnchorLayout}
+            onHandAnchorRemoved={handleAnchorRemoved}
             onPlay={playCard}
             onDropAt={onDropAt}
             onDragMove={showBeatTransferChoice ? updateDragAim : undefined}
@@ -1047,6 +1197,28 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         </View>
 
         <ReactionsHost ref={reactionsRef} />
+
+        {dealQueue.length > 0 && frozenOrigins && (
+          <DealFlightOverlay
+            queue={dealQueue}
+            humanId={humanId}
+            origins={frozenOrigins}
+            onStepComplete={handleDealStepComplete}
+            onComplete={handleDealCompleteStable}
+            onDealSound={handleDealSound}
+            playMode={playMode === "online" ? "online" : "solo"}
+          />
+        )}
+
+        {takeQueue.length > 0 && (
+          <CardFlightOverlay
+            queue={takeQueue}
+            onStepComplete={handleTakeStepComplete}
+            onComplete={handleTakeCompleteStable}
+            onFlightSound={handleTakeSound}
+            soundMode={playMode === "online" ? "online" : "solo"}
+          />
+        )}
       </SafeAreaView>
 
       <ConfirmDialog

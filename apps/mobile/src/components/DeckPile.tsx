@@ -10,6 +10,7 @@ import {
 } from "@durak/game-core";
 import { useCardTheme } from "../theme/CardThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
+import { MeasuredAnchor } from "./MeasuredAnchor";
 import { Card } from "./Card";
 import { cardSize, radius } from "../theme";
 
@@ -17,9 +18,21 @@ export interface DeckPileProps {
   deckCount: number;
   trumpCard: CardModel;
   trumpSuit: Suit;
+  skipEnterAnimation?: boolean;
+  onDeckAnchorLayout?: (anchorId: string, rect: import("./MeasuredAnchor").AnchorRect) => void;
+  onDeckAnchorRemoved?: (anchorId: string) => void;
 }
 
-function DeckPileComponent({ deckCount, trumpCard, trumpSuit }: DeckPileProps) {
+const DECK_ANCHOR_ID = "deck";
+
+function DeckPileComponent({
+  deckCount,
+  trumpCard,
+  trumpSuit,
+  skipEnterAnimation = false,
+  onDeckAnchorLayout,
+  onDeckAnchorRemoved,
+}: DeckPileProps) {
   const theme = useCardTheme();
   const ui = useUiTheme();
   const { w, h } = cardSize.small;
@@ -28,73 +41,79 @@ function DeckPileComponent({ deckCount, trumpCard, trumpSuit }: DeckPileProps) {
   const symbol = SUIT_SYMBOLS[trumpSuit];
 
   return (
-    <Animated.View entering={FadeIn.duration(400)} style={styles.column}>
+    <Animated.View entering={skipEnterAnimation ? undefined : FadeIn.duration(400)} style={styles.column}>
+      <MeasuredAnchor
+        anchorId={DECK_ANCHOR_ID}
+        onAnchorLayout={onDeckAnchorLayout}
+        onAnchorRemoved={onDeckAnchorRemoved}
+        style={styles.anchorWrap}
+      >
+        <View style={[styles.stack, { width: w + 6, height: h + 6 }]}>
+          {deckCount > 0 ? (
+            <>
+              <Card faceDown compact width={w} height={h} style={{ position: "absolute", top: 5, left: 5 }} />
+              <Card faceDown compact width={w} height={h} style={{ position: "absolute", top: 2, left: 2 }} />
+              <Card faceDown compact width={w} height={h} />
+            </>
+          ) : (
+            <View
+              style={[
+                styles.emptyDeck,
+                {
+                  width: w,
+                  height: h,
+                  backgroundColor: ui.feltEdge,
+                  borderColor: ui.panelBorderSoft,
+                },
+              ]}
+            />
+          )}
 
-      <View style={[styles.stack, { width: w + 6, height: h + 6 }]}>
-        {deckCount > 0 ? (
-          <>
-            <Card faceDown compact width={w} height={h} style={{ position: "absolute", top: 5, left: 5 }} />
-            <Card faceDown compact width={w} height={h} style={{ position: "absolute", top: 2, left: 2 }} />
-            <Card faceDown compact width={w} height={h} />
-          </>
-        ) : (
           <View
-            style={[
-              styles.emptyDeck,
-              {
-                width: w,
-                height: h,
-                backgroundColor: ui.feltEdge,
-                borderColor: ui.panelBorderSoft,
-              },
-            ]}
-          />
-        )}
-
-        <View
-          style={[styles.centerSuitWrap, { width: w, height: h }]}
-          pointerEvents="none"
-        >
-          <Text
-            style={[
-              styles.centerSuit,
-              { color: suitColor, fontSize: Math.round(w * 0.45) },
-            ]}
+            style={[styles.centerSuitWrap, { width: w, height: h }]}
+            pointerEvents="none"
           >
-            {symbol}
-          </Text>
+            <Text
+              style={[
+                styles.centerSuit,
+                { color: suitColor, fontSize: Math.round(w * 0.45) },
+              ]}
+            >
+              {symbol}
+            </Text>
+          </View>
+
+          {deckCount > 0 && (
+            <View
+              style={[
+                styles.trumpBadge,
+                {
+                  backgroundColor: theme.face,
+                  borderColor: ui.accent,
+                  shadowColor: ui.accent,
+                },
+              ]}
+            >
+              <Text style={[styles.trumpRank, { color: suitColor }]}>{rank}</Text>
+              <Text style={[styles.trumpSuit, { color: suitColor }]}>{symbol}</Text>
+            </View>
+          )}
+
+          {deckCount > 0 && (
+            <View
+              style={[
+                styles.countRing,
+                {
+                  backgroundColor: ui.badgeBg,
+                  shadowColor: ui.accent,
+                },
+              ]}
+            >
+              <Text style={[styles.countText, { color: ui.badgeText }]}>{deckCount}</Text>
+            </View>
+          )}
         </View>
-
-        {deckCount > 0 && (
-          <View
-            style={[
-              styles.trumpBadge,
-              {
-                backgroundColor: theme.face,
-                borderColor: ui.accent,
-                shadowColor: ui.accent,
-              },
-            ]}
-          >
-            <Text style={[styles.trumpRank, { color: suitColor }]}>{rank}</Text>
-            <Text style={[styles.trumpSuit, { color: suitColor }]}>{symbol}</Text>
-          </View>
-        )}
-
-        {deckCount > 0 && (
-          <View
-            style={[
-              styles.countRing,
-              {
-                backgroundColor: ui.badgeBg,
-                shadowColor: ui.accent,
-              },
-            ]}
-          >
-            <Text style={[styles.countText, { color: ui.badgeText }]}>{deckCount}</Text>
-          </View>
-        )}
-      </View>
+      </MeasuredAnchor>
     </Animated.View>
   );
 }
@@ -103,6 +122,9 @@ const styles = StyleSheet.create({
   column: {
     alignItems: "center",
     gap: 6,
+  },
+  anchorWrap: {
+    alignItems: "center",
   },
   stack: {
     position: "relative",
@@ -161,3 +183,4 @@ const styles = StyleSheet.create({
 });
 
 export const DeckPile = React.memo(DeckPileComponent);
+export { DECK_ANCHOR_ID };

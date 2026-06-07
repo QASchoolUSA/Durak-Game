@@ -6,7 +6,9 @@ import {
   cardId,
   createGame,
   DEFAULT_RULES,
+  drawUpOrder,
   forceForfeitEnd,
+  initialDealOrder,
   isGameOver,
   legalAttacks,
   mulberry32,
@@ -306,6 +308,22 @@ describe("round resolution", () => {
     // After B takes, the attack passes to C; A becomes the next defender.
     expect(s.attackerId).toBe("C");
     expect(s.defenderId).toBe("A");
+  });
+});
+
+describe("deal order helpers", () => {
+  it("initialDealOrder deals round-robin", () => {
+    expect(initialDealOrder(["A", "B", "C"], 2)).toEqual(["A", "B", "C", "A", "B", "C"]);
+  });
+
+  it("drawUpOrder lists attacker first and defender last", () => {
+    const s = baseState({
+      players: ["A", "B", "C"],
+      hands: { A: [], B: [], C: [] },
+      attackerId: "B",
+      defenderId: "C",
+    });
+    expect(drawUpOrder(s)).toEqual(["B", "A", "C"]);
   });
 });
 

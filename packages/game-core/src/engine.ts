@@ -25,6 +25,30 @@ const HAND_SIZE = 6;
 const FIRST_BOUT_MAX_ATTACKS = 5;
 const MAX_ATTACKS = 6;
 
+/** Round-robin deal order at game start (one card per player per round). */
+export function initialDealOrder(playerIds: PlayerId[], handSize = HAND_SIZE): PlayerId[] {
+  const order: PlayerId[] = [];
+  for (let i = 0; i < handSize; i++) {
+    for (const p of playerIds) {
+      order.push(p);
+    }
+  }
+  return order;
+}
+
+/** Refill order after a bout: attacker, remaining attackers in seat order, defender last. */
+export function drawUpOrder(state: GameState): PlayerId[] {
+  const order: PlayerId[] = [state.attackerId];
+  let cursor = state.attackerId;
+  for (let k = 0; k < state.players.length; k++) {
+    cursor = seatAfter(state, cursor, false);
+    if (cursor === state.attackerId) break;
+    if (cursor !== state.defenderId) order.push(cursor);
+  }
+  order.push(state.defenderId);
+  return order;
+}
+
 export interface CreateGameOptions {
   /** Seed for the shuffle so games are reproducible. */
   seed?: number;
@@ -97,11 +121,9 @@ export function createGame(
 
   const hands: Record<PlayerId, Card[]> = {};
   for (const p of playerIds) hands[p] = [];
-  for (let i = 0; i < HAND_SIZE; i++) {
-    for (const p of playerIds) {
-      const card = deck.shift();
-      if (card) hands[p]!.push(card);
-    }
+  for (const p of initialDealOrder(playerIds)) {
+    const card = deck.shift();
+    if (card) hands[p]!.push(card);
   }
 
   const base: GameState = {
@@ -365,17 +387,7 @@ function resolveIfReady(state: GameState): void {
 }
 
 function drawUp(state: GameState): void {
-  // Refill order: primary attacker, remaining attackers in seat order, defender last.
-  const order: PlayerId[] = [state.attackerId];
-  let cursor = state.attackerId;
-  for (let k = 0; k < state.players.length; k++) {
-    cursor = seatAfter(state, cursor, false);
-    if (cursor === state.attackerId) break;
-    if (cursor !== state.defenderId) order.push(cursor);
-  }
-  order.push(state.defenderId);
-
-  for (const p of order) {
+  for (const p of drawUpOrder(state)) {
     const hand = state.hands[p] ?? [];
     while (hand.length < HAND_SIZE && state.deck.length > 0) {
       const card = state.deck.shift();

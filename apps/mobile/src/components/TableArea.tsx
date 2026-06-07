@@ -1,6 +1,7 @@
 import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, {
+  Easing,
   FadeIn,
   FadeOut,
   withDelay,
@@ -13,8 +14,9 @@ import { ChoiceDropSlot } from "./ChoiceDropSlot";
 import { MeasuredDropSlot } from "./MeasuredDropSlot";
 import { useSharedIndex } from "../hooks/useSharedIndex";
 import { pairLayoutWidth, type DropZone, type DropZoneKind } from "../game/dropZones";
+import { MeasuredAnchor, type AnchorRect } from "./MeasuredAnchor";
+import { tableCardAnchorId } from "../game/takeSequence";
 import {
-  computeTableLayout,
   tablePairRows,
   type TableLayoutResult,
 } from "../game/tableLayout";
@@ -22,6 +24,7 @@ import {
 export type TableExitKind = "toHand" | "toOpponent" | "toDiscard";
 
 const EXIT_DURATION = 360;
+const DISCARD_EXIT_DURATION = 420;
 const ATTACK_ENTER_MS = 220;
 const DEFENSE_ENTER_MS = 200;
 
@@ -72,7 +75,7 @@ type ExitTarget = {
   scale: number;
 };
 
-function exitTargetFor(kind: TableExitKind, pairIndex: number): ExitTarget {
+function exitTargetFor(kind: "toHand" | "toOpponent", pairIndex: number): ExitTarget {
   switch (kind) {
     case "toHand":
       return {
@@ -90,18 +93,70 @@ function exitTargetFor(kind: TableExitKind, pairIndex: number): ExitTarget {
         scale: 0.8,
       };
     }
-    case "toDiscard":
-    default:
-      return {
-        translateX: -40 + pairIndex * 12,
-        translateY: 52,
-        rotate: "4deg",
-        scale: 0.88,
-      };
   }
 }
 
-function makeTableExit(kind: TableExitKind, pairIndex: number) {
+function makeDiscardExit(screenWidth: number, pairIndex: number) {
+  const delay = Math.min(pairIndex * 45, 180);
+  const duration = DISCARD_EXIT_DURATION;
+  const offScreenX = screenWidth * 0.55 + 40;
+  const target = {
+    translateX: offScreenX + pairIndex * 18,
+    translateY: (pairIndex - 1.5) * 6,
+    rotate: `${4 + pairIndex * 2}deg`,
+    scale: 0.92,
+  };
+
+  return () => {
+    "worklet";
+    const ease = Easing.out(Easing.cubic);
+    return {
+      initialValues: {
+        opacity: 1,
+        transform: [
+          { translateX: 0 },
+          { translateY: 0 },
+          { rotate: "0deg" },
+          { scale: 1 },
+        ],
+      },
+      animations: {
+        opacity: withDelay(
+          delay + duration * 0.75,
+          withTiming(0, { duration: duration * 0.25 }),
+        ),
+        transform: [
+          {
+            translateX: withDelay(
+              delay,
+              withTiming(target.translateX, { duration, easing: ease }),
+            ),
+          },
+          {
+            translateY: withDelay(
+              delay,
+              withTiming(target.translateY, { duration, easing: ease }),
+            ),
+          },
+          {
+            rotate: withDelay(
+              delay,
+              withTiming(target.rotate, { duration, easing: ease }),
+            ),
+          },
+          {
+            scale: withDelay(
+              delay,
+              withTiming(target.scale, { duration, easing: ease }),
+            ),
+          },
+        ],
+      },
+    };
+  };
+}
+
+function makeTableExit(kind: "toHand" | "toOpponent", pairIndex: number) {
   const delay = Math.min(pairIndex * 55, 220);
   const target = exitTargetFor(kind, pairIndex);
 
@@ -140,20 +195,20 @@ const DEFENSE_ENTER = makeDefenseEnter();
 const ATTACK_ENTER_REDUCED = FadeIn.duration(120);
 const DEFENSE_ENTER_REDUCED = FadeIn.duration(120);
 const EXIT_REDUCED = FadeOut.duration(120);
+const INSTANT_EXIT = FadeOut.duration(1);
 
 const MAX_TABLE_PAIRS = 6;
 
-function buildExitCache(kind: TableExitKind) {
+function buildExitCache(kind: "toHand" | "toOpponent") {
   return Array.from({ length: MAX_TABLE_PAIRS }, (_, i) => makeTableExit(kind, i));
 }
 
-const TABLE_EXITS: Record<TableExitKind, ReturnType<typeof makeTableExit>[]> = {
-  toDiscard: buildExitCache("toDiscard"),
+const TABLE_EXITS: Record<"toHand" | "toOpponent", ReturnType<typeof makeTableExit>[]> = {
   toHand: buildExitCache("toHand"),
   toOpponent: buildExitCache("toOpponent"),
 };
 
-function tableExitFor(kind: TableExitKind, pairIndex: number) {
+function tableExitFor(kind: "toHand" | "toOpponent", pairIndex: number) {
   return TABLE_EXITS[kind][pairIndex] ?? TABLE_EXITS[kind][0]!;
 }
 
@@ -175,6 +230,9 @@ export interface TableAreaProps {
   dragActiveSV?: SharedValue<boolean>;
   reduceMotion?: boolean;
   remeasureKey?: number;
+  suppressExitAnimation?: boolean;
+  onTableCardAnchorLayout?: (anchorId: string, rect: AnchorRect) => void;
+  onTableCardAnchorRemoved?: (anchorId: string) => void;
   onDropZoneLayout?: (zone: DropZone) => void;
   onDropZoneRemoved?: (tableIndex: number, kind: DropZoneKind) => void;
 }
@@ -195,11 +253,15 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
       dragActiveSV,
       reduceMotion = false,
       remeasureKey = 0,
+      suppressExitAnimation = false,
+      onTableCardAnchorLayout,
+      onTableCardAnchorRemoved,
       onDropZoneLayout,
       onDropZoneRemoved,
     },
     ref,
   ) {
+    const { width: screenWidth } = useWindowDimensions();
     const w = layout.cardW;
     const h = layout.cardH;
     const choiceSet = new Set(choiceTargets);
@@ -249,12 +311,18 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
       const pairH = showChoice ? h + Math.round(layout.pairPadW * 0.5) : h + layout.pairPadW;
 
       const attackCard = (
-        <Card
-          card={pair.attack}
-          width={w}
-          height={h}
-          trump={pair.attack.suit === trumpSuit}
-        />
+        <MeasuredAnchor
+          anchorId={tableCardAnchorId(pair.attack.id)}
+          onAnchorLayout={onTableCardAnchorLayout}
+          onAnchorRemoved={onTableCardAnchorRemoved}
+        >
+          <Card
+            card={pair.attack}
+            width={w}
+            height={h}
+            trump={pair.attack.suit === trumpSuit}
+          />
+        </MeasuredAnchor>
       );
 
       const beatSlot = (
@@ -281,11 +349,19 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
         />
       );
 
+      const pairExit = suppressExitAnimation
+        ? INSTANT_EXIT
+        : reduceMotion
+          ? EXIT_REDUCED
+          : exitKind === "toDiscard"
+            ? makeDiscardExit(screenWidth, i)
+            : tableExitFor(exitKind, i);
+
       return (
         <Animated.View
           key={pair.attack.id}
           entering={attackEnter}
-          exiting={reduceMotion ? EXIT_REDUCED : tableExitFor(exitKind, i)}
+          exiting={pairExit}
           style={styles.pairCell}
         >
           <View style={[styles.pair, { width: pairW, height: pairH }]}>
@@ -343,12 +419,18 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
                     },
                   ]}
                 >
-                  <Card
-                    card={pair.defense}
-                    width={w}
-                    height={h}
-                    trump={pair.defense.suit === trumpSuit}
-                  />
+                  <MeasuredAnchor
+                    anchorId={tableCardAnchorId(pair.defense.id)}
+                    onAnchorLayout={onTableCardAnchorLayout}
+                    onAnchorRemoved={onTableCardAnchorRemoved}
+                  >
+                    <Card
+                      card={pair.defense}
+                      width={w}
+                      height={h}
+                      trump={pair.defense.suit === trumpSuit}
+                    />
+                  </MeasuredAnchor>
                 </View>
               </Animated.View>
             )}
