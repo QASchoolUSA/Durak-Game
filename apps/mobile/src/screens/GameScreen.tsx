@@ -2,11 +2,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   InteractionManager,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { useSharedValue } from "react-native-reanimated";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -1004,6 +1006,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
 
   return (
     <Background variant="game">
+      {Platform.OS === "ios" && <StatusBar hidden />}
       <SafeAreaView style={styles.safe} edges={["top"]}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
