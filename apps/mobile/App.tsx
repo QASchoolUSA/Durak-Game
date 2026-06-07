@@ -14,7 +14,7 @@ import {
 } from "./src/game/store";
 import { convex, convexEnabled } from "./src/game/convexClient";
 import { convexTokenStorage } from "./src/game/convexTokenStorage";
-import { AuthBootstrap } from "./src/game/useAuthBootstrap";
+import { AuthGateProvider } from "./src/game/useAuthBootstrap";
 import { useGoldWallet } from "./src/game/useGoldWallet";
 import { useOnlineGame } from "./src/game/useOnlineGame";
 import { usePlaySessionIdle } from "./src/game/usePlaySessionIdle";
@@ -94,10 +94,11 @@ function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
   }
   return (
     <ConvexAuthProvider client={convex} storage={convexTokenStorage}>
-      <AuthBootstrap />
-      <OnlineGameSync />
-      <GoldWalletSync />
-      {children}
+      <AuthGateProvider>
+        <OnlineGameSync />
+        <GoldWalletSync />
+        {children}
+      </AuthGateProvider>
     </ConvexAuthProvider>
   );
 }

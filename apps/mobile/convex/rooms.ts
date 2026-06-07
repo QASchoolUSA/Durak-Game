@@ -18,6 +18,8 @@ import {
   type Card,
   type Move,
   type PlayerId,
+  aiMoveDelayMs,
+  normalizeTurnSeconds,
 } from "@durak/game-core";
 import { randomBotId, randomRoomCode } from "./lib/codes";
 import {
@@ -44,13 +46,14 @@ import { requireUserId } from "./lib/requireAuth";
 import { onlineRules } from "./lib/onlineRules";
 import { memberNames, sanitizeGameState } from "./lib/views";
 import {
+  chargeMatchBuyIns,
   deductGold,
   GRAVEYARD_GOLD_COST,
   REVEAL_GOLD_COST,
+  settleMatchEconomy,
 } from "./wallets";
 import { pickRevealedCard } from "./lib/revealHelpers";
 
-const AI_DELAY = { easy: 1400, medium: 750, hard: 320 } as const;
 const CLEANUP_BATCH_SIZE = 100;
 const RETURN_WINDOW_MS = 3000;
 const REVEAL_DISPLAY_MS = 4000;
@@ -157,6 +160,14 @@ async function applyGameUpdate(
     }
   }
 
+  let economy = room.economy;
+  if (next.phase === "gameOver") {
+    await settleMatchEconomy(ctx, room, next);
+    if (economy?.buyInsCharged) {
+      economy = { ...economy, settled: true };
+    }
+  }
+
   await ctx.db.patch(roomId, {
     gameState: next,
     status,
@@ -170,6 +181,7 @@ async function applyGameUpdate(
         : { returnWindow: undefined }
       : {}),
     pendingReveal: undefined,
+    economy,
     version: room.version + 1,
   });
 
@@ -216,6 +228,7 @@ export const createRoom = mutation({
   args: {
     config: roomConfigValidator,
     displayName: v.string(),
+    turnTimerSeconds: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
@@ -249,7 +262,7 @@ export const createRoom = mutation({
       ],
       lastMoveAt: now,
       lastTouchedAt: now,
-      turnTimerSeconds: DEFAULT_TURN_SECONDS,
+      turnTimerSeconds: normalizeTurnSeconds(args.turnTimerSeconds),
       version: 0,
     });
 
@@ -511,18 +524,26 @@ async function beginNextRound(
     rules,
   });
 
+  await chargeMatchBuyIns(ctx, membersWithIds);
+
+  const nextVersion = room.version + 1;
   await ctx.db.patch(roomId, {
     status: "playing",
     config,
     members: membersWithIds,
-    turnTimerSeconds: DEFAULT_TURN_SECONDS,
+    turnTimerSeconds: room.turnTimerSeconds ?? DEFAULT_TURN_SECONDS,
     turnDeadlineAt: undefined,
     turnClockPlayerId: undefined,
     returnWindow: undefined,
     pendingReveal: undefined,
     recentReaction: undefined,
+    economy: {
+      roundVersion: nextVersion,
+      buyInsCharged: true,
+      settled: false,
+    },
     ...touchFields(),
-    version: room.version + 1,
+    version: nextVersion,
   });
 
   const updated = await ctx.db.get(roomId);
@@ -756,7 +777,8 @@ export const useGraveyardAbility = mutation({
       throw new Error("Not a member of this room");
     }
 
-    const graveCost = GRAVEYARD_GOLD_COST;
+    const graveCost =
+      room.config.playStyle === "abilities" ? 0 : GRAVEYARD_GOLD_COST;
     const goldBalance = await deductGold(ctx, userId, graveCost, "graveyard");
     return { goldBalance };
   },
@@ -788,7 +810,8 @@ export const useRevealAbility = mutation({
       args.cardIndex,
     );
 
-    const revealCost = REVEAL_GOLD_COST;
+    const revealCost =
+      room.config.playStyle === "abilities" ? 0 : REVEAL_GOLD_COST;
     const goldBalance = await deductGold(ctx, userId, revealCost, "reveal");
 
     const now = Date.now();
@@ -998,7 +1021,7 @@ export const processBotTurns = internalMutation({
     const move = findBotMove(state, bots, room.config.difficulty);
     if (!move) return;
 
-    const delay = Math.max(AI_DELAY[room.config.difficulty], 900);
+    const delay = aiMoveDelayMs(room.config.difficulty);
     await ctx.scheduler.runAfter(delay, internal.rooms.applyBotMove, {
       roomId: args.roomId,
       move,

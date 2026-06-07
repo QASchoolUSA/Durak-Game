@@ -13,8 +13,10 @@ import {
   createGame,
   pickMove,
   undefendedCount,
+  aiMoveDelayMs,
 } from "@durak/game-core";
 import { timeoutMoveFor } from "./autoMove";
+import { soloMatchEndCreditDelta } from "./matchSettlement";
 import { trigger } from "../feedback/haptics";
 import { submitOnlineMove } from "./onlineBridge";
 import type { RoomView } from "./onlineTypes";
@@ -30,10 +32,7 @@ import {
   getStoredCreditBalance,
   setStoredCreditBalance,
 } from "./creditStorage";
-import {
-  STARTING_GOLD,
-  WIN_GOLD_REWARD,
-} from "./goldEconomy";
+import { STARTING_GOLD } from "./goldEconomy";
 import {
   getStoredGoldBalance,
   setStoredGoldBalance,
@@ -51,7 +50,6 @@ export type Screen = "home" | "lobby" | "game" | "result";
 export type Difficulty = "easy" | "medium" | "hard";
 export type PlayMode = "solo" | "online";
 
-const AI_DELAY: Record<Difficulty, number> = { easy: 1400, medium: 750, hard: 320 };
 const RETURN_WINDOW_MS = 3000;
 const RESULT_DELAY_MS = 400;
 
@@ -162,6 +160,7 @@ interface GameStore {
   rollbackGoldSpend: (amount: number) => void;
   awardGoldLocal: (amount: number) => void;
   syncCreditBalance: (balance: number) => void;
+  deductCreditsLocal: (amount: number) => boolean;
   awardCreditsLocal: (amount: number) => void;
 }
 
@@ -196,9 +195,24 @@ export const useGameStore = create<GameStore>((set, get) => {
     set({ returnSnapshot: null, returnExpiresAt: 0 });
   }
 
+  function settleSoloEconomy(next: GameState) {
+    if (get().playMode !== "solo") return;
+    const { humanId, buyIn, numPlayers } = get();
+    const delta = soloMatchEndCreditDelta({
+      isDraw: next.loserId === null,
+      humanIsWinner: (next.finishedOrder[0] ?? null) === humanId,
+      numPlayers,
+      buyIn,
+    });
+    if (delta > 0) {
+      get().awardCreditsLocal(delta);
+    }
+  }
+
   function finishGameOver(next: GameState) {
     cancelAi();
     cancelResultTimer();
+    settleSoloEconomy(next);
     const delay = next.table.length === 0 ? RESULT_DELAY_MS : 0;
     set({
       game: next,
@@ -271,7 +285,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           return;
         }
       }
-    }, AI_DELAY[get().difficulty]);
+    }, aiMoveDelayMs(get().difficulty));
   }
 
   return {
@@ -456,8 +470,6 @@ export const useGameStore = create<GameStore>((set, get) => {
           game: nextGame,
           pendingReveal: null,
           submittingMove: false,
-          returnSnapshot: null,
-          returnExpiresAt: 0,
         });
         return;
       }
@@ -511,6 +523,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       clearReturnWindow();
       cancelResultTimer();
       const count = n ?? get().numPlayers;
+      const buyIn = get().buyIn;
+      if (!get().deductCreditsLocal(buyIn)) {
+        set({ onlineStatusMessage: "Not enough credits." });
+        return;
+      }
       const { variant, throwInScope, playStyle } = get();
       const { ids, names } = buildPlayers(count);
       const game = createGame(ids, {
@@ -524,9 +541,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         names,
         game,
         lastMoveAt: Date.now(),
-        pot: get().buyIn * count,
+        pot: buyIn * count,
         onlineRoomId: null,
         onlineRoomCode: null,
+        onlineStatusMessage: null,
       });
       persistConfig(get());
       scheduleAi();
@@ -569,10 +587,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         return;
       }
 
-      const abilitiesActive = game.rules.playStyle === "abilities";
       const cardPlay = isHumanCardMove(move, humanId);
-      const snapshot =
-        abilitiesActive && cardPlay ? cloneGameState(game) : null;
+      const snapshot = cardPlay ? cloneGameState(game) : null;
 
       try {
         const next = applyMove(game, move);
@@ -587,7 +603,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           return;
         }
 
-        if (abilitiesActive && cardPlay && snapshot) {
+        if (cardPlay && snapshot) {
           cancelAi();
           set({
             game: next,
@@ -674,6 +690,16 @@ export const useGameStore = create<GameStore>((set, get) => {
       void setStoredCreditBalance(safe);
     },
 
+    deductCreditsLocal: (amount) => {
+      const cost = Math.max(0, Math.floor(amount));
+      const { creditBalance } = get();
+      if (cost > 0 && creditBalance < cost) return false;
+      const next = creditBalance - cost;
+      set({ creditBalance: next });
+      void setStoredCreditBalance(next);
+      return true;
+    },
+
     awardCreditsLocal: (amount) => {
       const bonus = Math.max(0, Math.floor(amount));
       if (bonus <= 0) return;
@@ -758,10 +784,3 @@ export async function loadCredits(): Promise<void> {
   }
 }
 
-export function awardWinGoldLocal(): void {
-  useGameStore.getState().awardGoldLocal(WIN_GOLD_REWARD);
-}
-
-export function awardWinCreditsLocal(pot: number): void {
-  useGameStore.getState().awardCreditsLocal(pot);
-}

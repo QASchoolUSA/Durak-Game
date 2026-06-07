@@ -121,6 +121,11 @@ describe("createGame", () => {
     }
     if (owner) expect(g.attackerId).toBe(owner);
   });
+
+  it("starts first bout with a 5-card attack cap", () => {
+    const g = createGame(["A", "B"], { seed: 42 });
+    expect(g.maxAttacks).toBe(5);
+  });
 });
 
 describe("attack / throw-in limits", () => {
@@ -160,11 +165,97 @@ describe("attack / throw-in limits", () => {
     // Defender holds only 1 card and already has 1 undefended attack to answer.
     expect(legalAttacks(s, "A")).toHaveLength(0);
   });
+
+  it("caps throw-ins during take by defender hand size", () => {
+    let s = baseState({
+      hands: {
+        A: [makeCard(9, "clubs"), makeCard(9, "diamonds")],
+        B: [makeCard(8, "hearts"), makeCard(10, "hearts"), makeCard(11, "hearts")],
+      },
+      table: [{ attack: makeCard(9, "hearts") }],
+      takeInProgress: true,
+    });
+    expect(legalAttacks(s, "A")).toHaveLength(2);
+    s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "clubs") });
+    expect(legalAttacks(s, "A")).toHaveLength(1);
+    s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "diamonds") });
+    expect(legalAttacks(s, "A")).toHaveLength(0);
+    expect(s.table).toHaveLength(3);
+  });
+
+  it("rejects throw-in past defender hand size during take", () => {
+    const s = baseState({
+      hands: {
+        A: [makeCard(9, "clubs")],
+        B: [makeCard(8, "hearts"), makeCard(10, "hearts"), makeCard(11, "hearts")],
+      },
+      table: [
+        { attack: makeCard(9, "hearts") },
+        { attack: makeCard(9, "diamonds") },
+        { attack: makeCard(9, "spades") },
+      ],
+      takeInProgress: true,
+    });
+    expect(() =>
+      applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "clubs") }),
+    ).toThrow();
+  });
+
+  it("blocks a 6th throw-in during the first bout", () => {
+    const s = baseState({
+      maxAttacks: 5,
+      hands: {
+        A: [makeCard(10, "clubs")],
+        B: [
+          makeCard(11, "hearts"),
+          makeCard(12, "hearts"),
+          makeCard(13, "hearts"),
+          makeCard(14, "hearts"),
+          makeCard(6, "spades"),
+          makeCard(7, "spades"),
+        ],
+      },
+      table: [
+        { attack: makeCard(10, "hearts") },
+        { attack: makeCard(9, "hearts") },
+        { attack: makeCard(9, "diamonds") },
+        { attack: makeCard(9, "spades") },
+        { attack: makeCard(9, "clubs") },
+      ],
+    });
+    expect(legalAttacks(s, "A")).toHaveLength(0);
+  });
+
+  it("allows a 6th throw-in after the first bout", () => {
+    const s = baseState({
+      maxAttacks: 6,
+      hands: {
+        A: [makeCard(10, "clubs")],
+        B: [
+          makeCard(11, "hearts"),
+          makeCard(12, "hearts"),
+          makeCard(13, "hearts"),
+          makeCard(14, "hearts"),
+          makeCard(6, "spades"),
+          makeCard(7, "spades"),
+        ],
+      },
+      table: [
+        { attack: makeCard(10, "hearts") },
+        { attack: makeCard(9, "hearts") },
+        { attack: makeCard(9, "diamonds") },
+        { attack: makeCard(9, "spades") },
+        { attack: makeCard(9, "clubs") },
+      ],
+    });
+    expect(legalAttacks(s, "A")).toHaveLength(1);
+  });
 });
 
 describe("round resolution", () => {
   it("successful defense sends cards to the discard and swaps roles", () => {
     let s = baseState({
+      maxAttacks: 5,
       // Spare cards so neither player empties out and ends the game.
       hands: {
         A: [makeCard(9, "hearts"), makeCard(6, "diamonds")],
@@ -177,6 +268,7 @@ describe("round resolution", () => {
     s = applyMove(s, { type: "PASS", player: "A" });
     expect(s.discard).toHaveLength(2);
     expect(s.table).toHaveLength(0);
+    expect(s.maxAttacks).toBe(6);
     // Defender (B) successfully defended, so B now attacks.
     expect(s.attackerId).toBe("B");
     expect(s.defenderId).toBe("A");
@@ -307,6 +399,38 @@ describe("game over", () => {
     s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(6, "hearts") });
     s = applyMove(s, { type: "DEFEND", player: "B", card: makeCard(7, "hearts"), target: 0 });
     expect(s.phase).toBe("gameOver");
+  });
+
+  it("ends with durak when only one holder remains mid-bout", () => {
+    let s = baseState({
+      players: ["A", "B", "C"],
+      hands: { A: [], B: [], C: [makeCard(9, "hearts"), makeCard(8, "clubs")] },
+      deck: [],
+      attackerId: "C",
+      defenderId: "A",
+      finishedOrder: ["A", "B"],
+      table: [],
+    });
+    s = applyMove(s, { type: "ATTACK", player: "C", card: makeCard(9, "hearts") });
+    expect(isGameOver(s)).toBe(true);
+    expect(s.loserId).toBe("C");
+    expect(s.table).toHaveLength(0);
+    expect(s.hands["C"]!.map((c) => c.id)).toContain(cardId(8, "clubs"));
+  });
+
+  it("ends with draw when all players are empty mid-bout", () => {
+    let s = baseState({
+      hands: { A: [makeCard(9, "hearts")], B: [] },
+      deck: [],
+      attackerId: "A",
+      defenderId: "B",
+      finishedOrder: ["B"],
+    });
+    s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "hearts") });
+    expect(isGameOver(s)).toBe(true);
+    expect(s.loserId).toBeNull();
+    expect(s.table).toHaveLength(0);
+    expect(s.discard.map((c) => c.id)).toContain(cardId(9, "hearts"));
   });
 });
 

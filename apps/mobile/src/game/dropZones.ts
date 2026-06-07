@@ -374,6 +374,22 @@ export function resolveDropFromBounds(
     if (choice) {
       return { zone: choice, locked: commit ? null : lockZone(choice) };
     }
+    if (commit) {
+      const aim = aimPoint(bounds);
+      let nearestZone: DropZone | null = null;
+      let nearestDist = PROXIMITY_PX;
+      for (const zone of candidates) {
+        const c = zoneCenter(zone);
+        const dist = Math.hypot(aim.x - c.x, aim.y - c.y);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestZone = zone;
+        }
+      }
+      if (nearestZone) {
+        return { zone: nearestZone, locked: null };
+      }
+    }
   }
 
   const hits = centerHits(bounds, candidates);

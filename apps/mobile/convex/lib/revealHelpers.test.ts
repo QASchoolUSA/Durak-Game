@@ -19,4 +19,14 @@ describe("revealHelpers", () => {
     const card = pickRevealedCard(state, human, opponent, 0);
     expect(card.id).toBeTruthy();
   });
+
+  it("allows reveal when human is not the active player", () => {
+    const state = createGame(["bot1", "bot2", "you"], { seed: 12 });
+    const human = "you";
+    const opponent = revealEligibleOpponents(state, human).find((id) => id !== human);
+    if (!opponent) return;
+    expect(canReveal(state, human)).toBe(true);
+    const card = pickRevealedCard(state, human, opponent, 0);
+    expect(card.id).toBeTruthy();
+  });
 });

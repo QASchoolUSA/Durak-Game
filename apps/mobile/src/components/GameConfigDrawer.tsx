@@ -30,7 +30,8 @@ import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
 import { saveRoomSession } from "../game/onlineSessionStorage";
-import { useConvexAuthGate } from "../game/useAuthBootstrap";
+import { useOnlineAuth } from "../game/useAuthBootstrap";
+import { usePreferencesStore } from "../game/preferencesStore";
 
 // ── Static config ─────────────────────────────────────────────────────────────
 
@@ -101,7 +102,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const drawerH = Math.round(screenH * 0.88);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const prevVisible = useRef(visible);
+  const prevVisible = useRef(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -187,9 +188,10 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const setPlayMode = useGameStore((s) => s.setPlayMode);
   const startGame   = useGameStore((s) => s.startGame);
   const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
+  const turnSeconds = usePreferencesStore((s) => s.turnSeconds);
 
   const convexConfigured = Boolean(process.env.EXPO_PUBLIC_CONVEX_URL);
-  const { authReady, authLoading, ensureAuthenticated } = useConvexAuthGate();
+  const { authReady, authLoading, ensureAuthenticated } = useOnlineAuth();
 
   const handleStart = useCallback(async () => {
     if (playMode === "online" && !convexConfigured) {
@@ -218,6 +220,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
           playStyle,
           difficulty,
         },
+        turnTimerSeconds: turnSeconds,
       });
       await saveRoomSession({
         roomId: result.roomId,
@@ -255,6 +258,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
     onClose,
     startGame,
     enterOnlineLobby,
+    turnSeconds,
   ]);
 
   // ── Animated styles ────────────────────────────────────────────────────────

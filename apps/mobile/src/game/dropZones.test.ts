@@ -130,6 +130,38 @@ describe("resolveDropFromBounds", () => {
     expect(z?.kind).toBe("defend");
   });
 
+  it("commit picks transfer by aim when card center is outside vertical band", () => {
+    const { zone: z } = resolveDropFromBounds(
+      {
+        centerX: 131,
+        centerY: 400,
+        halfW: 42,
+        halfH: 59,
+        aimX: 213,
+        aimY: 243,
+      },
+      PAIR_ZONES,
+      { kinds: ["defend", "transfer"], tableIndices: [0], tableOverlap: true, commit: true },
+    );
+    expect(z?.kind).toBe("transfer");
+  });
+
+  it("commit picks nearest slot by aim proximity within range", () => {
+    const { zone: z } = resolveDropFromBounds(
+      {
+        centerX: 400,
+        centerY: 400,
+        halfW: 42,
+        halfH: 59,
+        aimX: 210,
+        aimY: 240,
+      },
+      PAIR_ZONES,
+      { kinds: ["defend", "transfer"], tableIndices: [0], tableOverlap: true, commit: true },
+    );
+    expect(z?.kind).toBe("transfer");
+  });
+
   it("overlap fallback locks zone when only defend candidate", () => {
     const zones = [zone("defend", 0, 100, 200)];
     const cx = 85;

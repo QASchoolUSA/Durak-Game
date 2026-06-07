@@ -37,13 +37,12 @@ function TurnTimerRingComponent({
 
   const perimeter = outline.perimeter;
   const clamped = clockActive ? Math.max(0, Math.min(1, progress)) : 1;
-  const opacity = clockActive && clamped < 0.02 ? 0.35 : 1;
 
   return (
     <Svg
       width={width}
       height={height}
-      style={[styles.svg, { width, height, opacity }]}
+      style={[styles.svg, { width, height }]}
       pointerEvents="none"
     >
       <Path

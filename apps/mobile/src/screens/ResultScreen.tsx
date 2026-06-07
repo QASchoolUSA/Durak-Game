@@ -8,12 +8,8 @@ import { Confetti } from "../components/Confetti";
 import { MenuButton } from "../components/MenuButton";
 import { useReduceMotion } from "../hooks/useReduceMotion";
 import { CoinIcon } from "../components/CoinIcon";
-import {
-  useGameStore,
-  awardWinCreditsLocal,
-  awardWinGoldLocal,
-} from "../game/store";
-import { WIN_GOLD_REWARD } from "../game/goldEconomy";
+import { useGameStore } from "../game/store";
+import { MATCH_BUY_IN } from "../game/creditEconomy";
 import { trigger } from "../feedback/haptics";
 import { clearRoomSession } from "../game/onlineSessionStorage";
 import { layoutFor, colors, radius, shadows, spacing, typography } from "../theme";
@@ -33,56 +29,36 @@ function rankBadge(rank: number, total: number, isLoser: boolean, accent: string
 
 // ── Animated prize counter ───────────────────────────────────────────────────
 
-function GoldPrizeCounter({ amount }: { amount: number }) {
+function CreditPrizeCounter({ amount, label }: { amount: number; label: string }) {
   const ui = useUiTheme();
   const animVal = useRef(new RNAnimated.Value(0)).current;
+  const displayAmount = Math.abs(amount);
+  const prefix = amount >= 0 ? "+" : "-";
 
   useEffect(() => {
     RNAnimated.timing(animVal, {
-      toValue: amount,
-      duration: 1200,
-      useNativeDriver: false,
-      delay: 700,
-    }).start();
-  }, [amount, animVal]);
-
-  return (
-    <View style={styles.prizeRow}>
-      <CoinIcon variant="gold" size={20} />
-      <RNAnimated.Text style={[styles.prizeAmount, { color: colors.gold }]}>
-        {animVal.interpolate({
-          inputRange: [0, amount],
-          outputRange: [`+0`, `+${amount}`],
-        })}
-      </RNAnimated.Text>
-      <Text style={[styles.prizeLabel, { color: ui.textMuted }]}> gold</Text>
-    </View>
-  );
-}
-
-function PrizeCounter({ amount }: { amount: number }) {
-  const ui = useUiTheme();
-  const animVal = useRef(new RNAnimated.Value(0)).current;
-
-  useEffect(() => {
-    RNAnimated.timing(animVal, {
-      toValue: amount,
+      toValue: displayAmount,
       duration: 1200,
       useNativeDriver: false,
       delay: 600,
     }).start();
-  }, [amount, animVal]);
+  }, [displayAmount, animVal]);
 
   return (
     <View style={styles.prizeRow}>
       <CoinIcon variant="credit" size={20} />
-      <RNAnimated.Text style={styles.prizeAmount}>
+      <RNAnimated.Text
+        style={[
+          styles.prizeAmount,
+          { color: amount >= 0 ? colors.success : colors.lose },
+        ]}
+      >
         {animVal.interpolate({
-          inputRange: [0, amount],
-          outputRange: [`+0`, `+${amount}`],
+          inputRange: [0, displayAmount],
+          outputRange: [`${prefix}0`, `${prefix}${displayAmount}`],
         })}
       </RNAnimated.Text>
-      <Text style={[styles.prizeLabel, { color: ui.textMuted }]}> credits</Text>
+      <Text style={[styles.prizeLabel, { color: ui.textMuted }]}> {label}</Text>
     </View>
   );
 }
@@ -142,6 +118,7 @@ export function ResultScreen() {
   const humanId    = useGameStore((s) => s.humanId);
   const names      = useGameStore((s) => s.names);
   const pot        = useGameStore((s) => s.pot);
+  const buyIn      = useGameStore((s) => s.buyIn);
   const numPlayers = useGameStore((s) => s.numPlayers);
   const playMode     = useGameStore((s) => s.playMode);
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
@@ -150,14 +127,10 @@ export function ResultScreen() {
   const { isAuthenticated } = useConvexAuth();
   const startGame  = useGameStore((s) => s.startGame);
   const goHome     = useGameStore((s) => s.goHome);
-  const syncGoldBalance = useGameStore((s) => s.syncGoldBalance);
-  const syncCreditBalance = useGameStore((s) => s.syncCreditBalance);
   const { width }  = useWindowDimensions();
   const lay        = layoutFor(width);
 
   const rematch = useMutation(api.rooms.rematch);
-  const awardWinGold = useMutation(api.wallets.awardWinGold);
-  const awardWinCredits = useMutation(api.wallets.awardWinCredits);
   const leaveRoom = useMutation(api.rooms.leaveRoom);
   const [returning, setReturning] = useState(false);
   const leftResultRef = useRef(false);
@@ -230,7 +203,6 @@ export function ResultScreen() {
   const humanLost = loser === humanId;
   const isDraw    = loser === null && game?.phase === "gameOver";
 
-  // Build ranked player list: finishedOrder first (best), then loser last
   const finished   = game?.finishedOrder ?? [];
   const allPlayers = game?.players ?? [];
   const rankings = [
@@ -250,75 +222,38 @@ export function ResultScreen() {
       ? { headline: "DURAK!",   emoji: "🃏", headlineColor: colors.lose }
       : { headline: "VICTORY!", emoji: "🏆", headlineColor: ui.accent };
 
-  const humanWon = !humanLost && !isDraw;
   const humanRank1 = (game?.finishedOrder[0] ?? null) === humanId;
-  const goldAwardedRef = useRef(false);
-  const creditsAwardedRef = useRef(false);
+  const effectiveBuyIn = buyIn || MATCH_BUY_IN;
+
+  const creditPrize =
+    isDraw ? effectiveBuyIn
+    : humanRank1 ? pot
+    : humanLost || finished.includes(humanId) ? -effectiveBuyIn
+    : null;
+
+  const creditPrizeLabel =
+    isDraw ? "credits returned"
+    : humanRank1 ? "credits won"
+    : "buy-in lost";
 
   useEffect(() => {
-    if (humanWon) trigger("success");
+    if (humanRank1 && !isDraw) trigger("success");
     else if (humanLost) trigger("failure");
-  }, [humanWon, humanLost]);
-
-  useEffect(() => {
-    if (!humanRank1 || goldAwardedRef.current) return;
-    goldAwardedRef.current = true;
-    if (playMode === "online" && onlineRoomId) {
-      void awardWinGold({
-        roomId: onlineRoomId as Id<"rooms">,
-      })
-        .then((result) => syncGoldBalance(result.goldBalance))
-        .catch(() => {
-          awardWinGoldLocal();
-        });
-    } else {
-      awardWinGoldLocal();
-    }
-  }, [
-    humanRank1,
-    playMode,
-    onlineRoomId,
-    awardWinGold,
-    syncGoldBalance,
-  ]);
-
-  useEffect(() => {
-    if (!humanRank1 || creditsAwardedRef.current) return;
-    creditsAwardedRef.current = true;
-    if (playMode === "online" && onlineRoomId) {
-      void awardWinCredits({
-        roomId: onlineRoomId as Id<"rooms">,
-      })
-        .then((result) => syncCreditBalance(result.creditBalance))
-        .catch(() => {
-          awardWinCreditsLocal(pot);
-        });
-    } else {
-      awardWinCreditsLocal(pot);
-    }
-  }, [
-    humanRank1,
-    playMode,
-    onlineRoomId,
-    pot,
-    awardWinCredits,
-    syncCreditBalance,
-  ]);
+  }, [humanRank1, humanLost, isDraw]);
 
   return (
     <Background variant="game">
-      {humanWon && !reduceMotion && <Confetti />}
+      {humanRank1 && !isDraw && !reduceMotion && <Confetti />}
       <SafeAreaView style={styles.safe}>
         <View style={[styles.content, { maxWidth: lay.maxContent }]}>
 
-          {/* ── Hero section ── */}
           <Animated.View
             entering={reduceMotion ? FadeIn.duration(300) : ZoomIn.springify().damping(14)}
             style={styles.hero}
           >
             <Text style={styles.heroEmoji}>{emoji}</Text>
             <Text style={[styles.heroTitle, { color: headlineColor }]}>{headline}</Text>
-            {humanWon && (
+            {humanRank1 && !isDraw && (
               <Text style={[styles.heroSub, { color: ui.textMuted }]}>
                 {names[loser!] ?? loser} is the fool!
               </Text>
@@ -365,15 +300,12 @@ export function ResultScreen() {
             ))}
           </Animated.View>
 
-          {/* ── Prize counter ── */}
-          {humanWon && (
+          {creditPrize != null && (
             <Animated.View entering={FadeInDown.delay(500).duration(350)} style={styles.prizeWrap}>
-              <PrizeCounter amount={pot} />
-              {humanRank1 && <GoldPrizeCounter amount={WIN_GOLD_REWARD} />}
+              <CreditPrizeCounter amount={creditPrize} label={creditPrizeLabel} />
             </Animated.View>
           )}
 
-          {/* ── Actions ── */}
           <Animated.View
             entering={FadeInDown.delay(600).duration(350)}
             style={styles.actions}
@@ -407,8 +339,6 @@ export function ResultScreen() {
   );
 }
 
-// ── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   safe: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: {
@@ -424,13 +354,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
 
-  // Hero
   hero:      { alignItems: "center", gap: spacing.xs },
   heroEmoji: { fontSize: 64, marginBottom: spacing.xs },
   heroTitle: { ...typography.display, textAlign: "center" },
   heroSub:   { ...typography.body, textAlign: "center" },
 
-  // Rankings
   rankingCard: {
     borderRadius: radius.panel,
     borderWidth: 1,
@@ -463,16 +391,12 @@ const styles = StyleSheet.create({
   },
   rankBadgeText: { ...typography.label, letterSpacing: 0.8 },
 
-  // Prize
   prizeWrap: { alignItems: "center", gap: spacing.xs },
   prizeRow:  { flexDirection: "row", alignItems: "center", gap: 4 },
-  prizeCoin: { fontSize: 22 },
   prizeAmount: {
     ...typography.title,
-    color: colors.success,
   },
   prizeLabel: { ...typography.body },
 
-  // Actions
   actions: { gap: spacing.sm },
 });

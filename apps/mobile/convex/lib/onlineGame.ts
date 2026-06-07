@@ -8,7 +8,7 @@ import {
   type PlayerId,
 } from "@durak/game-core";
 
-export const DEFAULT_TURN_SECONDS = 12;
+export { DEFAULT_TURN_SECONDS } from "@durak/game-core";
 export const LOBBY_STALE_MS = 30 * 60 * 1000;
 export const PLAYING_STALE_MS = 2 * 60 * 60 * 1000;
 

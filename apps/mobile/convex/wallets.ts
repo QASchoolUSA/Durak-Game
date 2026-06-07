@@ -48,6 +48,32 @@ async function deductGold(
   return goldBalance;
 }
 
+async function deductCredits(
+  ctx: { db: any },
+  userId: string,
+  amount: number,
+  reason: string,
+): Promise<number> {
+  const cost = Math.max(0, Math.floor(amount));
+  const wallet = await getWalletDoc(ctx, userId);
+  if (!wallet) {
+    throw new Error("Wallet not found");
+  }
+
+  const balance = resolveCreditBalance(wallet);
+  if (cost > 0 && balance < cost) {
+    throw new Error("Not enough credits");
+  }
+
+  const creditBalance = balance - cost;
+  await ctx.db.patch(wallet._id, {
+    creditBalance,
+    updatedAt: Date.now(),
+    lastReason: reason,
+  });
+  return creditBalance;
+}
+
 async function awardCredits(
   ctx: { db: any },
   userId: string,
@@ -66,6 +92,59 @@ async function awardCredits(
     lastReason: reason,
   });
   return creditBalance;
+}
+
+type RoomMemberLike = { userId: string; isBot: boolean };
+
+/** Deduct buy-in from every human in the room before a round starts. */
+export async function chargeMatchBuyIns(
+  ctx: { db: any },
+  members: RoomMemberLike[],
+): Promise<void> {
+  for (const member of members) {
+    if (member.isBot) continue;
+    await deductCredits(ctx, member.userId, MATCH_BUY_IN, "buy_in");
+  }
+}
+
+type FinishedGameState = {
+  phase: string;
+  finishedOrder: string[];
+  loserId: string | null;
+};
+
+type RoomForSettlement = {
+  config: { numPlayers: number };
+  members: Array<{ userId: string; isBot: boolean; playerId?: string }>;
+  economy?: { buyInsCharged?: boolean; settled?: boolean } | null;
+};
+
+/** Award pot or refund buy-ins when a match ends (online, server-authoritative). */
+export async function settleMatchEconomy(
+  ctx: { db: any },
+  room: RoomForSettlement,
+  state: FinishedGameState,
+): Promise<void> {
+  if (state.phase !== "gameOver") return;
+  if (!room.economy?.buyInsCharged || room.economy.settled) return;
+
+  const humans = room.members.filter((m) => !m.isBot);
+
+  if (state.loserId === null) {
+    for (const member of humans) {
+      await awardCredits(ctx, member.userId, MATCH_BUY_IN, "draw_refund");
+    }
+    return;
+  }
+
+  const winnerPlayerId = state.finishedOrder[0];
+  const winnerMember = room.members.find(
+    (m) => !m.isBot && m.playerId === winnerPlayerId,
+  );
+  if (!winnerMember) return;
+
+  const pot = MATCH_BUY_IN * room.config.numPlayers;
+  await awardCredits(ctx, winnerMember.userId, pot, "win_pot");
 }
 
 export const getWallet = query({
@@ -257,4 +336,4 @@ export const awardWinCredits = mutation({
   },
 });
 
-export { deductGold, GRAVEYARD_GOLD_COST, REVEAL_GOLD_COST };
+export { deductGold, deductCredits, GRAVEYARD_GOLD_COST, REVEAL_GOLD_COST };

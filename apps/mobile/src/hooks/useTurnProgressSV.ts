@@ -6,12 +6,18 @@ import {
   type TurnClockConfig,
 } from "../game/turnClockEngine";
 
+function progressFromConfig(config: TurnClockConfig): number {
+  if (!config.enabled || config.totalSeconds <= 0) return 0;
+  const remaining = computeTurnRemaining(config);
+  return turnProgressFromRemaining(remaining, config.totalSeconds);
+}
+
 /**
  * Turn progress on the JS thread (no useFrameCallback / SVG worklets).
  * Stable in Expo Go; timer ring reads the returned 0–1 value each tick.
  */
 export function useTurnProgress(config: TurnClockConfig): number {
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(() => progressFromConfig(config));
   const configRef = useRef(config);
   configRef.current = config;
 
@@ -29,27 +35,23 @@ export function useTurnProgress(config: TurnClockConfig): number {
       return;
     }
 
-    const deferMs = config.frameDeferMs ?? 0;
-    let intervalId: ReturnType<typeof setInterval> | undefined;
+    const tick = () => {
+      const c = configRef.current;
+      const remaining = computeTurnRemaining(c);
+      setProgress(turnProgressFromRemaining(remaining, c.totalSeconds));
+      tickTurnClock(c, {
+        firedRef,
+        prevRemainingRef,
+        onTimeoutRef,
+      });
+    };
 
-    const startId = setTimeout(() => {
-      const tick = () => {
-        const c = configRef.current;
-        const remaining = computeTurnRemaining(c);
-        setProgress(turnProgressFromRemaining(remaining, c.totalSeconds));
-        tickTurnClock(c, {
-          firedRef,
-          prevRemainingRef,
-          onTimeoutRef,
-        });
-      };
-      tick();
-      intervalId = setInterval(tick, 100);
-    }, deferMs);
+    setProgress(progressFromConfig(config));
+    tick();
+    const intervalId = setInterval(tick, 100);
 
     return () => {
-      clearTimeout(startId);
-      if (intervalId) clearInterval(intervalId);
+      clearInterval(intervalId);
     };
   }, [
     config.enabled,
@@ -57,7 +59,6 @@ export function useTurnProgress(config: TurnClockConfig): number {
     config.lastMoveAt,
     config.turnDeadlineAt,
     config.playMode,
-    config.frameDeferMs,
   ]);
 
   return progress;

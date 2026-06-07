@@ -22,6 +22,7 @@ import {
 } from "./types";
 
 const HAND_SIZE = 6;
+const FIRST_BOUT_MAX_ATTACKS = 5;
 const MAX_ATTACKS = 6;
 
 export interface CreateGameOptions {
@@ -118,7 +119,7 @@ export function createGame(
     finishedOrder: [],
     loserId: null,
     phase: "playing",
-    maxAttacks: MAX_ATTACKS,
+    maxAttacks: FIRST_BOUT_MAX_ATTACKS,
     rules,
   };
 
@@ -243,14 +244,54 @@ function markFinishedPlayers(state: GameState): void {
   }
 }
 
+/** Resolves leftover table cards when the game ends mid-bout. */
+function settleTableForGameEnd(state: GameState, soleHolder: PlayerId | null): void {
+  for (const pair of state.table) {
+    if (soleHolder && !pair.defense) {
+      state.hands[soleHolder] = [...handOf(state, soleHolder), pair.attack];
+    } else {
+      state.discard.push(pair.attack);
+      if (pair.defense) state.discard.push(pair.defense);
+    }
+  }
+}
+
 /** Returns true when the game has just ended (deck empty, at most one holder). */
 function checkGameOver(state: GameState): boolean {
   if (state.deck.length > 0) return false;
-  if (state.table.length > 0 || state.takeInProgress) return false;
+
   const inPlay = state.players.filter((p) => handOf(state, p).length > 0);
   if (inPlay.length > 1) return false;
+
+  if (inPlay.length === 1) {
+    const sole = inPlay[0]!;
+    const othersAllFinished = state.players
+      .filter((p) => p !== sole)
+      .every((p) => state.finishedOrder.includes(p));
+    if (!othersAllFinished) return false;
+
+    // Two-player end duel: let the defender answer the last attack.
+    if (
+      state.players.length === 2 &&
+      (state.table.length > 0 || state.takeInProgress)
+    ) {
+      const defender = state.defenderId;
+      if (
+        handOf(state, defender).length > 0 &&
+        !state.finishedOrder.includes(defender)
+      ) {
+        return false;
+      }
+    }
+  }
+
+  settleTableForGameEnd(state, inPlay[0] ?? null);
+
   state.phase = "gameOver";
   state.loserId = inPlay.length === 1 ? inPlay[0]! : null;
+  state.table = [];
+  state.passed = [];
+  state.takeInProgress = false;
   return true;
 }
 
@@ -351,6 +392,10 @@ function endRound(state: GameState, defenderTook: boolean): void {
   state.table = [];
   state.passed = [];
   state.takeInProgress = false;
+
+  if (state.maxAttacks < MAX_ATTACKS) {
+    state.maxAttacks = MAX_ATTACKS;
+  }
 
   if (checkGameOver(state)) return;
   assignNextRoles(state, defenderTook);

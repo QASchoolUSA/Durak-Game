@@ -17,7 +17,6 @@ import {
   type Card as CardModel,
   type GameState,
   type PlayerId,
-  undefendedCount,
 } from "@durak/game-core";
 import { Background } from "../components/Background";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -59,6 +58,7 @@ import {
   getHumanView,
   getSeatIndication,
   getSeatRole,
+  playerMustAct,
   opponentOrder,
   getBeatTransferChoice,
   revealEligibleOpponents,
@@ -76,7 +76,7 @@ import { useReduceMotion } from "../hooks/useReduceMotion";
 
 const TABLE_EXIT_RESET_MS = 450;
 const ROUND_CLEAR_DELAY_MS = 120;
-const ONLINE_TIMER_DEFER_MS = 800;
+const ONLINE_TIMER_DEFER_MS = 0;
 const isExpoGo = Constants.executionEnvironment === "storeClient";
 
 const STANDARD_COACH_STEPS: CoachStep[] = [
@@ -98,11 +98,6 @@ const ABILITIES_COACH_STEP: CoachStep = {
   title: "Abilities",
   body: "Return undoes your last play for 3 seconds. Graveyard shows discarded cards; Reveal lets you peek at an opponent's hand.",
 };
-
-function activePlayer(game: GameState): PlayerId {
-  if (!game.takeInProgress && undefendedCount(game) > 0) return game.defenderId;
-  return game.attackerId;
-}
 
 function seatRoleForFinished(
   game: GameState,
@@ -288,16 +283,19 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   );
 
   const dropOptionsForCard = useCallback(
-    (card: CardModel): { kinds: DropZoneKind[]; tableIndices: number[] } | null => {
+    (
+      card: CardModel,
+    ): { kinds: DropZoneKind[]; tableIndices: number[]; tableOverlap: boolean } | null => {
       if (!view) return null;
       const beat = view.defendable[card.id] ?? [];
-      const transfer = view.transferable[card.id] ?? [];
+      const canXfer = (view.transferable[card.id] ?? []).length > 0;
       const kinds: DropZoneKind[] = [];
       if (beat.length) kinds.push("defend");
-      if (transfer.length) kinds.push("transfer");
-      const tableIndices = [...new Set([...beat, ...transfer])];
+      if (canXfer) kinds.push("transfer");
       if (!kinds.length) return null;
-      return { kinds, tableIndices };
+      const tableIndices = [...new Set([...beat, ...(canXfer ? [0] : [])])];
+      const tableOverlap = beat.includes(0) && canXfer;
+      return { kinds, tableIndices, tableOverlap };
     },
     [view],
   );
@@ -306,12 +304,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     (card: CardModel, bounds: DragCardBounds, commit = false): DropZone | null => {
       const options = dropOptionsForCard(card);
       if (!options) return null;
-      const tableOverlap =
-        options.kinds.includes("defend") && options.kinds.includes("transfer");
       const result = resolveDropFromBounds(
         bounds,
         dropZonesRef.current,
-        { ...options, tableOverlap, commit },
+        { kinds: options.kinds, tableIndices: options.tableIndices, tableOverlap: options.tableOverlap, commit },
         commit ? null : lockedDropRef.current,
       );
       if (!commit) lockedDropRef.current = result.locked;
@@ -460,40 +456,74 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       if (!view) return;
 
       if (showBeatTransferChoice) {
+        const transferIdx = hoverTransferIndexSV.value;
+        const defendIdx = hoverDefendIndexSV.value;
         const zone = resolveZoneForCard(card, bounds, true);
         lockedDropRef.current = null;
-        setHoverDropIfChanged(null);
 
-        if (zone?.kind === "transfer") {
+        const tryTransfer = (tableIndex: number) => {
           const targets = view.transferable[card.id];
-          if (targets?.includes(zone.tableIndex)) {
-            submitHuman({
-              type: "TRANSFER",
-              player: humanId,
-              card,
-              target: zone.tableIndex,
-            });
-            return;
-          }
-        }
-        if (zone?.kind === "defend") {
+          if (!targets?.includes(tableIndex)) return false;
+          submitHuman({
+            type: "TRANSFER",
+            player: humanId,
+            card,
+            target: tableIndex,
+          });
+          return true;
+        };
+
+        const tryDefend = (tableIndex: number) => {
           const targets = view.defendable[card.id];
-          if (targets?.includes(zone.tableIndex)) {
-            submitHuman({
-              type: "DEFEND",
-              player: humanId,
-              card,
-              target: zone.tableIndex,
-            });
-            return;
+          if (!targets?.includes(tableIndex)) return false;
+          submitHuman({
+            type: "DEFEND",
+            player: humanId,
+            card,
+            target: tableIndex,
+          });
+          return true;
+        };
+
+        let submitted = false;
+        if (zone?.kind === "transfer") {
+          submitted = tryTransfer(zone.tableIndex);
+        } else if (zone?.kind === "defend") {
+          submitted = tryDefend(zone.tableIndex);
+        }
+
+        if (!submitted && transferIdx >= 0) {
+          submitted = tryTransfer(transferIdx);
+        }
+        if (!submitted && defendIdx >= 0) {
+          submitted = tryDefend(defendIdx);
+        }
+
+        if (!submitted) {
+          const xferTargets = view.transferable[card.id];
+          const defendTargets = view.defendable[card.id];
+          if (xferTargets?.length && !defendTargets?.length) {
+            submitted = tryTransfer(xferTargets[0]!);
           }
         }
+
+        setHoverDropIfChanged(null);
         return;
       }
 
       playCard(card);
     },
-    [view, showBeatTransferChoice, submitHuman, humanId, playCard, resolveZoneForCard, setHoverDropIfChanged],
+    [
+      view,
+      showBeatTransferChoice,
+      submitHuman,
+      humanId,
+      playCard,
+      resolveZoneForCard,
+      setHoverDropIfChanged,
+      hoverTransferIndexSV,
+      hoverDefendIndexSV,
+    ],
   );
 
   useEffect(() => {
@@ -621,8 +651,9 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const turnProgress = useTurnProgress(timerClock);
 
   const humanHand = useStableHandCards(game?.hands[humanId] ?? []);
+  const abilitiesMode = game?.rules.playStyle === "abilities";
 
-  const revealEnabled = game && view ? canReveal(game, humanId, view) : false;
+  const revealEnabled = game ? canReveal(game, humanId) : false;
   const revealOpponents = useMemo(() => {
     if (!game || !revealOpen) return [];
     return revealEligibleOpponents(game, humanId).map((id) => {
@@ -640,33 +671,36 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   }, [game, humanId, names, revealOpen, playMode]);
 
   const openGraveyard = useCallback(async () => {
-    if (!canAffordGold(goldBalance, GRAVEYARD_GOLD_COST)) {
-      setOnlineStatusMessage("Not enough gold.");
-      trigger("error");
-      return;
-    }
+    if (!abilitiesMode) {
+      if (!canAffordGold(goldBalance, GRAVEYARD_GOLD_COST)) {
+        setOnlineStatusMessage("Not enough gold.");
+        trigger("error");
+        return;
+      }
 
-    if (playMode === "online") {
-      if (!onlineRoomId) return;
-      try {
-        const result = await useGraveyardAbility({
-          roomId: onlineRoomId as Id<"rooms">,
-        });
-        syncGoldBalance(result.goldBalance);
-      } catch {
+      if (playMode === "online") {
+        if (!onlineRoomId) return;
+        try {
+          const result = await useGraveyardAbility({
+            roomId: onlineRoomId as Id<"rooms">,
+          });
+          syncGoldBalance(result.goldBalance);
+        } catch {
+          trigger("error");
+          setOnlineStatusMessage("Not enough gold.");
+          return;
+        }
+      } else if (!trySpendGold(GRAVEYARD_GOLD_COST)) {
         trigger("error");
         setOnlineStatusMessage("Not enough gold.");
         return;
       }
-    } else if (!trySpendGold(GRAVEYARD_GOLD_COST)) {
-      trigger("error");
-      setOnlineStatusMessage("Not enough gold.");
-      return;
     }
 
     pauseForOverlay();
     setGraveyardOpen(true);
   }, [
+    abilitiesMode,
     goldBalance,
     playMode,
     onlineRoomId,
@@ -680,7 +714,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const openReveal = useCallback(() => {
     if (!revealEnabled) return;
 
-    if (!canAffordGold(goldBalance, REVEAL_GOLD_COST)) {
+    if (
+      !abilitiesMode &&
+      !canAffordGold(goldBalance, REVEAL_GOLD_COST)
+    ) {
       setOnlineStatusMessage("Not enough gold.");
       return;
     }
@@ -688,6 +725,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     setRevealOpen(true);
   }, [
     revealEnabled,
+    abilitiesMode,
     goldBalance,
     pauseForOverlay,
     setOnlineStatusMessage,
@@ -712,7 +750,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         }
       }
 
-      if (!trySpendGold(REVEAL_GOLD_COST)) {
+      if (
+        !abilitiesMode &&
+        !trySpendGold(REVEAL_GOLD_COST)
+      ) {
         trigger("error");
         setOnlineStatusMessage("Not enough gold.");
         return null;
@@ -722,13 +763,16 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       const sorted = sortHandForDisplay(hand, game!.trumpSuit);
       const card = sorted[cardIndex] ?? null;
       if (!card) {
-        rollbackGoldSpend(REVEAL_GOLD_COST);
+        if (!abilitiesMode) {
+          rollbackGoldSpend(REVEAL_GOLD_COST);
+        }
         return null;
       }
       return card;
     },
     [
       playMode,
+      abilitiesMode,
       onlineRoomId,
       useRevealAbility,
       syncGoldBalance,
@@ -771,28 +815,27 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   }
 
   const opponents = opponentOrder(game, humanId);
-  const active = activePlayer(game);
   const humanFinished = game.finishedOrder.includes(humanId);
   const humanOnClock =
     playMode === "online"
       ? seatOnClockOnline(turnClockPlayerId, humanId) &&
         game.phase === "playing" &&
         !humanFinished
-      : Boolean(view?.mustAct) && game.phase === "playing" && !humanFinished;
+      : playerMustAct(game, humanId) && !humanFinished;
 
-  const abilitiesMode = game.rules.playStyle === "abilities";
-  const onlineGoldAbilities = playMode === "online" && !abilitiesMode;
+  const goldAbilitiesEnabled = !abilitiesMode && game.phase === "playing";
   const returnWindowActive =
     playMode === "online"
       ? returnExpiresAt > Date.now()
       : !!returnSnapshot && returnExpiresAt > Date.now();
   const showAbilityDock =
     game.phase === "playing" &&
-    (abilitiesMode || onlineGoldAbilities || returnWindowActive);
-  const canPayReveal = revealEnabled && canAffordGold(goldBalance, REVEAL_GOLD_COST);
-  const canPayGraveyard = canAffordGold(goldBalance, GRAVEYARD_GOLD_COST);
-  const dockCanReveal = canPayReveal;
-  const dockCanGraveyard = canPayGraveyard;
+    (abilitiesMode || goldAbilitiesEnabled || returnWindowActive);
+  const dockCanReveal =
+    revealEnabled &&
+    (abilitiesMode || canAffordGold(goldBalance, REVEAL_GOLD_COST));
+  const dockCanGraveyard =
+    abilitiesMode || canAffordGold(goldBalance, GRAVEYARD_GOLD_COST);
   const handInteractive = Boolean(view?.mustAct) && !submittingMove;
   const humanIndication = humanOnClock
     ? (getSeatIndication(game, humanId, {
@@ -854,7 +897,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
                 ? seatOnClockOnline(turnClockPlayerId, id) &&
                   game.phase === "playing" &&
                   !oppFinished
-                : active === id && game.phase === "playing" && !oppFinished;
+                : playerMustAct(game, id) && !oppFinished;
             const oppIndication = oppOnClock
               ? (getSeatIndication(game, id) ??
                 (role === "defender" || role === "taking" ? "defend" : "play"))
@@ -966,8 +1009,8 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
                 discardCount={game.discard.length}
                 canReveal={dockCanReveal}
                 canGraveyard={dockCanGraveyard}
-                showRevealGraveyard={abilitiesMode || onlineGoldAbilities}
-                chargeGold
+                showRevealGraveyard={abilitiesMode || goldAbilitiesEnabled}
+                chargeGold={goldAbilitiesEnabled}
                 onRevealPress={openReveal}
                 onGraveyardPress={() => void openGraveyard()}
               />
@@ -1010,7 +1053,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         onCancel={() => setTakeConfirmOpen(false)}
       />
 
-      {(abilitiesMode || onlineGoldAbilities) && (
+      {(abilitiesMode || goldAbilitiesEnabled) && (
         <GraveyardSheet
           visible={graveyardOpen}
           onClose={() => setGraveyardOpen(false)}
@@ -1019,7 +1062,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         />
       )}
 
-      {(abilitiesMode || onlineGoldAbilities) && (
+      {(abilitiesMode || goldAbilitiesEnabled) && (
         <RevealSheet
           visible={revealOpen}
           onClose={closeReveal}

@@ -28,7 +28,7 @@ import { api } from "../../convex/_generated/api";
 import { MenuButton } from "./MenuButton";
 import { trigger } from "../feedback/haptics";
 import { saveRoomSession } from "../game/onlineSessionStorage";
-import { useConvexAuthGate } from "../game/useAuthBootstrap";
+import { useOnlineAuth } from "../game/useAuthBootstrap";
 import { useGameStore } from "../game/store";
 import { colors, radius, spacing, typography } from "../theme";
 import { useTableTheme } from "../theme/TableThemeContext";
@@ -73,7 +73,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
   const drawerH = Math.round(screenH * DRAWER_HEIGHT_RATIO);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const prevVisible = useRef(visible);
+  const prevVisible = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
   const codeInputRef = useRef<TextInputType>(null);
   const joinButtonRef = useRef<View>(null);
@@ -94,7 +94,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
     trimmedCode.length === 6 ? { code: trimmedCode } : "skip",
   );
   const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
-  const { authReady, authLoading, ensureAuthenticated } = useConvexAuthGate();
+  const { authReady, authLoading, ensureAuthenticated } = useOnlineAuth();
 
   const ty = useSharedValue(drawerH);
   const keyboardLift = useSharedValue(0);

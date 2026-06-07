@@ -62,6 +62,37 @@ export interface HumanView {
   mustAct: boolean;
 }
 
+/** True when any player has a legal action right now. */
+export function playerMustAct(state: GameState, player: PlayerId): boolean {
+  if (state.phase !== "playing") return false;
+
+  const isDefender = state.defenderId === player;
+  const attackable = legalAttacks(state, player);
+
+  const defendable: Record<string, number[]> = {};
+  if (isDefender && !state.takeInProgress) {
+    for (const target of undefendedPairs(state)) {
+      for (const card of legalDefenses(state, target)) {
+        (defendable[card.id] ??= []).push(target);
+      }
+    }
+  }
+
+  const take = canTake(state, player);
+  const pass = canPass(state, player);
+  const transfer = canTransfer(state, player);
+  const mustOpen = !isDefender && state.table.length === 0 && attackable.length > 0;
+
+  return (
+    take ||
+    pass ||
+    transfer ||
+    mustOpen ||
+    Object.keys(defendable).length > 0 ||
+    (attackable.length > 0 && state.table.length > 0)
+  );
+}
+
 export function getHumanView(state: GameState, human: PlayerId): HumanView {
   const isDefender = state.defenderId === human;
   const isAttacker = !isDefender;
@@ -75,9 +106,9 @@ export function getHumanView(state: GameState, human: PlayerId): HumanView {
       for (const card of legalDefenses(state, target)) {
         (defendable[card.id] ??= []).push(target);
       }
-      for (const card of legalTransfers(state, target)) {
-        (transferable[card.id] ??= []).push(target);
-      }
+    }
+    for (const card of legalTransfers(state, 0)) {
+      (transferable[card.id] ??= []).push(0);
     }
   }
 
@@ -85,15 +116,7 @@ export function getHumanView(state: GameState, human: PlayerId): HumanView {
   const pass = canPass(state, human);
   const transfer = canTransfer(state, human);
   const mustOpen = isAttacker && state.table.length === 0 && attackable.length > 0;
-
-  const mustAct =
-    state.phase === "playing" &&
-    (take ||
-      pass ||
-      transfer ||
-      mustOpen ||
-      Object.keys(defendable).length > 0 ||
-      (attackable.length > 0 && state.table.length > 0));
+  const mustAct = playerMustAct(state, human);
 
   return {
     isDefender,
@@ -165,8 +188,9 @@ export function revealEligibleOpponents(state: GameState, human: PlayerId): Play
   );
 }
 
-export function canReveal(state: GameState, human: PlayerId, view: HumanView): boolean {
-  return view.mustAct && revealEligibleOpponents(state, human).length > 0;
+export function canReveal(state: GameState, human: PlayerId): boolean {
+  if (state.phase !== "playing") return false;
+  return revealEligibleOpponents(state, human).length > 0;
 }
 
 /** Opponents arranged clockwise starting from the seat after the human. */

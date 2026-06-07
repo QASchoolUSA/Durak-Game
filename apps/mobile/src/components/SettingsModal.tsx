@@ -65,7 +65,6 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const setSoundEnabled = usePreferencesStore((s) => s.setSoundEnabled);
   const turnSeconds = usePreferencesStore((s) => s.turnSeconds);
   const setTurnSeconds = usePreferencesStore((s) => s.setTurnSeconds);
-  const playMode = useGameStore((s) => s.playMode);
   const onlineDisplayName = useGameStore((s) => s.onlineDisplayName);
   const setOnlineDisplayName = useGameStore((s) => s.setOnlineDisplayName);
   const [nameDraft, setNameDraft] = useState("");
@@ -308,45 +307,40 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                 { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
               ]}
             >
-              {playMode === "online" ? (
-                <Text style={[styles.optionHint, { color: ui.textMuted }]}>
-                  Turn timer is set by the server (12 seconds per turn) during online games.
-                </Text>
-              ) : (
-                <>
-                  <Text style={[styles.optionLabel, { color: ui.textPrimary }]}>Turn timer</Text>
-                  <View style={styles.turnRow}>
-                    {TURN_SECONDS_OPTIONS.map((option) => {
-                      const active = turnSeconds === option;
-                      return (
-                        <Pressable
-                          key={option}
-                          style={[
-                            styles.turnChip,
-                            {
-                              borderColor: active ? ui.accent : ui.panelBorderSoft,
-                              backgroundColor: active ? ui.accentSoft : ui.feltEdge,
-                            },
-                          ]}
-                          onPress={() => {
-                            trigger("selection");
-                            setTurnSeconds(option as TurnSecondsOption);
-                          }}
-                        >
-                          <Text
-                            style={[
-                              styles.turnChipText,
-                              { color: active ? ui.accent : ui.textMuted },
-                            ]}
-                          >
-                            {turnSecondsLabel(option)}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </>
-              )}
+              <Text style={[styles.optionLabel, { color: ui.textPrimary }]}>Turn timer</Text>
+              <Text style={[styles.optionHint, { color: ui.textMuted }]}>
+                Used in solo games and rooms you host.
+              </Text>
+              <View style={styles.turnRow}>
+                {TURN_SECONDS_OPTIONS.map((option) => {
+                  const active = turnSeconds === option;
+                  return (
+                    <Pressable
+                      key={option}
+                      style={[
+                        styles.turnChip,
+                        {
+                          borderColor: active ? ui.accent : ui.panelBorderSoft,
+                          backgroundColor: active ? ui.accentSoft : ui.feltEdge,
+                        },
+                      ]}
+                      onPress={() => {
+                        trigger("selection");
+                        setTurnSeconds(option as TurnSecondsOption);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.turnChipText,
+                          { color: active ? ui.accent : ui.textMuted },
+                        ]}
+                      >
+                        {turnSecondsLabel(option)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
 
             <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textFaint }]}>

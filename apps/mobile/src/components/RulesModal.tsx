@@ -37,7 +37,7 @@ const SECTIONS = [
   },
   {
     title: "Attacking",
-    body: "The attacker places one or more cards of the same rank on the table. After the first card, other non-defender players may also throw in cards matching any rank already on the table.",
+    body: "The attacker places one or more cards of the same rank on the table. After the first card, other non-defender players may also throw in cards matching any rank already on the table.\n\nThe first round allows up to 5 attack cards; later rounds allow up to 6.",
   },
   {
     title: "Defending",
@@ -45,7 +45,7 @@ const SECTIONS = [
   },
   {
     title: "Taking Cards",
-    body: "If the defender takes cards, they pick up everything on the table and do NOT discard. Other attackers may continue throwing in before the defender takes.",
+    body: "If the defender takes cards, they pick up everything on the table and do NOT discard. Other attackers may continue throwing in matching cards, but never more undefended attacks than the defender holds.",
   },
   {
     title: "Perevodnoy — Transfer",

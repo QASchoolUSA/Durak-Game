@@ -75,6 +75,13 @@ export default defineSchema({
     recentReaction: v.optional(recentReaction),
     returnWindow: v.optional(returnWindow),
     pendingReveal: v.optional(pendingReveal),
+    economy: v.optional(
+      v.object({
+        roundVersion: v.number(),
+        buyInsCharged: v.boolean(),
+        settled: v.boolean(),
+      }),
+    ),
     version: v.number(),
   })
     .index("by_code", ["code"])

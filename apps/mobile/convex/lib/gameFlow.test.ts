@@ -5,7 +5,7 @@ import {
   createGame,
   type Move,
 } from "@durak/game-core";
-import { timeoutMoveFor } from "../../src/game/autoMove";
+import { timeoutMoveFor } from "./onlineGame";
 
 describe("online game flow helpers", () => {
   it("applies a valid attack and defend sequence", () => {

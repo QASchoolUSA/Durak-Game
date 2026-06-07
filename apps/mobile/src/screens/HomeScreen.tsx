@@ -111,14 +111,18 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
         </View>
       </SafeAreaView>
 
-      <GameConfigDrawer
-        visible={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-      />
-      <OnlineJoinDrawer
-        visible={joinOpen}
-        onClose={() => setJoinOpen(false)}
-      />
+      {drawerOpen && (
+        <GameConfigDrawer
+          visible
+          onClose={() => setDrawerOpen(false)}
+        />
+      )}
+      {joinOpen && (
+        <OnlineJoinDrawer
+          visible
+          onClose={() => setJoinOpen(false)}
+        />
+      )}
     </Background>
   );
 }

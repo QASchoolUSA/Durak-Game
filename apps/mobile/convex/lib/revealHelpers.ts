@@ -12,15 +12,6 @@ export function revealEligibleOpponents(state: GameState, human: PlayerId): Play
 
 export function canReveal(state: GameState, human: PlayerId): boolean {
   if (state.phase !== "playing") return false;
-  const humanHand = state.hands[human] ?? [];
-  if (humanHand.length === 0) return false;
-
-  const active =
-    !state.takeInProgress && state.table.some((p) => !p.defense)
-      ? state.defenderId
-      : state.attackerId;
-
-  if (active !== human) return false;
   return revealEligibleOpponents(state, human).length > 0;
 }
 
