@@ -308,6 +308,9 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               ]}
             >
               <Text style={[styles.optionLabel, { color: ui.textPrimary }]}>Turn timer</Text>
+              <Text style={[styles.optionHint, { color: ui.textMuted }]}>
+                Used in solo games and rooms you host.
+              </Text>
               <View style={styles.turnRow}>
                 {TURN_SECONDS_OPTIONS.map((option) => {
                   const active = turnSeconds === option;
@@ -386,7 +389,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
       <ConfirmDialog
         visible={wipeConfirmVisible}
         title="Clear saved data?"
-        message="This wipes all local app storage (name, settings, session). You cannot undo this."
+        message="This clears your name, settings, and saved session. Your online account stays signed in. You cannot undo this."
         confirmLabel="Clear"
         cancelLabel="Cancel"
         onConfirm={() => void handleConfirmWipe()}
@@ -524,6 +527,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
+  },
+  optionHint: {
+    ...typography.caption,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    lineHeight: 20,
   },
   turnRow: {
     flexDirection: "row",

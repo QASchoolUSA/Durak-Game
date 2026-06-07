@@ -27,7 +27,7 @@ function TurnProgressBarComponent({ progress }: TurnProgressBarProps) {
 const styles = StyleSheet.create({
   track: {
     width: "100%",
-    height: 5,
+    height: 4,
     borderRadius: radius.pill,
     backgroundColor: colors.feltEdge,
     overflow: "hidden",

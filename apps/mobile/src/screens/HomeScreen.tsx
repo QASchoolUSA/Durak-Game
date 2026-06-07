@@ -25,6 +25,7 @@ import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { layoutFor, radius, spacing, typography } from "../theme";
 import { useReduceMotion } from "../hooks/useReduceMotion";
+import { EconomyBar } from "../components/EconomyBar";
 import { useGameStore } from "../game/store";
 
 export interface HomeScreenProps {
@@ -45,6 +46,8 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   const { width }  = useWindowDimensions();
   const lay        = layoutFor(width);
   const playerNameHydrated = useGameStore((s) => s.playerNameHydrated);
+  const goldBalance = useGameStore((s) => s.goldBalance);
+  const creditBalance = useGameStore((s) => s.creditBalance);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
 
@@ -60,7 +63,14 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
 
   return (
     <Background variant="home">
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+        <View style={[styles.topBar, { paddingHorizontal: lay.hPad }]}>
+          <EconomyBar
+            variant="home"
+            creditBalance={creditBalance}
+            goldBalance={goldBalance}
+          />
+        </View>
         <View style={[styles.content, { paddingHorizontal: lay.hPad }]}>
           <HeroPanel maxWidth={lay.maxContent} reduceMotion={reduceMotion}>
             <Animated.View
@@ -101,14 +111,18 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
         </View>
       </SafeAreaView>
 
-      <GameConfigDrawer
-        visible={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-      />
-      <OnlineJoinDrawer
-        visible={joinOpen}
-        onClose={() => setJoinOpen(false)}
-      />
+      {drawerOpen && (
+        <GameConfigDrawer
+          visible
+          onClose={() => setDrawerOpen(false)}
+        />
+      )}
+      {joinOpen && (
+        <OnlineJoinDrawer
+          visible
+          onClose={() => setJoinOpen(false)}
+        />
+      )}
     </Background>
   );
 }
@@ -313,7 +327,12 @@ function GlowTitle({ reduceMotion }: { reduceMotion: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  safe:    { flex: 1 },
+  safe: { flex: 1 },
+  topBar: {
+    alignItems: "flex-end",
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
+  },
   content: {
     flex:           1,
     alignItems:     "center",

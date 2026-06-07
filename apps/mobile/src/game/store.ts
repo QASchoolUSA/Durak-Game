@@ -6,23 +6,38 @@ import {
   type PlayStyle,
   type PlayerId,
   type ThrowInScope,
+  type Card,
   applyMove,
   canTransfer,
   cloneGameState,
   createGame,
   pickMove,
   undefendedCount,
+  aiMoveDelayMs,
 } from "@durak/game-core";
 import { timeoutMoveFor } from "./autoMove";
+import { soloMatchEndCreditDelta } from "./matchSettlement";
 import { trigger } from "../feedback/haptics";
 import { submitOnlineMove } from "./onlineBridge";
 import type { RoomView } from "./onlineTypes";
-import { clearRoomSession } from "./onlineSessionStorage";
+import { gameplayFingerprint, namesEqual } from "./gameStateCompare";
+import { clearPlaySession } from "./onlineSessionStorage";
 import {
   getStoredGameConfig,
   setStoredGameConfig,
   type StoredGameConfig,
 } from "./gameConfigStorage";
+import { STARTING_CREDITS } from "./creditEconomy";
+import {
+  getStoredCreditBalance,
+  setStoredCreditBalance,
+} from "./creditStorage";
+import { STARTING_GOLD } from "./goldEconomy";
+import {
+  getStoredGoldBalance,
+  setStoredGoldBalance,
+} from "./goldStorage";
+import { submitOnlineReturn } from "./onlineBridge";
 import {
   generateGuestDisplayName,
   getStoredNameIsCustom,
@@ -35,7 +50,6 @@ export type Screen = "home" | "lobby" | "game" | "result";
 export type Difficulty = "easy" | "medium" | "hard";
 export type PlayMode = "solo" | "online";
 
-const AI_DELAY: Record<Difficulty, number> = { easy: 1400, medium: 750, hard: 320 };
 const RETURN_WINDOW_MS = 3000;
 const RESULT_DELAY_MS = 400;
 
@@ -95,12 +109,24 @@ interface GameStore {
   buyIn: number;
   difficulty: Difficulty;
   onlineRoomId: string | null;
-  onlineSessionToken: string | null;
   onlineDisplayName: string;
   playerNameHydrated: boolean;
   hasCustomDisplayName: boolean;
   onlineRoomCode: string | null;
   onlineIsHost: boolean;
+  turnDeadlineAt: number | null;
+  turnClockPlayerId: string | null;
+  turnTimerSeconds: number;
+  onlineStatusMessage: string | null;
+  remoteReaction: { emoji: string; fromPlayerId: string; at: number } | null;
+  localReaction: { emoji: string; fromPlayerId: string; at: number } | null;
+  lastConsumedReactionAt: number;
+  pendingReveal: { card: Card; expiresAt: number } | null;
+  submittingMove: boolean;
+  goldBalance: number;
+  goldHydrated: boolean;
+  creditBalance: number;
+  creditHydrated: boolean;
   setPlayMode: (mode: PlayMode) => void;
   setNumPlayers: (n: number) => void;
   setVariant: (variant: GameVariant) => void;
@@ -110,20 +136,32 @@ interface GameStore {
   setOnlineDisplayName: (name: string) => void;
   enterOnlineLobby: (args: {
     roomId: string;
-    sessionToken: string;
     displayName: string;
     code: string;
     isHost: boolean;
   }) => void;
   syncOnlineState: (view: RoomView) => void;
+  triggerLocalReaction: (emoji: string) => void;
+  tryConsumeReactionAt: (at: number) => boolean;
+  setSubmittingMove: (submitting: boolean) => void;
+  clearPendingReveal: () => void;
   startGame: (n?: number) => void;
   goHome: () => void;
+  setOnlineStatusMessage: (message: string | null) => void;
+  clearOnlineStatusMessage: () => void;
   submitHuman: (move: Move) => void;
   autoPlayHuman: () => void;
   returnLastCard: () => void;
   clearReturnWindow: () => void;
   pauseForOverlay: () => void;
   resumeFromOverlay: () => void;
+  syncGoldBalance: (balance: number) => void;
+  trySpendGold: (amount: number) => boolean;
+  rollbackGoldSpend: (amount: number) => void;
+  awardGoldLocal: (amount: number) => void;
+  syncCreditBalance: (balance: number) => void;
+  deductCreditsLocal: (amount: number) => boolean;
+  awardCreditsLocal: (amount: number) => void;
 }
 
 let aiTimer: ReturnType<typeof setTimeout> | null = null;
@@ -157,9 +195,24 @@ export const useGameStore = create<GameStore>((set, get) => {
     set({ returnSnapshot: null, returnExpiresAt: 0 });
   }
 
+  function settleSoloEconomy(next: GameState) {
+    if (get().playMode !== "solo") return;
+    const { humanId, buyIn, numPlayers } = get();
+    const delta = soloMatchEndCreditDelta({
+      isDraw: next.loserId === null,
+      humanIsWinner: (next.finishedOrder[0] ?? null) === humanId,
+      numPlayers,
+      buyIn,
+    });
+    if (delta > 0) {
+      get().awardCreditsLocal(delta);
+    }
+  }
+
   function finishGameOver(next: GameState) {
     cancelAi();
     cancelResultTimer();
+    settleSoloEconomy(next);
     const delay = next.table.length === 0 ? RESULT_DELAY_MS : 0;
     set({
       game: next,
@@ -232,7 +285,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           return;
         }
       }
-    }, AI_DELAY[get().difficulty]);
+    }, aiMoveDelayMs(get().difficulty));
   }
 
   return {
@@ -252,14 +305,29 @@ export const useGameStore = create<GameStore>((set, get) => {
     pot: 0,
     buyIn: 100,
     onlineRoomId: null,
-    onlineSessionToken: null,
     onlineDisplayName: "Player",
     playerNameHydrated: false,
     hasCustomDisplayName: false,
     onlineRoomCode: null,
     onlineIsHost: false,
+    turnDeadlineAt: null,
+    turnClockPlayerId: null,
+    turnTimerSeconds: 12,
+    onlineStatusMessage: null,
+    remoteReaction: null,
+    localReaction: null,
+    lastConsumedReactionAt: 0,
+    pendingReveal: null,
+    submittingMove: false,
+    goldBalance: STARTING_GOLD,
+    goldHydrated: false,
+    creditBalance: STARTING_CREDITS,
+    creditHydrated: false,
 
     setPlayMode: (playMode) => set({ playMode }),
+
+    setOnlineStatusMessage: (onlineStatusMessage) => set({ onlineStatusMessage }),
+    clearOnlineStatusMessage: () => set({ onlineStatusMessage: null }),
 
     setOnlineDisplayName: (onlineDisplayName) => {
       const trimmed = onlineDisplayName.trim().slice(0, 20);
@@ -268,24 +336,48 @@ export const useGameStore = create<GameStore>((set, get) => {
       void setStoredCustomName(trimmed);
     },
 
-    enterOnlineLobby: ({ roomId, sessionToken, displayName, code, isHost }) => {
+    setSubmittingMove: (submittingMove) => set({ submittingMove }),
+    clearPendingReveal: () => set({ pendingReveal: null }),
+
+    triggerLocalReaction: (emoji) => {
+      const { humanId } = get();
+      const at = Date.now();
+      set({
+        localReaction: {
+          emoji: emoji.slice(0, 8),
+          fromPlayerId: humanId,
+          at,
+        },
+      });
+    },
+
+    tryConsumeReactionAt: (at) => {
+      const { lastConsumedReactionAt } = get();
+      if (at <= lastConsumedReactionAt) return false;
+      set({ lastConsumedReactionAt: at });
+      return true;
+    },
+
+    enterOnlineLobby: ({ roomId, displayName, code, isHost }) => {
       cancelAi();
       clearReturnWindow();
       cancelResultTimer();
       set({
         playMode: "online",
         onlineRoomId: roomId,
-        onlineSessionToken: sessionToken,
         onlineDisplayName: displayName,
         onlineRoomCode: code,
         onlineIsHost: isHost,
         screen: "lobby",
         game: null,
+        pendingReveal: null,
+        submittingMove: false,
       });
     },
 
     syncOnlineState: (view) => {
       const prev = get();
+      const nextPendingReveal = view.pendingReveal ?? null;
 
       const baseWithoutPlayer = {
         onlineRoomCode: view.code,
@@ -296,7 +388,19 @@ export const useGameStore = create<GameStore>((set, get) => {
         playStyle: view.config.playStyle,
         difficulty: view.config.difficulty,
         lastMoveAt: view.lastMoveAt,
+        turnDeadlineAt: view.turnDeadlineAt,
+        turnClockPlayerId: view.turnClockPlayerId,
+        turnTimerSeconds: view.turnTimerSeconds,
         pot: prev.buyIn * view.config.numPlayers,
+        pendingReveal: nextPendingReveal,
+        submittingMove: false,
+        ...(view.recentReaction && view.recentReaction.at !== prev.remoteReaction?.at
+          ? { remoteReaction: view.recentReaction }
+          : {}),
+        returnExpiresAt: view.returnExpiresAt ?? 0,
+        ...(view.returnExpiresAt
+          ? {}
+          : { returnSnapshot: null, returnExpiresAt: 0 }),
       };
 
       if (view.status === "lobby") {
@@ -304,7 +408,13 @@ export const useGameStore = create<GameStore>((set, get) => {
         for (const m of view.members) {
           lobbyNames[`seat-${m.seatIndex}`] = m.displayName;
         }
-        set({ ...baseWithoutPlayer, screen: "lobby", game: null, names: lobbyNames });
+        set({
+          ...baseWithoutPlayer,
+          screen: "lobby",
+          game: null,
+          names: lobbyNames,
+          pendingReveal: null,
+        });
         return;
       }
 
@@ -321,7 +431,46 @@ export const useGameStore = create<GameStore>((set, get) => {
       };
 
       if (view.status === "playing" && view.gameState) {
-        set({ ...base, screen: "game", game: view.gameState });
+        const nextGame = view.gameState;
+        const rematchFromResult = prev.screen === "result";
+        if (rematchFromResult) {
+          cancelResultTimer();
+        }
+        const reactionChanged =
+          Boolean(view.recentReaction) &&
+          view.recentReaction?.at !== prev.remoteReaction?.at;
+        const returnChanged = (view.returnExpiresAt ?? 0) !== prev.returnExpiresAt;
+        const pendingRevealChanged =
+          (prev.pendingReveal?.expiresAt ?? 0) !== (nextPendingReveal?.expiresAt ?? 0) ||
+          (prev.pendingReveal?.card.id ?? null) !== (nextPendingReveal?.card.id ?? null);
+        const sameGameplay =
+          !rematchFromResult &&
+          prev.game != null &&
+          prev.screen === "game" &&
+          prev.humanId === yourId &&
+          gameplayFingerprint(prev.game, yourId) ===
+            gameplayFingerprint(nextGame, yourId);
+        const sameMeta =
+          prev.lastMoveAt === view.lastMoveAt &&
+          prev.turnDeadlineAt === view.turnDeadlineAt &&
+          prev.turnClockPlayerId === view.turnClockPlayerId &&
+          namesEqual(prev.names, names) &&
+          !returnChanged &&
+          !reactionChanged &&
+          !pendingRevealChanged;
+
+        if (sameGameplay && sameMeta) {
+          return;
+        }
+
+        set({
+          ...base,
+          playMode: "online",
+          screen: "game",
+          game: nextGame,
+          pendingReveal: null,
+          submittingMove: false,
+        });
         return;
       }
 
@@ -330,7 +479,10 @@ export const useGameStore = create<GameStore>((set, get) => {
           const delay = view.gameState.table.length === 0 ? RESULT_DELAY_MS : 0;
           set({
             ...base,
+            playMode: "online",
             game: view.gameState,
+            pendingReveal: null,
+            submittingMove: false,
             ...(delay === 0 ? { screen: "result" as const } : { screen: "game" as const }),
           });
           if (delay > 0 && prev.screen !== "result") {
@@ -371,6 +523,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       clearReturnWindow();
       cancelResultTimer();
       const count = n ?? get().numPlayers;
+      const buyIn = get().buyIn;
+      if (!get().deductCreditsLocal(buyIn)) {
+        set({ onlineStatusMessage: "Not enough credits." });
+        return;
+      }
       const { variant, throwInScope, playStyle } = get();
       const { ids, names } = buildPlayers(count);
       const game = createGame(ids, {
@@ -384,10 +541,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         names,
         game,
         lastMoveAt: Date.now(),
-        pot: get().buyIn * count,
+        pot: buyIn * count,
         onlineRoomId: null,
-        onlineSessionToken: null,
         onlineRoomCode: null,
+        onlineStatusMessage: null,
       });
       persistConfig(get());
       scheduleAi();
@@ -397,15 +554,23 @@ export const useGameStore = create<GameStore>((set, get) => {
       cancelAi();
       clearReturnWindow();
       cancelResultTimer();
-      void clearRoomSession();
+      void clearPlaySession();
       set({
         screen: "home",
         game: null,
         playMode: "solo",
         onlineRoomId: null,
-        onlineSessionToken: null,
         onlineRoomCode: null,
         onlineIsHost: false,
+        turnDeadlineAt: null,
+        turnClockPlayerId: null,
+        onlineStatusMessage: null,
+        remoteReaction: null,
+        localReaction: null,
+        lastConsumedReactionAt: 0,
+        pendingReveal: null,
+        submittingMove: false,
+        pot: 0,
         humanId: HUMAN_ID,
         names: { [HUMAN_ID]: "You" },
       });
@@ -417,14 +582,13 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       if (playMode === "online") {
         triggerMoveFeedback(move);
+        set({ submittingMove: true });
         submitOnlineMove(move);
         return;
       }
 
-      const abilitiesActive = game.rules.playStyle === "abilities";
       const cardPlay = isHumanCardMove(move, humanId);
-      const snapshot =
-        abilitiesActive && cardPlay ? cloneGameState(game) : null;
+      const snapshot = cardPlay ? cloneGameState(game) : null;
 
       try {
         const next = applyMove(game, move);
@@ -439,7 +603,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           return;
         }
 
-        if (abilitiesActive && cardPlay && snapshot) {
+        if (cardPlay && snapshot) {
           cancelAi();
           set({
             game: next,
@@ -458,7 +622,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     autoPlayHuman: () => {
-      const { game, humanId } = get();
+      const { game, humanId, playMode } = get();
+      if (playMode === "online") return;
       if (!game || game.phase !== "playing") return;
       const move = timeoutMoveFor(game, humanId);
       if (move) {
@@ -468,7 +633,12 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     returnLastCard: () => {
       const { returnSnapshot, returnExpiresAt, playMode } = get();
-      if (playMode === "online") return;
+      if (playMode === "online") {
+        if (!returnExpiresAt || Date.now() > returnExpiresAt) return;
+        set({ submittingMove: true });
+        submitOnlineReturn();
+        return;
+      }
       if (!returnSnapshot || Date.now() > returnExpiresAt) return;
 
       cancelReturnTimer();
@@ -480,6 +650,62 @@ export const useGameStore = create<GameStore>((set, get) => {
         returnExpiresAt: 0,
       });
       scheduleAi();
+    },
+
+    syncGoldBalance: (balance) => {
+      const safe = Math.max(0, Math.floor(balance));
+      set({ goldBalance: safe, goldHydrated: true });
+      void setStoredGoldBalance(safe);
+    },
+
+    trySpendGold: (amount) => {
+      const cost = Math.max(0, Math.floor(amount));
+      const { goldBalance } = get();
+      if (cost > 0 && goldBalance < cost) return false;
+      const next = goldBalance - cost;
+      set({ goldBalance: next });
+      void setStoredGoldBalance(next);
+      return true;
+    },
+
+    rollbackGoldSpend: (amount) => {
+      const refund = Math.max(0, Math.floor(amount));
+      if (refund <= 0) return;
+      const next = get().goldBalance + refund;
+      set({ goldBalance: next });
+      void setStoredGoldBalance(next);
+    },
+
+    awardGoldLocal: (amount) => {
+      const bonus = Math.max(0, Math.floor(amount));
+      if (bonus <= 0) return;
+      const next = get().goldBalance + bonus;
+      set({ goldBalance: next });
+      void setStoredGoldBalance(next);
+    },
+
+    syncCreditBalance: (balance) => {
+      const safe = Math.max(0, Math.floor(balance));
+      set({ creditBalance: safe, creditHydrated: true });
+      void setStoredCreditBalance(safe);
+    },
+
+    deductCreditsLocal: (amount) => {
+      const cost = Math.max(0, Math.floor(amount));
+      const { creditBalance } = get();
+      if (cost > 0 && creditBalance < cost) return false;
+      const next = creditBalance - cost;
+      set({ creditBalance: next });
+      void setStoredCreditBalance(next);
+      return true;
+    },
+
+    awardCreditsLocal: (amount) => {
+      const bonus = Math.max(0, Math.floor(amount));
+      if (bonus <= 0) return;
+      const next = get().creditBalance + bonus;
+      set({ creditBalance: next });
+      void setStoredCreditBalance(next);
     },
 
     clearReturnWindow,
@@ -538,3 +764,23 @@ export async function loadPlayerName(): Promise<void> {
 }
 
 export type { StoredGameConfig };
+
+
+export async function loadGold(): Promise<void> {
+  try {
+    const balance = await getStoredGoldBalance();
+    useGameStore.setState({ goldBalance: balance, goldHydrated: true });
+  } catch {
+    useGameStore.setState({ goldHydrated: true });
+  }
+}
+
+export async function loadCredits(): Promise<void> {
+  try {
+    const balance = await getStoredCreditBalance();
+    useGameStore.setState({ creditBalance: balance, creditHydrated: true });
+  } catch {
+    useGameStore.setState({ creditHydrated: true });
+  }
+}
+

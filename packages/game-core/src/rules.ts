@@ -120,13 +120,7 @@ export function legalAttacks(state: GameState, player: PlayerId): Card[] {
 
   if (state.table.length >= state.maxAttacks) return [];
 
-  if (state.takeInProgress) {
-    // Defender will scoop everything; only the global cap and rank match apply.
-    const ranks = tableRanks(state);
-    return hand.filter((c) => ranks.has(c.rank));
-  }
-
-  // Can't pile on more undefended attacks than the defender can possibly beat.
+  // Can't pile on more undefended attacks than the defender holds (defending or taking).
   const defenderHand = handOf(state, state.defenderId).length;
   if (undefendedCount(state) >= defenderHand) return [];
 
@@ -160,31 +154,31 @@ export function transferChainActive(state: GameState): boolean {
 }
 
 /**
- * Perevodnoy: defender plays same rank to pass defense to the next seat.
- * Allowed on the opening attack or while the chain has only transfer-added cards.
+ * Perevodnoy: defender plays same rank as the opening attack to pass defense on.
+ * Allowed only on the opening card while the chain has no throw-ins or defenses.
  */
 export function legalTransfers(state: GameState, target: number): Card[] {
   if (state.rules.variant !== "perevodnoy") return [];
   if (state.phase !== "playing" || state.takeInProgress) return [];
+  if (target !== 0) return [];
   if (!transferChainActive(state)) return [];
 
-  const pair = state.table[target];
-  if (!pair || pair.defense) return [];
+  const opening = state.table[0];
+  if (!opening || opening.defense) return [];
+  if (state.table.length >= state.maxAttacks) return [];
 
   const nextDef = seatAfter(state, state.defenderId, true);
   const futureUndefended = undefendedCount(state) + 1;
   if (handOf(state, nextDef).length < futureUndefended) return [];
 
+  const openingRank = opening.attack.rank;
   const hand = handOf(state, state.defenderId);
-  return hand.filter((c) => c.rank === pair.attack.rank);
+  return hand.filter((c) => c.rank === openingRank);
 }
 
 export function canTransfer(state: GameState, player: PlayerId): boolean {
   if (player !== state.defenderId) return false;
-  for (const target of undefendedPairs(state)) {
-    if (legalTransfers(state, target).length > 0) return true;
-  }
-  return false;
+  return legalTransfers(state, 0).length > 0;
 }
 
 export function canTake(state: GameState, player: PlayerId): boolean {

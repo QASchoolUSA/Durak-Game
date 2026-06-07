@@ -1,12 +1,19 @@
-import React, { useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { LayoutChangeEvent, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeIn,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import type { SeatRole } from "../game/selectors";
+import type { SeatIndication, SeatRole } from "../game/selectors";
+import {
+  PlayerAvatar,
+  indicationColor,
+  indicationShadowColor,
+} from "./playerSeatShared";
+import { SeatReactionBurst } from "./SeatReactionBurst";
+import { TurnTimerRing } from "./TurnTimerRing";
 import { TakeSpeechBubble } from "./TakeSpeechBubble";
 import { useCardTheme } from "../theme/CardThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
@@ -14,30 +21,30 @@ import { radius, cardSize } from "../theme";
 
 export type { SeatRole };
 
+const RING_FALLBACK = { width: 100, height: 72 };
+
 export interface PlayerSeatProps {
-  name:      string;
+  playerId: string;
+  name: string;
   cardCount: number;
-  role:      SeatRole;
-  active:    boolean;
+  role: SeatRole;
+  indication: SeatIndication | null;
+  active: boolean;
+  onClock: boolean;
+  turnProgress: number;
+  timerEnabled?: boolean;
+  showTimerRing?: boolean;
   finished?: boolean;
 }
 
 const SPRING = { damping: 16, stiffness: 280, mass: 0.7 };
 
-const AVATAR_PALETTE = ["#C44536", "#2D7EA6", "#7B5EA6", "#2E8F6B", "#A0722A", "#4A8A9B"];
-
-function avatarColor(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return AVATAR_PALETTE[h % AVATAR_PALETTE.length]!;
-}
-
 function MiniFan({ count }: { count: number }) {
   const theme = useCardTheme();
   const shown = Math.min(count, 6);
-  const cardW = Math.round(cardSize.small.w * 0.58);
-  const cardH = Math.round(cardSize.small.h * 0.58);
-  const stride = 9;
+  const cardW = Math.round(cardSize.small.w * 0.52);
+  const cardH = Math.round(cardSize.small.h * 0.52);
+  const stride = 8;
   return (
     <View style={{ width: (shown - 1) * stride + cardW, height: cardH }}>
       {Array.from({ length: shown }).map((_, i) => (
@@ -61,17 +68,37 @@ function MiniFan({ count }: { count: number }) {
 }
 
 function PlayerSeatComponent({
+  playerId,
   name,
   cardCount,
   role,
+  indication,
   active,
+  onClock,
+  turnProgress,
+  timerEnabled = true,
+  showTimerRing = true,
   finished,
 }: PlayerSeatProps) {
-  const isAttacker = role === "attacker";
-  const isDefender = role === "defender";
   const isTaking = role === "taking";
   const expanded = (active || isTaking) && !finished;
   const ui = useUiTheme();
+  const showBorder =
+    !finished && indication != null && (onClock || role === "taking");
+  const ringColor = indication ? indicationColor(indication) : ui.accent;
+  const glowColor = indication ? indicationShadowColor(indication) : ui.accent;
+
+  const [layoutSize, setLayoutSize] = useState({ width: 0, height: 0 });
+  const layoutReady = layoutSize.width > 0 && layoutSize.height > 0;
+  const ringWidth = layoutReady ? layoutSize.width : RING_FALLBACK.width;
+  const ringHeight = layoutReady ? layoutSize.height : RING_FALLBACK.height;
+
+  const onLayout = useCallback((e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setLayoutSize((prev) =>
+      prev.width === width && prev.height === height ? prev : { width, height },
+    );
+  }, []);
 
   const scale = useSharedValue(expanded ? 1 : 0.94);
   const seatOpacity = useSharedValue(expanded ? 1 : 0.88);
@@ -86,105 +113,89 @@ function PlayerSeatComponent({
     opacity: seatOpacity.value,
   }));
 
-  const avatarSize = expanded ? 32 : 30;
-  const avatarRadius = avatarSize / 2;
-  const letterSize = expanded ? 14 : 12;
+  const avatarSize = expanded ? 26 : 28;
 
   const avatarEl = (
     <View style={[styles.avatarWrap, { width: avatarSize, height: avatarSize }]}>
-      {isTaking && !finished && <TakeSpeechBubble />}
-      <View
-        style={[
-          styles.avatar,
-          {
-            width: avatarSize,
-            height: avatarSize,
-            borderRadius: avatarRadius,
-            backgroundColor: avatarColor(name),
-          },
-        ]}
-      >
-        <Text style={[styles.avatarLetter, { fontSize: letterSize }]}>
-          {name.slice(0, 1).toUpperCase()}
-        </Text>
-      </View>
+      <PlayerAvatar name={name} size={avatarSize} />
     </View>
   );
 
   return (
     <View style={styles.outer}>
       <Animated.View style={animStyle}>
-        <Animated.View
-          entering={FadeIn.duration(350)}
-          style={[
-            styles.container,
-            { backgroundColor: ui.panelBg },
-            active && expanded && [styles.active, { borderColor: ui.accent, shadowColor: ui.accent }],
-            isTaking && expanded && !active && styles.taking,
-            isTaking && !finished && styles.containerTaking,
-            finished && styles.finished,
-          ]}
-        >
-          {active && expanded && (
-            <View style={[styles.activeTint, { backgroundColor: ui.activeTint }]} pointerEvents="none" />
-          )}
-
-          <View style={[styles.body, expanded ? styles.bodyExpanded : styles.bodyCompact]}>
-            {expanded ? (
-              <View style={styles.topRow}>
-                {avatarEl}
-                <Text
-                  style={[styles.name, styles.nameExpanded, styles.nameSingleLine, { color: ui.textPrimary }]}
-                  numberOfLines={1}
-                >
-                  {name}
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.compactHeader}>
-                {avatarEl}
-                <Text
-                  style={[styles.name, styles.nameCompact, styles.nameSingleLine, { color: ui.textPrimary }]}
-                  numberOfLines={1}
-                >
-                  {name}
-                </Text>
-              </View>
+        <View style={styles.shell} onLayout={onLayout}>
+          <SeatReactionBurst playerId={playerId} />
+          {isTaking && !finished && <TakeSpeechBubble />}
+          <Animated.View
+            entering={FadeIn.duration(350)}
+            style={[
+              styles.panel,
+              { backgroundColor: ui.panelBg },
+              showBorder && [styles.active, { shadowColor: glowColor }],
+              isTaking && !finished && styles.panelTaking,
+              finished && styles.finished,
+            ]}
+          >
+            {showBorder && (
+              <View style={[styles.activeTint, { backgroundColor: ui.activeTint }]} pointerEvents="none" />
             )}
 
-            <View style={styles.cardsRow}>
+            <View style={[styles.body, expanded ? styles.bodyExpanded : styles.bodyCompact]}>
               {expanded ? (
-                <>
-                  <MiniFan count={cardCount} />
-                  <Text style={[styles.cardCount, { color: ui.textPrimary }]}>{cardCount}</Text>
-                </>
+                <View style={styles.topRow}>
+                  {avatarEl}
+                  <Text
+                    style={[styles.name, styles.nameExpanded, styles.nameSingleLine, { color: ui.textPrimary }]}
+                    numberOfLines={1}
+                  >
+                    {name}
+                  </Text>
+                </View>
               ) : (
-                <Text style={[styles.cardCountCompact, { color: ui.textPrimary }]}>
-                  {cardCount} cards
-                </Text>
+                <View style={styles.compactHeader}>
+                  {avatarEl}
+                  <Text
+                    style={[styles.name, styles.nameCompact, styles.nameSingleLine, { color: ui.textPrimary }]}
+                    numberOfLines={1}
+                  >
+                    {name}
+                  </Text>
+                </View>
               )}
-            </View>
-          </View>
 
-          {expanded && (isAttacker || isDefender) && (
-            <View
-              style={[
-                styles.roleBar,
-                isAttacker ? styles.roleBarAttack : styles.roleBarDefend,
-              ]}
-            >
-              <Text style={[styles.roleText, isAttacker ? styles.roleTextAttack : styles.roleTextDefend]}>
-                {isAttacker ? "ATTACKING" : "DEFENDING"}
-              </Text>
+              <View style={styles.cardsRow}>
+                {expanded ? (
+                  <>
+                    <MiniFan count={cardCount} />
+                    <Text style={[styles.cardCount, { color: ui.textPrimary }]}>{cardCount}</Text>
+                  </>
+                ) : (
+                  <Text style={[styles.cardCountCompact, { color: ui.textPrimary }]}>
+                    {cardCount} cards
+                  </Text>
+                )}
+              </View>
             </View>
-          )}
 
-          {finished && (
-            <View style={styles.roleBarFinished}>
-              <Text style={[styles.roleTextFinished, { color: ui.textFaint }]}>FINISHED</Text>
-            </View>
+            {finished && (
+              <View style={styles.roleBarFinished}>
+                <Text style={[styles.roleTextFinished, { color: ui.textFaint }]}>FINISHED</Text>
+              </View>
+            )}
+          </Animated.View>
+          {showBorder && timerEnabled && showTimerRing && (
+            <TurnTimerRing
+              visible={showBorder}
+              color={ringColor}
+              maxBorderRadius={radius.panel}
+              progress={turnProgress}
+              clockActive={onClock}
+              width={ringWidth}
+              height={ringHeight}
+            />
           )}
-        </Animated.View>
+        </View>
       </Animated.View>
     </View>
   );
@@ -192,16 +203,19 @@ function PlayerSeatComponent({
 
 const styles = StyleSheet.create({
   outer: {
-    maxWidth: 168,
+    maxWidth: 148,
     alignSelf: "flex-start",
     overflow: "visible",
   },
-  container: {
+  shell: {
+    position: "relative",
     alignSelf: "flex-start",
-    minWidth: 112,
+    overflow: "visible",
+  },
+  panel: {
+    alignSelf: "flex-start",
+    minWidth: 100,
     borderRadius: radius.panel,
-    borderWidth: 1.5,
-    borderColor: "transparent",
     overflow: "hidden",
   },
   active: {
@@ -210,10 +224,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     elevation: 12,
   },
-  taking: {
-    borderColor: "rgba(221, 208, 245, 0.45)",
-  },
-  containerTaking: {
+  panelTaking: {
     overflow: "visible",
   },
   activeTint: {
@@ -227,19 +238,19 @@ const styles = StyleSheet.create({
   finished: { opacity: 0.45 },
 
   body: {
-    gap: 8,
+    gap: 6,
   },
   bodyExpanded: {
-    padding: 10,
+    padding: 8,
   },
   bodyCompact: {
-    padding: 8,
-    gap: 6,
+    padding: 7,
+    gap: 5,
   },
   topRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
+    gap: 6,
   },
   compactHeader: {
     flexDirection: "column",
@@ -251,14 +262,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     overflow: "visible",
   },
-  avatar: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarLetter: {
-    color: "#fff",
-    fontWeight: "900",
-  },
   name: {
     fontWeight: "700",
   },
@@ -266,10 +269,10 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   nameExpanded: {
-    fontSize: 12,
+    fontSize: 11,
   },
   nameCompact: {
-    fontSize: 12,
+    fontSize: 11,
   },
   cardsRow: {
     flexDirection: "row",
@@ -283,24 +286,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   cardCount: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "800",
   },
   cardCountCompact: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800",
-  },
-
-  roleBar: {
-    paddingVertical: 5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  roleBarAttack: {
-    backgroundColor: "#9E1E27",
-  },
-  roleBarDefend: {
-    backgroundColor: "#8A6A18",
   },
   roleBarFinished: {
     paddingVertical: 4,
@@ -309,13 +300,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.08)",
   },
-  roleText: {
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 1.0,
-  },
-  roleTextAttack: { color: "#FFCED0" },
-  roleTextDefend: { color: "#FFE9A0" },
   roleTextFinished: { fontSize: 9, fontWeight: "700", letterSpacing: 0.8 },
 });
 

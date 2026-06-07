@@ -35,21 +35,34 @@ const EVENT_SOUND: Partial<Record<HapticEvent, SoundKey>> = {
   error: "failure",
 };
 
-const SOURCES: Record<SoundKey, number> = {
-  tap: require("../../assets/sounds/tap.wav"),
-  confirm: require("../../assets/sounds/confirm.wav"),
-  cardPlay: require("../../assets/sounds/card-play.wav"),
-  take: require("../../assets/sounds/take.wav"),
-  gameStart: require("../../assets/sounds/game-start.wav"),
-  success: require("../../assets/sounds/success.wav"),
-  failure: require("../../assets/sounds/failure.wav"),
-  tick: require("../../assets/sounds/tick.wav"),
-  roundClear: require("../../assets/sounds/round-clear.wav"),
-  deal: require("../../assets/sounds/deal.wav"),
-  turnStart: require("../../assets/sounds/turn-start.wav"),
-};
+/** Loaded on first play or prewarm — keeps cold start lighter than eager requires. */
+function loadSource(key: SoundKey): number {
+  switch (key) {
+    case "tap":
+      return require("../../assets/sounds/tap.wav");
+    case "confirm":
+      return require("../../assets/sounds/confirm.wav");
+    case "cardPlay":
+      return require("../../assets/sounds/card-play.wav");
+    case "take":
+      return require("../../assets/sounds/take.wav");
+    case "gameStart":
+      return require("../../assets/sounds/game-start.wav");
+    case "success":
+      return require("../../assets/sounds/success.wav");
+    case "failure":
+      return require("../../assets/sounds/failure.wav");
+    case "tick":
+      return require("../../assets/sounds/tick.wav");
+    case "roundClear":
+      return require("../../assets/sounds/round-clear.wav");
+    case "deal":
+      return require("../../assets/sounds/deal.wav");
+    case "turnStart":
+      return require("../../assets/sounds/turn-start.wav");
+  }
+}
 
-/** Per-clip volume — new moment sounds stay quieter than core UI feedback. */
 const KEY_VOLUME: Partial<Record<SoundKey, number>> = {
   roundClear: 0.55,
   deal: 0.6,
@@ -88,7 +101,7 @@ async function playKey(key: SoundKey): Promise<void> {
 
   let player = playerPool.get(key);
   if (!player) {
-    player = mod.createAudioPlayer(SOURCES[key]);
+    player = mod.createAudioPlayer(loadSource(key));
     player.volume = KEY_VOLUME[key] ?? 0.85;
     playerPool.set(key, player);
   }
@@ -99,6 +112,20 @@ async function playKey(key: SoundKey): Promise<void> {
     // seekTo can fail before the clip is fully loaded — play anyway.
   }
   player.play();
+}
+
+/** Warm audio module and common clips before first card play. */
+export async function prewarmSounds(): Promise<void> {
+  if (Platform.OS === "web") return;
+  const mod = await loadAudioModule();
+  if (!mod) return;
+  for (const key of ["tap", "cardPlay", "confirm"] as const) {
+    if (!playerPool.has(key)) {
+      const player = mod.createAudioPlayer(loadSource(key));
+      player.volume = KEY_VOLUME[key] ?? 0.85;
+      playerPool.set(key, player);
+    }
+  }
 }
 
 /** Fire a sound for a feedback event if enabled and supported. */

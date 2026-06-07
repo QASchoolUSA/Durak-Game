@@ -39,16 +39,27 @@ Then scan the QR code with Expo Go (or press `i` / `a` for a simulator/emulator)
 ## Test the rules engine
 
 ```bash
-pnpm test              # runs the @durak/game-core vitest suite
+pnpm test              # game-core + mobile vitest suites (includes Convex helper tests)
 ```
 
 ## Test online multiplayer (simulator + iPhone)
 
-Online play uses a **Convex** backend. Configure `apps/mobile/.env.local` with your deployment URL (see `apps/mobile/.env.example`). After changing `convex/` code:
+Online play uses a **Convex** backend. Configure `apps/mobile/.env.local` with your deployment URL and preview deploy key (see `apps/mobile/.env.example`). This repo targets a **preview deployment** (`neighborly-blackbird-943`), not a personal `convex dev` deployment — so use deploy, not `convex dev`.
+
+After changing `convex/` code:
 
 ```bash
-pnpm convex:deploy     # deploy to preview (requires CONVEX_DEPLOY_KEY in .env.local)
-pnpm mobile:clear      # restart Expo so env vars reload
+pnpm convex:dev        # same as convex:deploy — pushes to preview/dev
+pnpm mobile:clear      # restart Expo if you changed env vars
+```
+
+`pnpm convex:dev` fails with *"Use convex deploy to use preview deployments"* if you run `convex dev` directly; always use the npm scripts above.
+
+If you see **Auth provider discovery failed** for your `.convex.site` URL, the preview deployment’s `JWKS` env var was likely stored with bad escaping. From the repo root run:
+
+```bash
+pnpm convex:fix-auth
+pnpm mobile:clear
 ```
 
 - **iOS Simulator:** press `i` in the Expo terminal.
@@ -96,7 +107,9 @@ pnpm ios:preview:submit
 2. Friend: open Durak from TestFlight → **JOIN GAME** → code + display name.
 3. Host starts when ready (**START GAME** with a friend, or **PLAY WITH AI** if alone).
 
-## How to play (Phase 1)
+## How to play
+
+### Solo vs AI
 
 - Tap **PLAY** on the home screen to open the new-game drawer. Choose **2–6 players**, variant (**Podkidnoy** or **Perevodnoy / Transfer**), throw-in rules, **Standard** or **Abilities** mode, and AI difficulty.
 - Your last game configuration is remembered between sessions.
@@ -108,16 +121,38 @@ pnpm ios:preview:submit
 - Lowest trump leads first; the last player holding cards is the **Durak**.
 - Change **appearance** (8 table/card presets) in Settings — theming applies across home, game, drawers, and results.
 
+### Online with friends (TestFlight)
+
+- **PLAY** → **With friends** → create or join a room by 6-digit code.
+- Server enforces rules via Convex; hands are hidden from opponents.
+- Turn timer is **server-side (12 seconds)** — Settings timer preference applies to solo only.
+- **Standard** online rooms: Return is free after card plays; Graveyard and Reveal cost gold.
+- **With Abilities** online rooms: Return, Graveyard, and Reveal work like solo (no gold cost). Host picks play style when creating the room.
+- Forfeit mid-game replaces you with an AI bot so others can finish.
+- Session reconnect restores lobby or in-progress game state.
+- See [`apps/mobile/MULTIPLAYER_QA.md`](apps/mobile/MULTIPLAYER_QA.md) for the full 2-device QA script.
+
 ## Settings
 
 - **Sound effects** and **haptic feedback** (persisted)
-- **Turn timer** duration
+- **Turn timer** duration (solo only; online uses server 12s)
 - **Appearance** presets (light/dark table + card backs)
 
-## Roadmap (designed for, not yet built)
+## Roadmap
+
+### Implemented (TestFlight)
+
+- **Online rooms/lobbies** with Convex as server authority (`game-core` `applyMove`)
+- **Reconnect** via persisted room session
+- **Forfeit** → AI bot substitution
+- **Live reactions** (emoji sync)
+- **Abilities mode online** (host-selected): free Return, Graveyard, Reveal; standard rooms use gold for Grave/Reveal
+- **Server turn timeout** enforcement
+- **Win gold** rewards (idempotent per room)
+
+### Future
 
 - **Phase 2** — Accounts, friends, and an in-app inbox for requests/invites (Supabase Auth + Postgres).
-- **Phase 3** — Online rooms/lobbies reusing `game-core` as the server authority; reconnect handling.
-- **Phase 4** — Virtual credits with buy-in/pot settlement, live reactions, and timeout kick/forfeit.
-
-The reactions bar and pot badge in the game are visual stubs that already reserve a place for the Phase 4 features.
+- **Real pot settlement** — server-side buy-in/escrow (pot badge is solo practice UI only).
+- **Host-configurable turn timer** in lobby.
+- **Matchmaking** and friends list.

@@ -54,6 +54,7 @@ export interface RevealSheetProps {
   onClose: () => void;
   trumpSuit: Suit;
   opponents: RevealOpponent[];
+  onRevealCard?: (opponentId: string, cardIndex: number) => Promise<CardModel | null>;
 }
 
 type RevealStep = "pickPlayer" | "pickCard" | "revealing";
@@ -156,7 +157,7 @@ function FlippableRevealCard({
   );
 }
 
-export function RevealSheet({ visible, onClose, trumpSuit, opponents }: RevealSheetProps) {
+export function RevealSheet({ visible, onClose, trumpSuit, opponents, onRevealCard }: RevealSheetProps) {
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const sheetGradient = tableTheme.backgroundGradient ?? [
@@ -279,15 +280,39 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents }: RevealSh
     backdropO.value = withTiming(BACKDROP_FULL, { duration: 280 });
   }, [ty, backdropO]);
 
+  const selectedOpponent = useMemo(
+    () => snapshotOpponents.find((o) => o.id === selectedId) ?? null,
+    [snapshotOpponents, selectedId],
+  );
+
+  const sortedCards = useMemo(
+    () =>
+      selectedOpponent
+        ? sortHandForDisplay(selectedOpponent.cards, trumpSuit)
+        : [],
+    [selectedOpponent, trumpSuit],
+  );
+
   const handleSelectPlayer = useCallback((id: string) => {
     setSelectedId(id);
     setStep("pickCard");
   }, []);
 
-  const handleSelectCard = useCallback((card: CardModel) => {
-    setRevealedCard(card);
-    setStep("revealing");
-  }, []);
+  const handleSelectCard = useCallback(
+    async (cardIndex: number) => {
+      if (!selectedId) return;
+      let card: CardModel | null = null;
+      if (onRevealCard) {
+        card = await onRevealCard(selectedId, cardIndex);
+      } else {
+        card = sortedCards[cardIndex] ?? null;
+      }
+      if (!card) return;
+      setRevealedCard(card);
+      setStep("revealing");
+    },
+    [selectedId, sortedCards, onRevealCard],
+  );
 
   const handleFlipComplete = useCallback(() => {
     scheduleAutoClose();
@@ -334,19 +359,6 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents }: RevealSh
 
   const aBackdrop = useAnimatedStyle(() => ({ opacity: backdropO.value }));
   const aSheet = useAnimatedStyle(() => ({ transform: [{ translateY: ty.value }] }));
-
-  const selectedOpponent = useMemo(
-    () => snapshotOpponents.find((o) => o.id === selectedId) ?? null,
-    [snapshotOpponents, selectedId],
-  );
-
-  const sortedCards = useMemo(
-    () =>
-      selectedOpponent
-        ? sortHandForDisplay(selectedOpponent.cards, trumpSuit)
-        : [],
-    [selectedOpponent, trumpSuit],
-  );
 
   const headerTitle =
     step === "pickPlayer"
@@ -447,10 +459,10 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents }: RevealSh
                     { maxWidth: columns * (REVEAL_CARD_W + GRID_GAP) },
                   ]}
                 >
-                  {sortedCards.map((card) => (
+                  {sortedCards.map((card, cardIndex) => (
                     <Pressable
                       key={card.id}
-                      onPress={() => handleSelectCard(card)}
+                      onPress={() => void handleSelectCard(cardIndex)}
                       accessibilityRole="button"
                       accessibilityLabel="Reveal this card"
                     >

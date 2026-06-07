@@ -23,11 +23,12 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { MenuButton } from "./MenuButton";
 import { trigger } from "../feedback/haptics";
 import { saveRoomSession } from "../game/onlineSessionStorage";
+import { useOnlineAuth } from "../game/useAuthBootstrap";
 import { useGameStore } from "../game/store";
 import { colors, radius, spacing, typography } from "../theme";
 import { useTableTheme } from "../theme/TableThemeContext";
@@ -72,7 +73,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
   const drawerH = Math.round(screenH * DRAWER_HEIGHT_RATIO);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const prevVisible = useRef(visible);
+  const prevVisible = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
   const codeInputRef = useRef<TextInputType>(null);
   const joinButtonRef = useRef<View>(null);
@@ -87,7 +88,13 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
   const [error, setError] = useState<string | null>(null);
 
   const joinRoom = useMutation(api.rooms.joinRoom);
+  const trimmedCode = code.replace(/\D/g, "").slice(0, 6);
+  const roomPreview = useQuery(
+    api.rooms.getRoomByCode,
+    trimmedCode.length === 6 ? { code: trimmedCode } : "skip",
+  );
   const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
+  const { authReady, authLoading, ensureAuthenticated } = useOnlineAuth();
 
   const ty = useSharedValue(drawerH);
   const keyboardLift = useSharedValue(0);
@@ -284,16 +291,15 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
     setJoining(true);
     setError(null);
     try {
+      await ensureAuthenticated();
       const result = await joinRoom({ code: trimmedCode, displayName: name });
       await saveRoomSession({
         roomId: result.roomId,
-        sessionToken: result.sessionToken,
         displayName: name,
       });
       trigger("gameStart");
       enterOnlineLobby({
         roomId: result.roomId,
-        sessionToken: result.sessionToken,
         displayName: name,
         code: trimmedCode,
         isHost: false,
@@ -301,12 +307,17 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
       setModalVisible(false);
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not join room");
+      const msg = e instanceof Error ? e.message : "Could not join room";
+      setError(
+        msg.toLowerCase().includes("not authenticated")
+          ? "Could not sign in for online play. Check your connection and try again."
+          : msg,
+      );
       trigger("error");
     } finally {
       setJoining(false);
     }
-  }, [code, joinRoom, enterOnlineLobby, onClose, resetKeyboardLift]);
+  }, [code, ensureAuthenticated, joinRoom, enterOnlineLobby, onClose, resetKeyboardLift]);
 
   const aBackdrop = useAnimatedStyle(() => ({ opacity: backdropO.value }));
   const aSheet = useAnimatedStyle(() => ({
@@ -371,6 +382,15 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
             <Text style={[styles.sub, { color: ui.textFaint }]}>
               Enter the room code from your friend
             </Text>
+            {trimmedCode.length === 6 && (
+              <Text style={[styles.previewHint, { color: ui.textMuted }]}>
+                {roomPreview === undefined
+                  ? "Looking up room…"
+                  : roomPreview
+                    ? `${roomPreview.humanCount} / ${roomPreview.maxPlayers} players in lobby`
+                    : "No open lobby with this code"}
+              </Text>
+            )}
 
             <Text style={[styles.label, { color: ui.textFaint }]}>ROOM CODE</Text>
             <TextInput
@@ -402,10 +422,17 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
 
             <View ref={joinButtonRef} collapsable={false}>
               <MenuButton
-                label={joining ? "JOINING…" : "JOIN ROOM"}
+                label={
+                  joining
+                    ? "JOINING…"
+                    : authLoading && !authReady
+                      ? "SIGNING IN…"
+                      : "JOIN ROOM"
+                }
                 variant="primary"
                 icon="▶"
                 onPress={handleJoin}
+                disabled={joining || (authLoading && !authReady)}
               />
             </View>
           </ScrollView>
@@ -496,6 +523,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontSize: 16,
+  },
+  previewHint: {
+    fontSize: 12,
+    textAlign: "center",
+    marginBottom: spacing.sm,
   },
   codeInput: {
     fontSize: 28,

@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import {
   Modal,
   Pressable,
@@ -9,8 +16,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
-  FadeIn,
-  FadeOutUp,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -18,11 +23,14 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
+import { useGameStore } from "../game/store";
 import { radius, spacing } from "../theme";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
-import { DOCK_ROW_HEIGHT, useDockPillStyles } from "./dockPill";
 
 const REACTIONS = [
   { emoji: "\u{1F44D}", label: "Nice" },
@@ -35,21 +43,25 @@ const REACTIONS = [
   { emoji: "\u{1F44E}", label: "Nope" },
 ];
 
-const BURST_BOTTOM = 96;
 const SHEET_HEIGHT = 220;
 const SPRING_IN = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
 const BACKDROP_FULL = 0.76;
 
-interface Burst {
-  id: number;
-  emoji: string;
+export interface ReactionsHostRef {
+  open: () => void;
 }
 
-function ReactionsBarComponent() {
+const ReactionsHostComponent = forwardRef<ReactionsHostRef>(function ReactionsHostComponent(
+  _props,
+  ref,
+) {
+  const playMode = useGameStore((s) => s.playMode);
+  const onlineRoomId = useGameStore((s) => s.onlineRoomId);
+  const triggerLocalReaction = useGameStore((s) => s.triggerLocalReaction);
+  const sendReactionMut = useMutation(api.rooms.sendReaction);
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
-  const dockPillStyles = useDockPillStyles();
   const insets = useSafeAreaInsets();
   const sheetH = SHEET_HEIGHT + insets.bottom;
 
@@ -58,7 +70,6 @@ function ReactionsBarComponent() {
     ui.feltEdge,
   ];
 
-  const [bursts, setBursts] = useState<Burst[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const prevOpen = useRef(pickerOpen);
@@ -68,11 +79,18 @@ function ReactionsBarComponent() {
   const sheetHSV = useSharedValue(sheetH);
   useEffect(() => { sheetHSV.value = sheetH; }, [sheetH, sheetHSV]);
 
-  const react = useCallback((emoji: string) => {
-    const id = Date.now() + Math.random();
-    setBursts((b) => [...b, { id, emoji }]);
-    setTimeout(() => setBursts((b) => b.filter((x) => x.id !== id)), 1200);
-  }, []);
+  const react = useCallback(
+    (emoji: string) => {
+      triggerLocalReaction(emoji);
+      if (playMode === "online" && onlineRoomId) {
+        void sendReactionMut({
+          roomId: onlineRoomId as Id<"rooms">,
+          emoji,
+        });
+      }
+    },
+    [playMode, onlineRoomId, sendReactionMut, triggerLocalReaction],
+  );
 
   const animateOut = useCallback(
     (onDone: () => void) => {
@@ -92,6 +110,8 @@ function ReactionsBarComponent() {
   const openDrawer = useCallback(() => {
     setPickerOpen(true);
   }, []);
+
+  useImperativeHandle(ref, () => ({ open: openDrawer }), [openDrawer]);
 
   useEffect(() => {
     if (pickerOpen && !prevOpen.current) {
@@ -145,34 +165,6 @@ function ReactionsBarComponent() {
 
   return (
     <>
-      <View style={styles.wrap}>
-        <View style={styles.bursts} pointerEvents="none">
-          {bursts.map((b) => (
-            <Animated.Text
-              key={b.id}
-              entering={FadeIn}
-              exiting={FadeOutUp.duration(900)}
-              style={styles.burst}
-            >
-              {b.emoji}
-            </Animated.Text>
-          ))}
-        </View>
-
-        <View style={styles.triggerRow}>
-          <Pressable
-            style={dockPillStyles.pill}
-            onPress={pickerOpen ? closeDrawer : openDrawer}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Reactions"
-          >
-            <Text style={dockPillStyles.icon}>{"\u{1F600}"}</Text>
-            <Text style={dockPillStyles.label}>React</Text>
-          </Pressable>
-        </View>
-      </View>
-
       <Modal
         visible={modalVisible}
         transparent
@@ -238,35 +230,9 @@ function ReactionsBarComponent() {
       </Modal>
     </>
   );
-}
+});
 
 const styles = StyleSheet.create({
-  wrap: {
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    height: DOCK_ROW_HEIGHT,
-    overflow: "visible",
-  },
-  bursts: {
-    position: "absolute",
-    bottom: BURST_BOTTOM,
-    left: 0,
-    right: 0,
-    height: 72,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 10,
-    zIndex: 30,
-  },
-  burst: { fontSize: 36 },
-  triggerRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    height: DOCK_ROW_HEIGHT,
-  },
   gestureRoot: { flex: 1 },
   backdrop: { backgroundColor: "rgba(4,14,9,1)" },
   sheet: {
@@ -326,4 +292,7 @@ const styles = StyleSheet.create({
   optionLabel: { fontSize: 10, fontWeight: "600" },
 });
 
-export const ReactionsBar = React.memo(ReactionsBarComponent);
+export const ReactionsHost = React.memo(ReactionsHostComponent);
+
+/** @deprecated Use ReactionsHost */
+export const ReactionsBar = ReactionsHost;

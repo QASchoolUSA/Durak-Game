@@ -21,6 +21,8 @@ export interface CardProps {
   dimmed?: boolean;
   /** Highlight with a gold ring (e.g. selectable / active). */
   highlighted?: boolean;
+  /** Simpler back for small deck pile cards. */
+  compact?: boolean;
   /** Override active card theme (e.g. design picker previews). */
   themeOverride?: CardTheme;
   style?: ViewStyle | ViewStyle[];
@@ -199,7 +201,7 @@ function SunburstPattern({ accent, accentSoft }: { accent: string; accentSoft: s
   );
 }
 
-function CardBackPattern({
+const CardBackPattern = React.memo(function CardBackPattern({
   pattern,
   accent,
   accentSoft,
@@ -218,7 +220,7 @@ function CardBackPattern({
     case "sunburst":
       return <SunburstPattern accent={accent} accentSoft={accentSoft} />;
   }
-}
+});
 
 function CardCorner({
   label,
@@ -358,10 +360,12 @@ function CardBack({
   width,
   height,
   theme,
+  compact = false,
 }: {
   width: number;
   height: number;
   theme: CardTheme;
+  compact?: boolean;
 }) {
   const panelColor = theme.backLight ?? theme.back;
 
@@ -385,17 +389,21 @@ function CardBack({
             { borderColor: theme.backAccent },
           ]}
         />
-        <View
-          style={[
-            styles.backFrameInner,
-            { borderColor: theme.backAccent },
-          ]}
-        />
-        <CardBackPattern
-          pattern={theme.backPattern}
-          accent={theme.backAccent}
-          accentSoft={theme.backAccentSoft ?? theme.backAccent}
-        />
+        {!compact && (
+          <>
+            <View
+              style={[
+                styles.backFrameInner,
+                { borderColor: theme.backAccent },
+              ]}
+            />
+            <CardBackPattern
+              pattern={theme.backPattern}
+              accent={theme.backAccent}
+              accentSoft={theme.backAccentSoft ?? theme.backAccent}
+            />
+          </>
+        )}
       </View>
     </View>
   );
@@ -409,6 +417,7 @@ function CardComponent({
   trump,
   dimmed,
   highlighted,
+  compact,
   themeOverride,
   style,
 }: CardProps) {
@@ -426,7 +435,7 @@ function CardComponent({
       ]}
     >
       {faceDown || !card ? (
-        <CardBack width={width} height={height} theme={theme} />
+        <CardBack width={width} height={height} theme={theme} compact={compact} />
       ) : (
         <CardFace card={card} width={width} height={height} trump={trump} theme={theme} />
       )}

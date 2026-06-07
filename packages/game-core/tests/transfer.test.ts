@@ -145,6 +145,106 @@ describe("perevodnoy transfer", () => {
     expect(legalTransfers(state, 0)).toHaveLength(0);
   });
 
+  it("blocks transfer on a 3-card chain when next defender lacks capacity", () => {
+    const state = baseState({
+      defenderId: "B",
+      hands: {
+        A: [makeCard(7, "hearts")],
+        B: [makeCard(9, "hearts")],
+        C: [makeCard(10, "hearts"), makeCard(11, "hearts"), makeCard(12, "hearts")],
+      },
+      table: [
+        { attack: makeCard(9, "clubs") },
+        { attack: makeCard(9, "diamonds"), viaTransfer: true },
+        { attack: makeCard(9, "spades"), viaTransfer: true },
+      ],
+    });
+    expect(legalTransfers(state, 0)).toHaveLength(0);
+    expect(canTransfer(state, "B")).toBe(false);
+  });
+
+  it("completes a four-card transfer chain when next defender has capacity", () => {
+    let state = baseState({
+      hands: {
+        A: [makeCard(9, "hearts"), makeCard(7, "hearts"), makeCard(8, "hearts"), makeCard(10, "hearts")],
+        B: [
+          makeCard(9, "diamonds"),
+          makeCard(7, "clubs"),
+          makeCard(8, "clubs"),
+          makeCard(10, "clubs"),
+          makeCard(11, "clubs"),
+        ],
+        C: [
+          makeCard(9, "spades"),
+          makeCard(12, "clubs"),
+          makeCard(13, "clubs"),
+          makeCard(14, "clubs"),
+          makeCard(6, "diamonds"),
+        ],
+      },
+      table: [{ attack: makeCard(9, "clubs") }],
+    });
+    state = applyMove(state, {
+      type: "TRANSFER",
+      player: "B",
+      card: makeCard(9, "diamonds"),
+      target: 0,
+    });
+    state = applyMove(state, {
+      type: "TRANSFER",
+      player: "C",
+      card: makeCard(9, "spades"),
+      target: 0,
+    });
+    expect(state.table).toHaveLength(3);
+    expect(state.defenderId).toBe("A");
+    expect(canTransfer(state, "A")).toBe(true);
+    state = applyMove(state, {
+      type: "TRANSFER",
+      player: "A",
+      card: makeCard(9, "hearts"),
+      target: 0,
+    });
+    expect(state.table).toHaveLength(4);
+    expect(state.defenderId).toBe("B");
+    expect(state.table.every((p) => p.attack.rank === 9)).toBe(true);
+  });
+
+  it("blocks transfer when table is at maxAttacks", () => {
+    const state = baseState({
+      maxAttacks: 3,
+      defenderId: "B",
+      hands: {
+        A: [makeCard(7, "hearts")],
+        B: [makeCard(9, "hearts")],
+        C: [makeCard(10, "hearts"), makeCard(11, "hearts"), makeCard(12, "hearts")],
+      },
+      table: [
+        { attack: makeCard(9, "clubs") },
+        { attack: makeCard(9, "diamonds"), viaTransfer: true },
+        { attack: makeCard(9, "spades"), viaTransfer: true },
+      ],
+    });
+    expect(legalTransfers(state, 0)).toHaveLength(0);
+  });
+
+  it("only allows transfer against the opening attack index", () => {
+    const state = baseState({
+      defenderId: "C",
+      hands: {
+        A: [makeCard(9, "hearts"), makeCard(7, "hearts"), makeCard(8, "hearts")],
+        B: [makeCard(10, "clubs")],
+        C: [makeCard(9, "spades"), makeCard(8, "clubs")],
+      },
+      table: [
+        { attack: makeCard(9, "clubs") },
+        { attack: makeCard(9, "diamonds"), viaTransfer: true },
+      ],
+    });
+    expect(legalTransfers(state, 0).length).toBeGreaterThan(0);
+    expect(legalTransfers(state, 1)).toHaveLength(0);
+  });
+
   it("is unavailable in podkidnoy mode", () => {
     const state = baseState({
       rules: DEFAULT_RULES,

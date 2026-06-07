@@ -1,12 +1,16 @@
 import { Platform } from "react-native";
+import {
+  DEFAULT_TURN_SECONDS,
+  normalizeTurnSeconds,
+  VALID_TURN_SECONDS,
+  type TurnSecondsOption,
+} from "@durak/game-core";
 
 const STORAGE_KEY = "@durak/turnSeconds";
 
-/** 0 = timer off; otherwise seconds per turn. */
-export type TurnSecondsOption = 0 | 12 | 15 | 30 | 60;
-
-export const TURN_SECONDS_OPTIONS: TurnSecondsOption[] = [0, 12, 15, 30, 60];
-export const DEFAULT_TURN_SECONDS: TurnSecondsOption = 12;
+export type { TurnSecondsOption };
+export const TURN_SECONDS_OPTIONS: TurnSecondsOption[] = [...VALID_TURN_SECONDS];
+export { DEFAULT_TURN_SECONDS };
 
 let memoryValue: string | null = null;
 
@@ -57,10 +61,16 @@ async function getNativeStorage() {
 function parseTurnSeconds(raw: string | null): TurnSecondsOption | null {
   if (raw === null) return null;
   const n = Number(raw);
-  if (TURN_SECONDS_OPTIONS.includes(n as TurnSecondsOption)) {
-    return n as TurnSecondsOption;
+  if (!Number.isFinite(n)) return null;
+  const normalized = normalizeTurnSeconds(n);
+  if ((VALID_TURN_SECONDS as readonly number[]).includes(n)) {
+    return normalized;
   }
-  return null;
+  // Legacy 0 / 60 / invalid — migrate on read
+  if (raw !== String(normalized)) {
+    void setStoredTurnSeconds(normalized);
+  }
+  return normalized;
 }
 
 export async function getStoredTurnSeconds(): Promise<TurnSecondsOption | null> {
@@ -95,6 +105,5 @@ export async function setStoredTurnSeconds(seconds: TurnSecondsOption): Promise<
 }
 
 export function turnSecondsLabel(seconds: TurnSecondsOption): string {
-  if (seconds === 0) return "Off";
   return `${seconds}s`;
 }

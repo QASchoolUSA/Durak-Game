@@ -1,6 +1,6 @@
 /** Rotated hit-testing for the bottom hand fan — worklet-safe. */
 
-export const TOUCH_PAD_BOTTOM = 8;
+export const TOUCH_PAD_BOTTOM = 4;
 const HIT_PAD = 6;
 
 export interface HandHitLayout {

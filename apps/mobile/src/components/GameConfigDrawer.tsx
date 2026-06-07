@@ -19,7 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMutation } from "convex/react";
-import type { GameVariant, ThrowInScope, PlayStyle } from "@durak/game-core";
+import type { GameVariant, PlayStyle, ThrowInScope } from "@durak/game-core";
 import { api } from "../../convex/_generated/api";
 import type { Difficulty, PlayMode } from "../game/store";
 import { useGameStore } from "../game/store";
@@ -30,6 +30,8 @@ import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
 import { saveRoomSession } from "../game/onlineSessionStorage";
+import { useOnlineAuth } from "../game/useAuthBootstrap";
+import { usePreferencesStore } from "../game/preferencesStore";
 
 // ── Static config ─────────────────────────────────────────────────────────────
 
@@ -100,7 +102,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const drawerH = Math.round(screenH * 0.88);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const prevVisible = useRef(visible);
+  const prevVisible = useRef(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -186,8 +188,16 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const setPlayMode = useGameStore((s) => s.setPlayMode);
   const startGame   = useGameStore((s) => s.startGame);
   const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
+  const turnSeconds = usePreferencesStore((s) => s.turnSeconds);
+
+  const convexConfigured = Boolean(process.env.EXPO_PUBLIC_CONVEX_URL);
+  const { authReady, authLoading, ensureAuthenticated } = useOnlineAuth();
 
   const handleStart = useCallback(async () => {
+    if (playMode === "online" && !convexConfigured) {
+      setCreateError("Online play is not configured on this build.");
+      return;
+    }
     if (playMode === "solo") {
       trigger("gameStart");
       setModalVisible(false);
@@ -200,6 +210,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
     setCreating(true);
     setCreateError(null);
     try {
+      await ensureAuthenticated();
       const result = await createRoom({
         displayName: name,
         config: {
@@ -209,16 +220,15 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
           playStyle,
           difficulty,
         },
+        turnTimerSeconds: turnSeconds,
       });
       await saveRoomSession({
         roomId: result.roomId,
-        sessionToken: result.sessionToken,
         displayName: name,
       });
       trigger("gameStart");
       enterOnlineLobby({
         roomId: result.roomId,
-        sessionToken: result.sessionToken,
         displayName: name,
         code: result.code,
         isHost: true,
@@ -226,13 +236,19 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
       setModalVisible(false);
       onClose();
     } catch (e) {
-      setCreateError(e instanceof Error ? e.message : "Could not create room");
+      const msg = e instanceof Error ? e.message : "Could not create room";
+      setCreateError(
+        msg.toLowerCase().includes("not authenticated")
+          ? "Could not sign in for online play. Check your connection and try again."
+          : msg,
+      );
       trigger("error");
     } finally {
       setCreating(false);
     }
   }, [
     playMode,
+    ensureAuthenticated,
     createRoom,
     numPlayers,
     variant,
@@ -242,6 +258,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
     onClose,
     startGame,
     enterOnlineLobby,
+    turnSeconds,
   ]);
 
   // ── Animated styles ────────────────────────────────────────────────────────
@@ -447,12 +464,18 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                   playMode === "online"
                     ? creating
                       ? "CREATING…"
-                      : "CREATE ROOM"
+                      : authLoading && !authReady
+                        ? "SIGNING IN…"
+                        : "CREATE ROOM"
                     : "START GAME"
                 }
                 variant="primary"
                 onPress={handleStart}
                 icon="▶"
+                disabled={
+                  playMode === "online" &&
+                  (creating || (authLoading && !authReady) || !convexConfigured)
+                }
               />
             </View>
 

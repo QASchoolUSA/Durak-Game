@@ -10,7 +10,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { AddAiSeatSheet } from "../components/AddAiSeatSheet";
 import { Background } from "../components/Background";
 import { MenuButton } from "../components/MenuButton";
@@ -35,8 +35,8 @@ export function LobbyScreen() {
   const { width } = useWindowDimensions();
   const lay = layoutFor(width);
 
+  const { isAuthenticated } = useConvexAuth();
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
-  const onlineSessionToken = useGameStore((s) => s.onlineSessionToken);
   const onlineRoomCode = useGameStore((s) => s.onlineRoomCode);
   const onlineIsHost = useGameStore((s) => s.onlineIsHost);
   const onlineDisplayName = useGameStore((s) => s.onlineDisplayName);
@@ -52,11 +52,8 @@ export function LobbyScreen() {
 
   const roomView = useQuery(
     api.rooms.getRoomView,
-    onlineRoomId && onlineSessionToken
-      ? {
-          roomId: onlineRoomId as Id<"rooms">,
-          sessionToken: onlineSessionToken,
-        }
+    onlineRoomId && isAuthenticated
+      ? { roomId: onlineRoomId as Id<"rooms"> }
       : "skip",
   );
 
@@ -67,6 +64,9 @@ export function LobbyScreen() {
   const code = roomView?.code ?? onlineRoomCode ?? "------";
   const maxSeats = roomView?.config.numPlayers ?? 2;
   const roomDifficulty = roomView?.config.difficulty ?? "medium";
+  const roomPlayStyle = roomView?.config.playStyle ?? "standard";
+  const playStyleLabel =
+    roomPlayStyle === "abilities" ? "With Abilities" : "Standard";
   const joinedCount = members.length;
 
   const seats = useMemo(() => {
@@ -93,12 +93,11 @@ export function LobbyScreen() {
   const isLocalReady = roomView?.yourIsReady ?? false;
 
   const handleToggleReady = useCallback(async () => {
-    if (!onlineRoomId || !onlineSessionToken || humanCount < 2) return;
+    if (!onlineRoomId || !isAuthenticated || humanCount < 2) return;
     trigger(isLocalReady ? "selection" : "confirm");
     try {
       await setReady({
         roomId: onlineRoomId as Id<"rooms">,
-        sessionToken: onlineSessionToken,
         ready: !isLocalReady,
       });
     } catch {
@@ -106,7 +105,7 @@ export function LobbyScreen() {
     }
   }, [
     onlineRoomId,
-    onlineSessionToken,
+    isAuthenticated,
     humanCount,
     isLocalReady,
     setReady,
@@ -124,43 +123,38 @@ export function LobbyScreen() {
   }, [code]);
 
   const handleStart = useCallback(async () => {
-    if (!onlineRoomId || !onlineSessionToken) return;
-    trigger("gameStart");
+    if (!onlineRoomId || !isAuthenticated) return;
     try {
       await startGame({
         roomId: onlineRoomId as Id<"rooms">,
-        sessionToken: onlineSessionToken,
         soloWithAi: false,
         autoFillEmptySeats: true,
       });
     } catch {
       trigger("error");
     }
-  }, [onlineRoomId, onlineSessionToken, startGame]);
+  }, [onlineRoomId, isAuthenticated, startGame]);
 
   const handleStartCompact = useCallback(async () => {
-    if (!onlineRoomId || !onlineSessionToken) return;
-    trigger("gameStart");
+    if (!onlineRoomId || !isAuthenticated) return;
     try {
       await startGame({
         roomId: onlineRoomId as Id<"rooms">,
-        sessionToken: onlineSessionToken,
         soloWithAi: false,
         autoFillEmptySeats: false,
       });
     } catch {
       trigger("error");
     }
-  }, [onlineRoomId, onlineSessionToken, startGame]);
+  }, [onlineRoomId, isAuthenticated, startGame]);
 
   const handleLobbyBot = useCallback(
     async (seatIndex: number, enabled: boolean) => {
-      if (!onlineRoomId || !onlineSessionToken) return;
+      if (!onlineRoomId || !isAuthenticated) return;
       trigger("selection");
       try {
         await setLobbyBot({
           roomId: onlineRoomId as Id<"rooms">,
-          sessionToken: onlineSessionToken,
           seatIndex,
           enabled,
         });
@@ -168,31 +162,29 @@ export function LobbyScreen() {
         trigger("error");
       }
     },
-    [onlineRoomId, onlineSessionToken, setLobbyBot],
+    [onlineRoomId, isAuthenticated, setLobbyBot],
   );
 
   const handleConfirmAddAi = useCallback(
     async (difficulty: Difficulty) => {
-      if (!onlineRoomId || !onlineSessionToken || addAiSeat === null) {
+      if (!onlineRoomId || !isAuthenticated || addAiSeat === null) {
         throw new Error("Missing room");
       }
       if (difficulty !== roomDifficulty) {
         await setRoomDifficulty({
           roomId: onlineRoomId as Id<"rooms">,
-          sessionToken: onlineSessionToken,
           difficulty,
         });
       }
       await setLobbyBot({
         roomId: onlineRoomId as Id<"rooms">,
-        sessionToken: onlineSessionToken,
         seatIndex: addAiSeat,
         enabled: true,
       });
     },
     [
       onlineRoomId,
-      onlineSessionToken,
+      isAuthenticated,
       addAiSeat,
       roomDifficulty,
       setRoomDifficulty,
@@ -201,11 +193,10 @@ export function LobbyScreen() {
   );
 
   const handleLeave = useCallback(async () => {
-    if (onlineRoomId && onlineSessionToken) {
+    if (onlineRoomId && isAuthenticated) {
       try {
         await leaveRoom({
           roomId: onlineRoomId as Id<"rooms">,
-          sessionToken: onlineSessionToken,
         });
       } catch {
         /* ignore */
@@ -213,7 +204,7 @@ export function LobbyScreen() {
     }
     await clearRoomSession();
     goHome();
-  }, [onlineRoomId, onlineSessionToken, leaveRoom, goHome]);
+  }, [onlineRoomId, isAuthenticated, leaveRoom, goHome]);
 
   return (
     <Background variant="home">
@@ -221,7 +212,7 @@ export function LobbyScreen() {
         <View style={[styles.content, { paddingHorizontal: lay.hPad, maxWidth: lay.maxContent }]}>
           <Text style={[styles.title, { color: ui.accent }]}>GAME LOBBY</Text>
           <Text style={[styles.subtitle, { color: ui.textFaint }]}>
-            Share the code with friends
+            Share the code with friends · {playStyleLabel}
           </Text>
 
           <Pressable

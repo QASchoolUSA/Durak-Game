@@ -88,8 +88,8 @@ export interface GameState {
   loserId: PlayerId | null;
 
   phase: GamePhase;
-  /** Max attacking cards allowed in a single round. */
-  readonly maxAttacks: number;
+  /** Max attacking cards allowed in a single round (5 for bout 1, then 6). */
+  maxAttacks: number;
   /** House rules fixed for this game. */
   readonly rules: GameRules;
 }

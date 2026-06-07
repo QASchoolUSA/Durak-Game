@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   cancelAnimation,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -9,6 +10,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { useSharedBool } from "../hooks/useSharedBool";
 import { colors, radius } from "../theme";
 
 export type ChoiceDropVariant = "beat" | "transfer";
@@ -57,6 +59,8 @@ export interface ChoiceDropSlotProps {
   dimmed: boolean;
   /** Drag is in progress — show slot as a reachable landing zone. */
   available?: boolean;
+  /** UI-thread drag flag — avoids parent re-render on drag start. */
+  availableSV?: SharedValue<boolean>;
   /** Slot cannot receive the card (e.g. transfer not legal this turn). */
   disabled?: boolean;
   children?: React.ReactNode;
@@ -69,10 +73,12 @@ function ChoiceDropSlotComponent({
   active,
   dimmed,
   available = false,
+  availableSV,
   disabled = false,
   children,
 }: ChoiceDropSlotProps) {
   const cfg = CFG[variant];
+  const dragAvailable = useSharedBool(availableSV, available);
 
   // Shared animation values
   const slotOpacity = useSharedValue(1);
@@ -83,7 +89,7 @@ function ChoiceDropSlotComponent({
   const labelY      = useSharedValue(8);
 
   const isActive = active && !disabled;
-  const isAvail  = available && !disabled && !isActive && !dimmed;
+  const isAvail = dragAvailable && !disabled && !isActive && !dimmed;
 
   // ── Slot-level opacity (dim/disable fade) ─────────────────────────────────
   useEffect(() => {
