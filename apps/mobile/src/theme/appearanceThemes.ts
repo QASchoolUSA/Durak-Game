@@ -300,6 +300,10 @@ export function getTableSwatchColor(table: TablePalette): string {
   return table.backgroundGradient?.[0] ?? table.backgroundColor;
 }
 
+export function getAppearanceBootColor(id: AppearanceId): string {
+  return getTableSwatchColor(getAppearance(id).table);
+}
+
 export function getAppearance(id: AppearanceId): AppearancePreset {
   return APPEARANCE_PRESETS[id] ?? APPEARANCE_PRESETS[DEFAULT_APPEARANCE];
 }

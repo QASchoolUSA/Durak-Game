@@ -29,6 +29,7 @@ import { colors, radius, spacing, typography } from "../theme";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
+import { chargeBuyIn } from "../game/chargeBuyIn";
 import { saveRoomSession } from "../game/onlineSessionStorage";
 import { useOnlineAuth } from "../game/useAuthBootstrap";
 import { usePreferencesStore } from "../game/preferencesStore";
@@ -107,6 +108,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const createRoom = useMutation(api.rooms.createRoom);
+  const spendCredits = useMutation(api.wallets.spendCredits);
 
   const ty        = useSharedValue(drawerH);
   const backdropO = useSharedValue(0);
@@ -187,6 +189,9 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const setDiff     = useGameStore((s) => s.setDifficulty);
   const setPlayMode = useGameStore((s) => s.setPlayMode);
   const startGame   = useGameStore((s) => s.startGame);
+  const buyIn = useGameStore((s) => s.buyIn);
+  const syncCreditBalance = useGameStore((s) => s.syncCreditBalance);
+  const deductCreditsLocal = useGameStore((s) => s.deductCreditsLocal);
   const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
   const turnSeconds = usePreferencesStore((s) => s.turnSeconds);
 
@@ -199,10 +204,23 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
       return;
     }
     if (playMode === "solo") {
+      setCreateError(null);
+      const charged = await chargeBuyIn({
+        convexEnabled: convexConfigured,
+        ensureAuthenticated,
+        spendCredits,
+        buyIn,
+        syncCreditBalance,
+        deductCreditsLocal,
+      });
+      if (!charged) {
+        setCreateError("Not enough credits.");
+        return;
+      }
       trigger("gameStart");
       setModalVisible(false);
       onClose();
-      startGame();
+      startGame(undefined, { buyInCharged: convexConfigured });
       return;
     }
 
@@ -248,8 +266,13 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
     }
   }, [
     playMode,
+    convexConfigured,
     ensureAuthenticated,
     createRoom,
+    spendCredits,
+    buyIn,
+    syncCreditBalance,
+    deductCreditsLocal,
     numPlayers,
     variant,
     throwIn,
@@ -456,7 +479,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                 },
               ]}
             >
-              {createError && playMode === "online" && (
+              {createError && (
                 <Text style={[styles.createError, { color: colors.danger }]}>{createError}</Text>
               )}
               <MenuButton

@@ -6,6 +6,7 @@ import {
   cardId,
   createGame,
   DEFAULT_RULES,
+  forceForfeitEnd,
   isGameOver,
   legalAttacks,
   mulberry32,
@@ -431,6 +432,56 @@ describe("game over", () => {
     expect(s.loserId).toBeNull();
     expect(s.table).toHaveLength(0);
     expect(s.discard.map((c) => c.id)).toContain(cardId(9, "hearts"));
+  });
+});
+
+describe("forceForfeitEnd", () => {
+  it("ends a 2-player game with the forfeiter as durak", () => {
+    const s = baseState({
+      hands: {
+        A: [makeCard(9, "hearts")],
+        B: [makeCard(7, "hearts"), makeCard(8, "clubs")],
+      },
+      deck: [makeCard(10, "spades")],
+    });
+
+    const ended = forceForfeitEnd(s, "B");
+
+    expect(ended.phase).toBe("gameOver");
+    expect(ended.loserId).toBe("B");
+    expect(ended.finishedOrder).toEqual(["A"]);
+    expect(ended.table).toHaveLength(0);
+    expect(ended.takeInProgress).toBe(false);
+  });
+
+  it("keeps already-finished players ahead in finishedOrder", () => {
+    const s = baseState({
+      players: ["A", "B", "C"],
+      hands: {
+        A: [],
+        B: [makeCard(9, "hearts")],
+        C: [makeCard(7, "hearts")],
+      },
+      deck: [],
+      finishedOrder: ["A"],
+      attackerId: "B",
+      defenderId: "C",
+    });
+
+    const ended = forceForfeitEnd(s, "C");
+
+    expect(ended.loserId).toBe("C");
+    expect(ended.finishedOrder).toEqual(["A", "B"]);
+  });
+
+  it("throws when the game is already over", () => {
+    const s = baseState({ phase: "gameOver", loserId: "B" });
+    expect(() => forceForfeitEnd(s, "A")).toThrow("Game already over");
+  });
+
+  it("throws when the forfeiter is not in the game", () => {
+    const s = baseState();
+    expect(() => forceForfeitEnd(s, "Z")).toThrow("Player not in game");
   });
 });
 

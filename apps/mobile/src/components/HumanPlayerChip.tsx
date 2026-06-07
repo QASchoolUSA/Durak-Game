@@ -15,7 +15,7 @@ import { TakeSpeechBubble } from "./TakeSpeechBubble";
 import { SeatReactionBurst } from "./SeatReactionBurst";
 import { TurnTimerRing } from "./TurnTimerRing";
 import { useUiTheme } from "../theme/UiThemeContext";
-import { radius } from "../theme";
+import { radius, typography } from "../theme";
 
 const SPRING = { damping: 16, stiffness: 280, mass: 0.7 };
 
@@ -30,8 +30,11 @@ export interface HumanPlayerChipProps {
   turnProgress: number;
   timerEnabled?: boolean;
   showTimerRing?: boolean;
+  /** When false, ring stays full (clock paused e.g. reveal overlay). */
+  timerRunning?: boolean;
   finished?: boolean;
   onPress?: () => void;
+  showYouLabel?: boolean;
 }
 
 function HumanPlayerChipComponent({
@@ -43,8 +46,10 @@ function HumanPlayerChipComponent({
   turnProgress,
   timerEnabled = true,
   showTimerRing = true,
+  timerRunning = true,
   finished,
   onPress,
+  showYouLabel = false,
 }: HumanPlayerChipProps) {
   const ui = useUiTheme();
   const isTaking = role === "taking";
@@ -103,21 +108,28 @@ function HumanPlayerChipComponent({
             accessibilityLabel="Open reactions"
           >
             <PlayerAvatar name={name} size={28} />
-            <Text
-              style={[styles.name, { color: ui.textPrimary }]}
-              numberOfLines={1}
-            >
-              {name}
-            </Text>
+            <View style={styles.nameRow}>
+              <Text
+                style={[styles.name, { color: ui.textPrimary }]}
+                numberOfLines={1}
+              >
+                {name}
+              </Text>
+              {showYouLabel && (
+                <Text style={[styles.youLabel, { color: ui.accentMuted }]}>
+                  (you)
+                </Text>
+              )}
+            </View>
           </Pressable>
         </View>
-        {showBorder && timerEnabled && showTimerRing && (
+        {onClock && timerEnabled && showTimerRing && (
           <TurnTimerRing
-            visible={showBorder}
+            visible
             color={ringColor}
             maxBorderRadius={radius.panel}
             progress={turnProgress}
-            clockActive={onClock}
+            clockActive={timerRunning}
             width={ringWidth}
             height={ringHeight}
           />
@@ -166,10 +178,20 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   pressablePressed: { opacity: 0.85 },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    maxWidth: 140,
+  },
   name: {
     fontSize: 12,
     fontWeight: "700",
-    maxWidth: 140,
+    flexShrink: 1,
+  },
+  youLabel: {
+    ...typography.caption,
+    flexShrink: 0,
   },
 });
 

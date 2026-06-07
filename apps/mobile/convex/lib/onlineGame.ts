@@ -1,11 +1,15 @@
 import {
   canPass,
   canTake,
+  canTransfer,
   legalAttacks,
+  legalDefenses,
+  legalTransfers,
   pickMove,
   type GameState,
   type Move,
   type PlayerId,
+  undefendedPairs,
 } from "@durak/game-core";
 
 export { DEFAULT_TURN_SECONDS } from "@durak/game-core";
@@ -45,6 +49,37 @@ export function botPlayerIds(
   return ids;
 }
 
+/** True when a human has any legal action (mirrors mobile playerMustAct). */
+export function humanMustAct(state: GameState, player: PlayerId): boolean {
+  if (state.phase !== "playing") return false;
+
+  const isDefender = state.defenderId === player;
+  const attackable = legalAttacks(state, player);
+
+  const defendable: Record<string, number[]> = {};
+  if (isDefender && !state.takeInProgress) {
+    for (const target of undefendedPairs(state)) {
+      for (const card of legalDefenses(state, target)) {
+        (defendable[card.id] ??= []).push(target);
+      }
+    }
+  }
+
+  const take = canTake(state, player);
+  const pass = canPass(state, player);
+  const transfer = canTransfer(state, player);
+  const mustOpen = !isDefender && state.table.length === 0 && attackable.length > 0;
+
+  return (
+    take ||
+    pass ||
+    transfer ||
+    mustOpen ||
+    Object.keys(defendable).length > 0 ||
+    (attackable.length > 0 && state.table.length > 0)
+  );
+}
+
 /** Human player who should act next, if any. */
 export function activeHumanPlayer(
   state: GameState,
@@ -53,7 +88,7 @@ export function activeHumanPlayer(
   for (const p of state.players) {
     if (bots.has(p)) continue;
     if (state.finishedOrder.includes(p)) continue;
-    if (pickMove(state, p, "medium")) return p;
+    if (humanMustAct(state, p)) return p;
   }
   return null;
 }

@@ -28,6 +28,7 @@ type RoomMemberView = {
   seatIndex: number;
   isBot: boolean;
   isReady?: boolean;
+  isSelf?: boolean;
 };
 
 export function LobbyScreen() {
@@ -39,7 +40,6 @@ export function LobbyScreen() {
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
   const onlineRoomCode = useGameStore((s) => s.onlineRoomCode);
   const onlineIsHost = useGameStore((s) => s.onlineIsHost);
-  const onlineDisplayName = useGameStore((s) => s.onlineDisplayName);
   const goHome = useGameStore((s) => s.goHome);
 
   const [addAiSeat, setAddAiSeat] = useState<number | null>(null);
@@ -247,11 +247,7 @@ export function LobbyScreen() {
                     key={seatIndex}
                     seatIndex={seatIndex}
                     member={member}
-                    isYou={
-                      member != null &&
-                      !member.isBot &&
-                      member.displayName === onlineDisplayName
-                    }
+                    isYou={member?.isSelf === true}
                     showReady={humanCount >= 2 && member != null && !member.isBot}
                     canManageBots={onlineIsHost}
                     onAddBot={() => setAddAiSeat(seatIndex)}

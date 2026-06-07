@@ -5,7 +5,11 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { trigger } from "../feedback/haptics";
 import { playSound } from "../feedback/sounds";
 import { formatOnlineMutationError } from "./onlineMutationErrors";
-import { registerOnlineMoveSubmit, registerOnlineReturn } from "./onlineBridge";
+import {
+  registerOnlineMoveSubmit,
+  registerOnlineReturn,
+  registerUpdateDisplayName,
+} from "./onlineBridge";
 import {
   clearPlaySession,
   isPlaySessionExpired,
@@ -28,8 +32,10 @@ export function useOnlineGame() {
   const submitMove = useMutation(api.rooms.submitMove);
   const useReturnAbility = useMutation(api.rooms.useReturnAbility);
   const touchRoom = useMutation(api.rooms.touchRoom);
+  const updateDisplayName = useMutation(api.rooms.updateDisplayName);
   const evictedRef = useRef(false);
   const reconnectAttemptedRef = useRef(false);
+  const nameReconciledKeyRef = useRef<string | null>(null);
   const ownMovePendingRef = useRef(false);
   const prevLastMoveAtRef = useRef<number | null>(null);
   const prevRoomStatusRef = useRef<"lobby" | "playing" | "finished" | null>(null);
@@ -100,6 +106,30 @@ export function useOnlineGame() {
   ]);
 
   useEffect(() => {
+    if (playMode !== "online" || !onlineRoomId || !isAuthenticated) {
+      registerUpdateDisplayName(null);
+      return;
+    }
+
+    registerUpdateDisplayName((displayName) => {
+      void updateDisplayName({
+        roomId: onlineRoomId as Id<"rooms">,
+        displayName,
+      }).catch((error) => {
+        setOnlineStatusMessage(formatOnlineMutationError(error));
+      });
+    });
+
+    return () => registerUpdateDisplayName(null);
+  }, [
+    playMode,
+    onlineRoomId,
+    isAuthenticated,
+    updateDisplayName,
+    setOnlineStatusMessage,
+  ]);
+
+  useEffect(() => {
     if (roomView) {
       evictedRef.current = false;
 
@@ -133,6 +163,32 @@ export function useOnlineGame() {
       syncOnlineState(roomView);
     }
   }, [roomView, syncOnlineState]);
+
+  useEffect(() => {
+    if (!roomView || playMode !== "online" || !onlineRoomId) return;
+
+    const selfMember = roomView.members.find((m) => m.isSelf);
+    if (!selfMember) return;
+
+    const localName = useGameStore.getState().onlineDisplayName.trim() || "Player";
+    if (selfMember.displayName === localName) return;
+
+    const reconcileKey = `${onlineRoomId}:${localName}`;
+    if (nameReconciledKeyRef.current === reconcileKey) return;
+
+    nameReconciledKeyRef.current = reconcileKey;
+    void updateDisplayName({
+      roomId: onlineRoomId as Id<"rooms">,
+      displayName: localName,
+    }).catch((error) => {
+      nameReconciledKeyRef.current = null;
+      setOnlineStatusMessage(formatOnlineMutationError(error));
+    });
+  }, [roomView, playMode, onlineRoomId, updateDisplayName, setOnlineStatusMessage]);
+
+  useEffect(() => {
+    nameReconciledKeyRef.current = null;
+  }, [onlineRoomId]);
 
   useEffect(() => {
     if (!isAuthenticated || reconnectAttemptedRef.current) return;

@@ -8,7 +8,7 @@
     "userInterfaceStyle": "automatic",
     "scheme": "durak",
     "splash": {
-      "backgroundColor": "#0B3D2E"
+      "backgroundColor": "#0A0A0A"
     },
     "ios": {
       "supportsTablet": true,
@@ -27,7 +27,7 @@
     "android": {
       "package": "com.kedrov.durakgame",
       "adaptiveIcon": {
-        "backgroundColor": "#0B3D2E",
+        "backgroundColor": "#0A0A0A",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -44,7 +44,8 @@
     },
     "owner": "kedrov",
     "plugins": [
-      "expo-audio"
+      "expo-audio",
+      "expo-splash-screen"
     ]
   }
 }

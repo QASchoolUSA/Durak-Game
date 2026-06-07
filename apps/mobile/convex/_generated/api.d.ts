@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as lib_codes from "../lib/codes.js";
+import type * as lib_displayName from "../lib/displayName.js";
 import type * as lib_goldEconomy from "../lib/goldEconomy.js";
 import type * as lib_handSort from "../lib/handSort.js";
 import type * as lib_onlineGame from "../lib/onlineGame.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   http: typeof http;
   "lib/codes": typeof lib_codes;
+  "lib/displayName": typeof lib_displayName;
   "lib/goldEconomy": typeof lib_goldEconomy;
   "lib/handSort": typeof lib_handSort;
   "lib/onlineGame": typeof lib_onlineGame;

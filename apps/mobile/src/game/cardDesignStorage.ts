@@ -76,6 +76,14 @@ export async function getStoredCardDesign(): Promise<string | null> {
   }
 }
 
+/** Sync peek for boot — web localStorage or in-memory cache after a prior read/write. */
+export function peekStoredCardDesignSync(): string | null {
+  if (Platform.OS === "web") {
+    return webGet();
+  }
+  return memoryValue;
+}
+
 export async function setStoredCardDesign(value: string): Promise<void> {
   memoryValue = value;
 

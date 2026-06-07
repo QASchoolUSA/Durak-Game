@@ -243,6 +243,30 @@ export const awardGold = mutation({
   },
 });
 
+export const spendCredits = mutation({
+  args: {
+    amount: v.number(),
+    reason: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const creditBalance = await deductCredits(ctx, userId, args.amount, args.reason);
+    return { creditBalance };
+  },
+});
+
+export const awardCreditsPublic = mutation({
+  args: {
+    amount: v.number(),
+    reason: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const creditBalance = await awardCredits(ctx, userId, args.amount, args.reason);
+    return { creditBalance };
+  },
+});
+
 async function assertWinner(
   ctx: { db: any },
   userId: string,

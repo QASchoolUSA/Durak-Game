@@ -13,6 +13,7 @@ import {
   canTransfer,
   cloneGameState,
   createGame,
+  forceForfeitEnd,
   pickMove,
   type GameState,
   type Card,
@@ -53,6 +54,7 @@ import {
   settleMatchEconomy,
 } from "./wallets";
 import { pickRevealedCard } from "./lib/revealHelpers";
+import { normalizeDisplayName } from "./lib/displayName";
 
 const CLEANUP_BATCH_SIZE = 100;
 const RETURN_WINDOW_MS = 3000;
@@ -130,6 +132,22 @@ function touchFields(now = Date.now()) {
   return { lastMoveAt: now, lastTouchedAt: now };
 }
 
+async function scheduleHumanTurnClock(
+  ctx: MutationCtx,
+  roomId: Id<"rooms">,
+  turnTimerSeconds: number,
+  humanPlayerId: PlayerId,
+  now = Date.now(),
+): Promise<{ turnDeadlineAt: number; turnClockPlayerId: PlayerId }> {
+  const turnDeadlineAt = now + turnTimerSeconds * 1000;
+  await ctx.scheduler.runAfter(
+    turnTimerSeconds * 1000,
+    internal.rooms.processHumanTimeout,
+    { roomId, expectedDeadline: turnDeadlineAt },
+  );
+  return { turnDeadlineAt, turnClockPlayerId: humanPlayerId };
+}
+
 async function applyGameUpdate(
   ctx: MutationCtx,
   roomId: Id<"rooms">,
@@ -150,13 +168,15 @@ async function applyGameUpdate(
   if (next.phase === "playing") {
     const human = activeHumanPlayer(next, bots);
     if (human) {
-      turnDeadlineAt = now + turnTimerSeconds * 1000;
-      turnClockPlayerId = human;
-      await ctx.scheduler.runAfter(
-        turnTimerSeconds * 1000,
-        internal.rooms.processHumanTimeout,
-        { roomId, expectedDeadline: turnDeadlineAt },
+      const clock = await scheduleHumanTurnClock(
+        ctx,
+        roomId,
+        turnTimerSeconds,
+        human,
+        now,
       );
+      turnDeadlineAt = clock.turnDeadlineAt;
+      turnClockPlayerId = clock.turnClockPlayerId;
     }
   }
 
@@ -254,7 +274,7 @@ export const createRoom = mutation({
       members: [
         {
           userId,
-          displayName: args.displayName.trim() || "Host",
+          displayName: normalizeDisplayName(args.displayName) || "Host",
           seatIndex: 0,
           isBot: false,
           isReady: false,
@@ -295,7 +315,7 @@ export const joinRoom = mutation({
       ...room.members,
       {
         userId,
-        displayName: args.displayName.trim() || "Player",
+        displayName: normalizeDisplayName(args.displayName) || "Player",
         seatIndex: seat,
         isBot: false,
         isReady: false,
@@ -348,21 +368,11 @@ export const forfeit = mutation({
     }
 
     if (room.status === "playing") {
-      const members = room.members.map((m) =>
-        m.userId === userId
-          ? { ...m, isBot: true, displayName: `${m.displayName} (AI)` }
-          : m,
-      );
+      if (!room.gameState || !member.playerId) return;
 
-      await ctx.db.patch(args.roomId, {
-        members,
-        ...touchFields(),
-        version: room.version + 1,
-      });
-
-      await ctx.scheduler.runAfter(0, internal.rooms.processBotTurns, {
-        roomId: args.roomId,
-      });
+      const next = forceForfeitEnd(room.gameState as GameState, member.playerId);
+      await applyGameUpdate(ctx, args.roomId, room, next);
+      await removeMemberFromRoom(ctx, args.roomId, room, userId);
     }
   },
 });
@@ -378,6 +388,35 @@ export const touchRoom = mutation({
     if (!findMember(room, userId)) return;
 
     await ctx.db.patch(args.roomId, { lastTouchedAt: Date.now() });
+  },
+});
+
+export const updateDisplayName = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    displayName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const room = await ctx.db.get(args.roomId);
+    if (!room) throw new Error("Room not found");
+
+    const memberIndex = room.members.findIndex((m) => m.userId === userId);
+    if (memberIndex < 0) throw new Error("Not a member of this room");
+
+    const trimmed = normalizeDisplayName(args.displayName) || "Player";
+    const current = room.members[memberIndex]!.displayName;
+    if (current === trimmed) return;
+
+    const members = room.members.map((m, i) =>
+      i === memberIndex ? { ...m, displayName: trimmed } : m,
+    );
+
+    await ctx.db.patch(args.roomId, {
+      members,
+      ...touchFields(),
+      version: room.version + 1,
+    });
   },
 });
 
@@ -485,6 +524,56 @@ export const setRoomDifficulty = mutation({
       ...touchFields(),
       version: room.version + 1,
     });
+  },
+});
+
+export const setRoomTurnTimerSeconds = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    turnTimerSeconds: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const room = await ctx.db.get(args.roomId);
+    if (!room || (room.status !== "lobby" && room.status !== "playing")) {
+      throw new Error("Cannot change turn timer outside lobby or active game");
+    }
+    if (!isHost(room, userId)) {
+      throw new Error("Only the host can change the turn timer");
+    }
+
+    const turnTimerSeconds = normalizeTurnSeconds(args.turnTimerSeconds);
+    const now = Date.now();
+    const patch: {
+      turnTimerSeconds: number;
+      version: number;
+      lastMoveAt: number;
+      lastTouchedAt: number;
+      turnDeadlineAt?: number;
+      turnClockPlayerId?: string;
+    } = {
+      turnTimerSeconds,
+      ...touchFields(now),
+      version: room.version + 1,
+    };
+
+    if (
+      room.status === "playing" &&
+      room.turnDeadlineAt != null &&
+      room.turnClockPlayerId != null
+    ) {
+      const clock = await scheduleHumanTurnClock(
+        ctx,
+        args.roomId,
+        turnTimerSeconds,
+        room.turnClockPlayerId,
+        now,
+      );
+      patch.turnDeadlineAt = clock.turnDeadlineAt;
+      patch.turnClockPlayerId = clock.turnClockPlayerId;
+    }
+
+    await ctx.db.patch(args.roomId, patch);
   },
 });
 
@@ -872,6 +961,7 @@ export const getRoomView = query({
         isBot: m.isBot,
         playerId: m.playerId,
         isReady: m.isReady,
+        isSelf: m.userId === userId,
       })),
       names,
       yourPlayerId,
@@ -1067,6 +1157,7 @@ export type RoomView = {
     isBot: boolean;
     playerId?: string;
     isReady?: boolean;
+    isSelf: boolean;
   }[];
   names: Record<string, string>;
   yourPlayerId: string | null;

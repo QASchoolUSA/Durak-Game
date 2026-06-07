@@ -48,24 +48,38 @@ function DeckPileComponent({ deckCount, trumpCard, trumpSuit }: DeckPileProps) {
                 borderColor: ui.panelBorderSoft,
               },
             ]}
-          >
-            <Text style={[styles.emptyText, { color: ui.textFaint }]}>–</Text>
-          </View>
+          />
         )}
 
         <View
-          style={[
-            styles.trumpBadge,
-            {
-              backgroundColor: theme.face,
-              borderColor: ui.accent,
-              shadowColor: ui.accent,
-            },
-          ]}
+          style={[styles.centerSuitWrap, { width: w, height: h }]}
+          pointerEvents="none"
         >
-          <Text style={[styles.trumpRank, { color: suitColor }]}>{rank}</Text>
-          <Text style={[styles.trumpSuit, { color: suitColor }]}>{symbol}</Text>
+          <Text
+            style={[
+              styles.centerSuit,
+              { color: suitColor, fontSize: Math.round(w * 0.45) },
+            ]}
+          >
+            {symbol}
+          </Text>
         </View>
+
+        {deckCount > 0 && (
+          <View
+            style={[
+              styles.trumpBadge,
+              {
+                backgroundColor: theme.face,
+                borderColor: ui.accent,
+                shadowColor: ui.accent,
+              },
+            ]}
+          >
+            <Text style={[styles.trumpRank, { color: suitColor }]}>{rank}</Text>
+            <Text style={[styles.trumpSuit, { color: suitColor }]}>{symbol}</Text>
+          </View>
+        )}
 
         {deckCount > 0 && (
           <View
@@ -96,12 +110,18 @@ const styles = StyleSheet.create({
   emptyDeck: {
     borderRadius: radius.card,
     borderWidth: 1,
+  },
+  centerSuitWrap: {
+    position: "absolute",
+    top: 0,
+    left: 0,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 1,
   },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "300",
+  centerSuit: {
+    fontWeight: "800",
+    lineHeight: undefined,
   },
   trumpBadge: {
     position: "absolute",

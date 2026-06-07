@@ -10,7 +10,10 @@ import { CoinIcon } from "../components/CoinIcon";
 import { useGameStore } from "../game/store";
 import { MATCH_BUY_IN } from "../game/creditEconomy";
 import { trigger } from "../feedback/haptics";
+import { chargeBuyIn } from "../game/chargeBuyIn";
+import { convexEnabled } from "../game/convexClient";
 import { clearRoomSession } from "../game/onlineSessionStorage";
+import { useOnlineAuth } from "../game/useAuthBootstrap";
 import { layoutFor, colors, radius, shadows, spacing, typography } from "../theme";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { api } from "../../convex/_generated/api";
@@ -108,12 +111,17 @@ export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
   const onlineIsHost = useGameStore((s) => s.onlineIsHost);
   const { isAuthenticated } = useConvexAuth();
   const startGame = useGameStore((s) => s.startGame);
+  const syncCreditBalance = useGameStore((s) => s.syncCreditBalance);
+  const deductCreditsLocal = useGameStore((s) => s.deductCreditsLocal);
+  const setOnlineStatusMessage = useGameStore((s) => s.setOnlineStatusMessage);
   const goHome = useGameStore((s) => s.goHome);
+  const { ensureAuthenticated } = useOnlineAuth();
   const { width } = useWindowDimensions();
   const lay = layoutFor(width);
 
   const rematch = useMutation(api.rooms.rematch);
   const leaveRoom = useMutation(api.rooms.leaveRoom);
+  const spendCredits = useMutation(api.wallets.spendCredits);
   const [returning, setReturning] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
@@ -145,13 +153,32 @@ export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
       }
       return;
     }
-    startGame(numPlayers);
+    const charged = await chargeBuyIn({
+      convexEnabled,
+      ensureAuthenticated,
+      spendCredits,
+      buyIn,
+      syncCreditBalance,
+      deductCreditsLocal,
+    });
+    if (!charged) {
+      setOnlineStatusMessage("Not enough credits.");
+      trigger("error");
+      return;
+    }
+    startGame(numPlayers, { buyInCharged: convexEnabled });
   }, [
     playMode,
     onlineRoomId,
     onlineIsHost,
     returning,
     rematch,
+    spendCredits,
+    buyIn,
+    syncCreditBalance,
+    deductCreditsLocal,
+    ensureAuthenticated,
+    setOnlineStatusMessage,
     startGame,
     numPlayers,
   ]);

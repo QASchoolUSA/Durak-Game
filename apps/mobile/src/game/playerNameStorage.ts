@@ -2,7 +2,15 @@ import { Platform } from "react-native";
 
 const STORAGE_KEY = "@durak/playerDisplayName";
 const CUSTOM_FLAG_KEY = "@durak/displayNameIsCustom";
-const MAX_NAME_LENGTH = 20;
+export const MAX_DISPLAY_NAME_LENGTH = 12;
+
+function normalizeName(name: string): string {
+  return name.trim().slice(0, MAX_DISPLAY_NAME_LENGTH);
+}
+
+export function normalizeDisplayName(name: string): string {
+  return normalizeName(name);
+}
 
 const GUEST_NAME_POOL = ["Olga", "Ivan", "Dmitri", "Maria", "Sergey"];
 
@@ -13,10 +21,6 @@ let nativeStorage: typeof import("@react-native-async-storage/async-storage").de
   null;
 let nativeChecked = false;
 let nativeUsable = false;
-
-function normalizeName(name: string): string {
-  return name.trim().slice(0, MAX_NAME_LENGTH);
-}
 
 function webGet(key: string): string | null {
   if (typeof localStorage === "undefined") {

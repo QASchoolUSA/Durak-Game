@@ -1,10 +1,11 @@
-import React, { Component, useEffect, useState } from "react";
+import React, { Component, useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { loadPreferences } from "./src/game/preferencesStore";
+import { usePreferencesStore } from "./src/game/preferencesStore";
 import {
   loadCredits,
   loadGameConfig,
@@ -16,6 +17,7 @@ import { convex, convexEnabled } from "./src/game/convexClient";
 import { convexTokenStorage } from "./src/game/convexTokenStorage";
 import { AuthGateProvider } from "./src/game/useAuthBootstrap";
 import { useGoldWallet } from "./src/game/useGoldWallet";
+import { useSoloCreditSettlement } from "./src/game/useSoloCreditSettlement";
 import { useOnlineGame } from "./src/game/useOnlineGame";
 import { usePlaySessionIdle } from "./src/game/usePlaySessionIdle";
 import { OnlineStatusBanner } from "./src/components/OnlineStatusBanner";
@@ -80,6 +82,7 @@ function PlaySessionIdleSync() {
 
 function GoldWalletSync() {
   useGoldWallet();
+  useSoloCreditSettlement();
   return null;
 }
 
@@ -103,16 +106,54 @@ function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
   );
 }
 
+function SplashGate({
+  ready,
+  children,
+}: {
+  ready: boolean;
+  children: React.ReactNode;
+}) {
+  const splashHiddenRef = useRef(false);
+  const layoutReadyRef = useRef(false);
+
+  const tryHideSplash = useCallback(() => {
+    if (splashHiddenRef.current || !ready || !layoutReadyRef.current) {
+      return;
+    }
+    splashHiddenRef.current = true;
+    requestAnimationFrame(() => {
+      void SplashScreen.hideAsync().catch(() => {
+        // Non-fatal if splash was already hidden or API unavailable.
+      });
+    });
+  }, [ready]);
+
+  const onLayout = useCallback(() => {
+    layoutReadyRef.current = true;
+    tryHideSplash();
+  }, [tryHideSplash]);
+
+  useEffect(() => {
+    tryHideSplash();
+  }, [tryHideSplash]);
+
+  return (
+    <View style={styles.splashGate} onLayout={onLayout}>
+      {children}
+    </View>
+  );
+}
+
 export default function App() {
   const screen = useGameStore((s) => s.screen);
   const game = useGameStore((s) => s.game);
+  const appearanceLoaded = usePreferencesStore((s) => s.appearanceLoaded);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [rulesVisible, setRulesVisible] = useState(false);
   const [homeMounted, setHomeMounted] = useState(screen === "home");
 
   useEffect(() => {
     void Promise.all([
-      loadPreferences(),
       loadGameConfig(),
       loadPlayerName(),
       loadGold(),
@@ -169,13 +210,19 @@ export default function App() {
     </View>
   );
 
+  if (!appearanceLoaded) {
+    return null;
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <TableThemeProvider>
           <UiThemeProvider>
             <CardThemeProvider>
-              <ConvexOnlineLayer>{content}</ConvexOnlineLayer>
+              <SplashGate ready={appearanceLoaded}>
+                <ConvexOnlineLayer>{content}</ConvexOnlineLayer>
+              </SplashGate>
             </CardThemeProvider>
           </UiThemeProvider>
         </TableThemeProvider>
@@ -185,6 +232,9 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  splashGate: {
+    flex: 1,
+  },
   appShell: {
     flex: 1,
   },

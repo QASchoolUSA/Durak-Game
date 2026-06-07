@@ -127,6 +127,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const game = useGameStore((s) => s.game);
   const humanId = useGameStore((s) => s.humanId);
   const names = useGameStore((s) => s.names);
+  const onlineDisplayName = useGameStore((s) => s.onlineDisplayName);
   const pot = useGameStore((s) => s.pot);
   const goldBalance = useGameStore((s) => s.goldBalance);
   const creditBalance = useGameStore((s) => s.creditBalance);
@@ -220,6 +221,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const exitResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const roundClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevMustActRef = useRef(false);
+  const prevMustActForTimerRef = useRef(false);
   const [tableSlotSize, setTableSlotSize] = useState({ width: 0, height: 0 });
 
   const tableLayout = useMemo(
@@ -587,6 +589,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     const blocked = showBeatTransferChoice || revealOpen;
     const mustAct = view.mustAct && !blocked;
     const prev = prevMustActRef.current;
+    if (view.mustAct && !prevMustActForTimerRef.current && playMode === "solo") {
+      useGameStore.setState({ lastMoveAt: Date.now() });
+    }
+    prevMustActForTimerRef.current = view.mustAct;
     if (mustAct && !prev) {
       if (playMode === "online" && skipInitialTurnStartRef.current) {
         skipInitialTurnStartRef.current = false;
@@ -624,7 +630,6 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       enabled:
         timerEnabled &&
         seatOnClock &&
-        !showBeatTransferChoice &&
         !revealOpen &&
         !(pendingReveal != null && pendingReveal.expiresAt > Date.now()),
       totalSeconds: effectiveTurnSeconds,
@@ -638,7 +643,6 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       timerEnabled,
       effectiveTurnSeconds,
       seatOnClock,
-      showBeatTransferChoice,
       revealOpen,
       pendingReveal,
       lastMoveAt,
@@ -1025,12 +1029,14 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
           >
             <HumanPlayerChip
               playerId={humanId}
-              name={names[humanId] ?? "You"}
+              name={names[humanId] ?? onlineDisplayName ?? "Player"}
+              showYouLabel
               role={seatRoleForFinished(game, humanId)}
               indication={humanIndication}
               onClock={humanOnClock}
               turnProgress={turnProgress}
               timerEnabled={timerEnabled}
+              timerRunning={timerClock.enabled}
               finished={humanFinished}
               onPress={() => {
                 trigger("uiTap");

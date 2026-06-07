@@ -6,7 +6,7 @@ import {
 } from "../theme/appearanceThemes";
 import type { CardDesignId } from "../theme/cardThemes";
 import type { TableDesignId } from "../theme/tableThemes";
-import { getStoredCardDesign, setStoredCardDesign } from "./cardDesignStorage";
+import { getStoredCardDesign, peekStoredCardDesignSync, setStoredCardDesign } from "./cardDesignStorage";
 import { getStoredHapticsEnabled, setStoredHapticsEnabled } from "./hapticsStorage";
 import { getStoredSoundEnabled, setStoredSoundEnabled } from "./soundStorage";
 import { getStoredTableDesign, setStoredTableDesign } from "./tableDesignStorage";
@@ -28,6 +28,7 @@ interface PreferencesStore {
   soundEnabled: boolean;
   turnSeconds: TurnSecondsOption;
   tutorialCompleted: boolean;
+  appearanceLoaded: boolean;
   hydrated: boolean;
   setAppearance: (id: AppearanceId) => void;
   setCardDesign: (id: CardDesignId) => void;
@@ -44,13 +45,21 @@ function syncAppearance(id: AppearanceId) {
   void setStoredTableDesign(id);
 }
 
+function initialAppearance(): AppearanceId {
+  const peeked = peekStoredCardDesignSync();
+  return peeked ? resolveAppearanceId(peeked) ?? DEFAULT_APPEARANCE : DEFAULT_APPEARANCE;
+}
+
+const bootAppearance = initialAppearance();
+
 export const usePreferencesStore = create<PreferencesStore>(() => ({
-  cardDesign: DEFAULT_APPEARANCE,
-  tableDesign: DEFAULT_APPEARANCE,
+  cardDesign: bootAppearance,
+  tableDesign: bootAppearance,
   hapticsEnabled: true,
   soundEnabled: true,
   turnSeconds: DEFAULT_TURN_SECONDS,
   tutorialCompleted: false,
+  appearanceLoaded: false,
   hydrated: false,
   setAppearance: (id) => {
     syncAppearance(id);
@@ -78,6 +87,30 @@ export const usePreferencesStore = create<PreferencesStore>(() => ({
     void setStoredTutorialCompleted(completed);
   },
 }));
+
+async function loadAppearance(): Promise<void> {
+  try {
+    const [cardStored, tableStored] = await Promise.all([
+      getStoredCardDesign(),
+      getStoredTableDesign(),
+    ]);
+    const raw = cardStored ?? tableStored;
+    const resolved = raw ? resolveAppearanceId(raw) : null;
+    if (resolved) {
+      syncAppearance(resolved);
+      if (resolved !== cardStored) {
+        void setStoredCardDesign(resolved);
+      }
+      if (resolved !== tableStored) {
+        void setStoredTableDesign(resolved);
+      }
+    }
+  } catch {
+    // Fall through to boot defaults
+  } finally {
+    usePreferencesStore.setState({ appearanceLoaded: true });
+  }
+}
 
 export async function loadCardDesign(): Promise<void> {
   try {
@@ -151,22 +184,23 @@ export async function loadTutorialCompleted(): Promise<void> {
   }
 }
 
-export async function loadPreferences(): Promise<void> {
-  await Promise.all([
-    loadCardDesign(),
-    loadTableDesign(),
-    loadHapticsEnabled(),
-    loadSoundEnabled(),
-    loadTurnSeconds(),
-    loadTutorialCompleted(),
-  ]);
-
-  const { cardDesign, tableDesign } = usePreferencesStore.getState();
-  const appearance = cardDesign === tableDesign ? cardDesign : cardDesign;
-
-  if (appearance !== cardDesign || appearance !== tableDesign) {
-    syncAppearance(appearance);
+async function loadPreferencesImpl(): Promise<void> {
+  try {
+    await loadAppearance();
+    await Promise.all([
+      loadHapticsEnabled(),
+      loadSoundEnabled(),
+      loadTurnSeconds(),
+      loadTutorialCompleted(),
+    ]);
+  } finally {
+    usePreferencesStore.setState({ hydrated: true });
   }
+}
 
-  usePreferencesStore.setState({ hydrated: true });
+let loadPreferencesPromise: Promise<void> | null = null;
+
+export function loadPreferences(): Promise<void> {
+  loadPreferencesPromise ??= loadPreferencesImpl();
+  return loadPreferencesPromise;
 }

@@ -49,8 +49,10 @@ export function computeTurnRemaining(config: TurnClockConfig): number {
   if (config.playMode === "online" && config.turnDeadlineAt) {
     return Math.max(0, (config.turnDeadlineAt - Date.now()) / 1000);
   }
-  const start = config.lastMoveAt || Date.now();
-  return Math.max(0, config.totalSeconds - (Date.now() - start) / 1000);
+  if (!config.lastMoveAt) {
+    return config.totalSeconds;
+  }
+  return Math.max(0, config.totalSeconds - (Date.now() - config.lastMoveAt) / 1000);
 }
 
 /** Returns remaining seconds and runs haptic / timeout side effects. */

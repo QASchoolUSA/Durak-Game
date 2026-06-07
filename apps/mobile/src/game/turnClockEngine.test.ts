@@ -83,6 +83,18 @@ describe("computeTurnRemaining", () => {
     vi.useRealTimers();
   });
 
+  it("returns full duration when lastMoveAt is unset in solo mode", () => {
+    const remaining = computeTurnRemaining({
+      enabled: true,
+      totalSeconds: 12,
+      lastMoveAt: 0,
+      turnDeadlineAt: null,
+      playMode: "solo",
+      onTimeout: () => {},
+    });
+    expect(remaining).toBe(12);
+  });
+
   it("uses turnDeadlineAt in online mode", () => {
     const now = Date.now();
     vi.useFakeTimers();

@@ -20,6 +20,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { colors, radius, spacing, typography } from "../theme";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
@@ -28,8 +31,10 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { MenuButton } from "./MenuButton";
 import { trigger } from "../feedback/haptics";
 import { clearAllAppStorage } from "../game/devStorage";
+import { formatOnlineMutationError } from "../game/onlineMutationErrors";
 import { usePreferencesStore } from "../game/preferencesStore";
 import { useGameStore } from "../game/store";
+import { MAX_DISPLAY_NAME_LENGTH } from "../game/playerNameStorage";
 import {
   TURN_SECONDS_OPTIONS,
   turnSecondsLabel,
@@ -64,9 +69,16 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const soundEnabled = usePreferencesStore((s) => s.soundEnabled);
   const setSoundEnabled = usePreferencesStore((s) => s.setSoundEnabled);
   const turnSeconds = usePreferencesStore((s) => s.turnSeconds);
-  const setTurnSeconds = usePreferencesStore((s) => s.setTurnSeconds);
+  const screen = useGameStore((s) => s.screen);
+  const playMode = useGameStore((s) => s.playMode);
+  const onlineRoomId = useGameStore((s) => s.onlineRoomId);
+  const onlineIsHost = useGameStore((s) => s.onlineIsHost);
+  const serverTurnSeconds = useGameStore((s) => s.turnTimerSeconds);
+  const setOnlineStatusMessage = useGameStore((s) => s.setOnlineStatusMessage);
+  const applyTurnTimerMidGame = useGameStore((s) => s.applyTurnTimerMidGame);
   const onlineDisplayName = useGameStore((s) => s.onlineDisplayName);
   const setOnlineDisplayName = useGameStore((s) => s.setOnlineDisplayName);
+  const setRoomTurnTimer = useMutation(api.rooms.setRoomTurnTimerSeconds);
   const [nameDraft, setNameDraft] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const [wipeConfirmVisible, setWipeConfirmVisible] = useState(false);
@@ -76,17 +88,78 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     setSound(soundEnabled);
   }, [soundEnabled]);
 
-  const commitDisplayName = useCallback(() => {
+  const commitDisplayName = useCallback((): boolean => {
     const trimmed = nameDraft.trim();
     if (trimmed) {
       setOnlineDisplayName(trimmed);
       setNameDraft(trimmed);
       setNameError(null);
-      return;
+      return true;
     }
     setNameDraft(onlineDisplayName);
     setNameError("Name cannot be empty");
+    return false;
   }, [nameDraft, onlineDisplayName, setOnlineDisplayName]);
+
+  const trimmedNameDraft = nameDraft.trim();
+  const nameDirty = trimmedNameDraft !== onlineDisplayName;
+  const canSaveName = nameDirty && trimmedNameDraft.length > 0;
+
+  const revertNameDraft = useCallback(() => {
+    setNameDraft(onlineDisplayName);
+    setNameError(null);
+  }, [onlineDisplayName]);
+
+  const handleSaveDisplayName = useCallback(() => {
+    if (commitDisplayName()) {
+      trigger("confirm");
+    } else {
+      trigger("error");
+    }
+  }, [commitDisplayName]);
+
+  const onlineInRoom = playMode === "online" && onlineRoomId != null;
+  const canEditTurnTimer = !onlineInRoom || onlineIsHost;
+  const effectiveTurnSeconds =
+    onlineInRoom ? serverTurnSeconds : turnSeconds;
+  const turnTimerHint = !onlineInRoom
+    ? screen === "game"
+      ? "Applies immediately to the current turn."
+      : "Used in solo games and rooms you host."
+    : onlineIsHost
+      ? "Updates the room timer for everyone."
+      : "Only the host can change the timer in online games.";
+
+  const handleTurnTimerPress = useCallback(
+    (option: TurnSecondsOption) => {
+      if (!canEditTurnTimer || option === effectiveTurnSeconds) return;
+      trigger("selection");
+
+      if (onlineInRoom && onlineIsHost && onlineRoomId) {
+        usePreferencesStore.getState().setTurnSeconds(option);
+        void setRoomTurnTimer({
+          roomId: onlineRoomId as Id<"rooms">,
+          turnTimerSeconds: option,
+        }).catch((error) => {
+          setOnlineStatusMessage(formatOnlineMutationError(error));
+          trigger("error");
+        });
+        return;
+      }
+
+      applyTurnTimerMidGame(option);
+    },
+    [
+      canEditTurnTimer,
+      effectiveTurnSeconds,
+      onlineInRoom,
+      onlineIsHost,
+      onlineRoomId,
+      setRoomTurnTimer,
+      setOnlineStatusMessage,
+      applyTurnTimerMidGame,
+    ],
+  );
 
   const handleSoundToggle = useCallback(
     (enabled: boolean) => {
@@ -141,15 +214,14 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   );
 
   const finishClose = useCallback(() => {
-    commitDisplayName();
+    revertNameDraft();
     setModalVisible(false);
     onClose();
-  }, [commitDisplayName, onClose]);
+  }, [revertNameDraft, onClose]);
 
   const requestClose = useCallback(() => {
-    commitDisplayName();
     animateOut(finishClose);
-  }, [commitDisplayName, animateOut, finishClose]);
+  }, [animateOut, finishClose]);
 
   useEffect(() => {
     if (visible && !prevVisible.current) {
@@ -159,7 +231,11 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
       setNameError(null);
     }
     if (!visible && prevVisible.current && modalVisible) {
-      animateOut(() => setModalVisible(false));
+      animateOut(() => {
+        setNameDraft(onlineDisplayName);
+        setNameError(null);
+        setModalVisible(false);
+      });
     }
     prevVisible.current = visible;
   }, [visible, drawerH, modalVisible, ty, backdropO, animateOut, onlineDisplayName]);
@@ -252,31 +328,64 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                 Display name
               </Text>
               <Text style={[styles.profileHint, { color: ui.textFaint }]}>
-                Used in online games. Change anytime.
+                Used in online games. Tap ✓ to save changes.
               </Text>
-              <TextInput
-                style={[
-                  styles.profileInput,
-                  {
-                    color: ui.textPrimary,
-                    borderColor: ui.panelBorderSoft,
-                    backgroundColor: ui.feltEdge,
-                  },
-                ]}
-                value={nameDraft}
-                onChangeText={(t) => {
-                  setNameDraft(t.slice(0, 20));
-                  if (nameError) setNameError(null);
-                }}
-                onEndEditing={commitDisplayName}
-                placeholder="Your nickname"
-                placeholderTextColor={ui.textFaint}
-                maxLength={20}
-                autoCapitalize="words"
-                returnKeyType="done"
-                blurOnSubmit
-                onSubmitEditing={commitDisplayName}
-              />
+              <View style={styles.profileInputRow}>
+                <TextInput
+                  style={[
+                    styles.profileInput,
+                    {
+                      color: ui.textPrimary,
+                      borderColor: ui.panelBorderSoft,
+                      backgroundColor: ui.feltEdge,
+                    },
+                  ]}
+                  value={nameDraft}
+                  onChangeText={(t) => {
+                    setNameDraft(t.slice(0, MAX_DISPLAY_NAME_LENGTH));
+                    if (nameError) setNameError(null);
+                  }}
+                  placeholder="Your nickname"
+                  placeholderTextColor={ui.textFaint}
+                  maxLength={MAX_DISPLAY_NAME_LENGTH}
+                  autoCapitalize="words"
+                  returnKeyType="done"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => {
+                    if (canSaveName) {
+                      handleSaveDisplayName();
+                    }
+                  }}
+                />
+                <Pressable
+                  style={[
+                    styles.nameConfirmBtn,
+                    canSaveName
+                      ? { backgroundColor: ui.accent, borderColor: ui.accent }
+                      : [
+                          styles.nameConfirmBtnDisabled,
+                          {
+                            backgroundColor: ui.feltEdge,
+                            borderColor: ui.panelBorderSoft,
+                          },
+                        ],
+                  ]}
+                  onPress={handleSaveDisplayName}
+                  disabled={!canSaveName}
+                  accessibilityRole="button"
+                  accessibilityLabel="Save display name"
+                  accessibilityState={{ disabled: !canSaveName }}
+                >
+                  <Text
+                    style={[
+                      styles.nameConfirmText,
+                      { color: canSaveName ? ui.badgeText : ui.textFaint },
+                    ]}
+                  >
+                    ✓
+                  </Text>
+                </Pressable>
+              </View>
               {nameError && (
                 <Text style={[styles.nameError, { color: colors.danger }]}>
                   {nameError}
@@ -309,11 +418,11 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             >
               <Text style={[styles.optionLabel, { color: ui.textPrimary }]}>Turn timer</Text>
               <Text style={[styles.optionHint, { color: ui.textMuted }]}>
-                Used in solo games and rooms you host.
+                {turnTimerHint}
               </Text>
-              <View style={styles.turnRow}>
+              <View style={[styles.turnRow, !canEditTurnTimer && styles.turnRowDisabled]}>
                 {TURN_SECONDS_OPTIONS.map((option) => {
-                  const active = turnSeconds === option;
+                  const active = effectiveTurnSeconds === option;
                   return (
                     <Pressable
                       key={option}
@@ -324,10 +433,9 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                           backgroundColor: active ? ui.accentSoft : ui.feltEdge,
                         },
                       ]}
-                      onPress={() => {
-                        trigger("selection");
-                        setTurnSeconds(option as TurnSecondsOption);
-                      }}
+                      onPress={() => handleTurnTimerPress(option)}
+                      disabled={!canEditTurnTimer}
+                      accessibilityState={{ disabled: !canEditTurnTimer }}
                     >
                       <Text
                         style={[
@@ -489,14 +597,36 @@ const styles = StyleSheet.create({
     ...typography.caption,
     textAlign: "center",
   },
-  profileInput: {
-    borderWidth: 1,
-    borderRadius: radius.panel,
+  profileInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
     marginHorizontal: spacing.md,
     marginBottom: spacing.sm,
+  },
+  profileInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: radius.panel,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontSize: 16,
+  },
+  nameConfirmBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.panel,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  nameConfirmBtnDisabled: {
+    opacity: 0.55,
+  },
+  nameConfirmText: {
+    fontSize: 18,
+    fontWeight: "800",
+    lineHeight: 20,
   },
   nameError: {
     ...typography.caption,
@@ -540,6 +670,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.md,
+  },
+  turnRowDisabled: {
+    opacity: 0.55,
   },
   turnChip: {
     borderWidth: 1.5,

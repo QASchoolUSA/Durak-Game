@@ -409,6 +409,33 @@ export function getLoser(state: GameState): PlayerId | null {
   return state.loserId;
 }
 
+/** End the match immediately because a player forfeited; forfeiter is the durak. */
+export function forceForfeitEnd(state: GameState, forfeiterId: PlayerId): GameState {
+  if (state.phase === "gameOver") {
+    throw new Error("Game already over");
+  }
+  if (!state.players.includes(forfeiterId)) {
+    throw new Error("Player not in game");
+  }
+
+  const next = cloneGameState(state);
+  const alreadyFinished = new Set(next.finishedOrder);
+  const finishedOrder = [...next.finishedOrder];
+
+  for (const p of next.players) {
+    if (p === forfeiterId || alreadyFinished.has(p)) continue;
+    finishedOrder.push(p);
+  }
+
+  next.finishedOrder = finishedOrder;
+  next.phase = "gameOver";
+  next.loserId = forfeiterId;
+  next.table = [];
+  next.passed = [];
+  next.takeInProgress = false;
+  return next;
+}
+
 export {
   legalAttacks,
   legalDefenses,

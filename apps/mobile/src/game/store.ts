@@ -18,7 +18,7 @@ import {
 import { timeoutMoveFor } from "./autoMove";
 import { soloMatchEndCreditDelta } from "./matchSettlement";
 import { trigger } from "../feedback/haptics";
-import { submitOnlineMove } from "./onlineBridge";
+import { submitOnlineMove, submitUpdateDisplayName } from "./onlineBridge";
 import type { RoomView } from "./onlineTypes";
 import { gameplayFingerprint, namesEqual } from "./gameStateCompare";
 import { clearPlaySession } from "./onlineSessionStorage";
@@ -33,6 +33,7 @@ import {
   setStoredCreditBalance,
 } from "./creditStorage";
 import { STARTING_GOLD } from "./goldEconomy";
+import { convexEnabled } from "./convexClient";
 import {
   getStoredGoldBalance,
   setStoredGoldBalance,
@@ -42,10 +43,13 @@ import {
   generateGuestDisplayName,
   getStoredNameIsCustom,
   getStoredPlayerName,
+  normalizeDisplayName,
   setStoredCustomName,
   setStoredGuestName,
 } from "./playerNameStorage";
 import { getDevScenario, type DevScenarioId } from "../dev/debugScenarios";
+import { usePreferencesStore } from "./preferencesStore";
+import type { TurnSecondsOption } from "./turnTimerStorage";
 
 export type Screen = "home" | "lobby" | "game" | "result";
 export type Difficulty = "easy" | "medium" | "hard";
@@ -67,9 +71,14 @@ function persistConfig(state: Pick<GameStore, "numPlayers" | "variant" | "throwI
   });
 }
 
-function buildPlayers(n: number): { ids: PlayerId[]; names: Record<PlayerId, string> } {
+function buildPlayers(
+  n: number,
+  humanName: string,
+): { ids: PlayerId[]; names: Record<PlayerId, string> } {
   const ids: PlayerId[] = [HUMAN_ID];
-  const names: Record<PlayerId, string> = { [HUMAN_ID]: "You" };
+  const names: Record<PlayerId, string> = {
+    [HUMAN_ID]: humanName.trim() || "Player",
+  };
   for (let i = 0; i < n - 1; i++) {
     const id = `bot${i + 1}`;
     ids.push(id);
@@ -134,6 +143,7 @@ interface GameStore {
   setThrowInScope: (scope: ThrowInScope) => void;
   setPlayStyle: (style: PlayStyle) => void;
   setDifficulty: (d: Difficulty) => void;
+  applyTurnTimerMidGame: (seconds: TurnSecondsOption) => void;
   setOnlineDisplayName: (name: string) => void;
   enterOnlineLobby: (args: {
     roomId: string;
@@ -146,7 +156,7 @@ interface GameStore {
   tryConsumeReactionAt: (at: number) => boolean;
   setSubmittingMove: (submitting: boolean) => void;
   clearPendingReveal: () => void;
-  startGame: (n?: number) => void;
+  startGame: (n?: number, options?: { buyInCharged?: boolean }) => void;
   loadDevScenario: (id: DevScenarioId) => void;
   goHome: () => void;
   setOnlineStatusMessage: (message: string | null) => void;
@@ -199,6 +209,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
   function settleSoloEconomy(next: GameState) {
     if (get().playMode !== "solo") return;
+    if (convexEnabled) return;
     const { humanId, buyIn, numPlayers } = get();
     const delta = soloMatchEndCreditDelta({
       isDraw: next.loserId === null,
@@ -295,7 +306,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     playStyle: "standard",
     difficulty: "medium",
     humanId: HUMAN_ID,
-    names: { [HUMAN_ID]: "You" },
+    names: { [HUMAN_ID]: "Player" },
     game: null,
     lastMoveAt: 0,
     returnSnapshot: null,
@@ -328,10 +339,18 @@ export const useGameStore = create<GameStore>((set, get) => {
     clearOnlineStatusMessage: () => set({ onlineStatusMessage: null }),
 
     setOnlineDisplayName: (onlineDisplayName) => {
-      const trimmed = onlineDisplayName.trim().slice(0, 20);
+      const trimmed = normalizeDisplayName(onlineDisplayName);
       if (!trimmed) return;
-      set({ onlineDisplayName: trimmed, hasCustomDisplayName: true });
+      const { humanId, names, playMode, onlineRoomId } = get();
+      set({
+        onlineDisplayName: trimmed,
+        hasCustomDisplayName: true,
+        names: { ...names, [humanId]: trimmed },
+      });
       void setStoredCustomName(trimmed);
+      if (playMode === "online" && onlineRoomId) {
+        submitUpdateDisplayName(trimmed);
+      }
     },
 
     setSubmittingMove: (submittingMove) => set({ submittingMove }),
@@ -420,7 +439,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!yourId) return;
 
       const names = { ...view.names };
-      names[yourId] = "You";
+      if (yourId && !names[yourId]) {
+        names[yourId] = get().onlineDisplayName.trim() || "Player";
+      }
 
       const base = {
         ...baseWithoutPlayer,
@@ -515,18 +536,32 @@ export const useGameStore = create<GameStore>((set, get) => {
       persistConfig(get());
     },
 
-    startGame: (n) => {
+    applyTurnTimerMidGame: (seconds) => {
+      usePreferencesStore.getState().setTurnSeconds(seconds);
+      const { screen, game, playMode } = get();
+      if (screen === "game" && playMode === "solo" && game?.phase === "playing") {
+        set({ lastMoveAt: Date.now() });
+      }
+    },
+
+    startGame: (n, options) => {
       cancelAi();
       clearReturnWindow();
       cancelResultTimer();
       const count = n ?? get().numPlayers;
       const buyIn = get().buyIn;
-      if (!get().deductCreditsLocal(buyIn)) {
+      const buyInCharged = options?.buyInCharged === true;
+      if (convexEnabled && !buyInCharged) {
+        set({ onlineStatusMessage: "Not enough credits." });
+        return;
+      }
+      if (!buyInCharged && !get().deductCreditsLocal(buyIn)) {
         set({ onlineStatusMessage: "Not enough credits." });
         return;
       }
       const { variant, throwInScope, playStyle } = get();
-      const { ids, names } = buildPlayers(count);
+      const humanName = get().onlineDisplayName.trim() || "Player";
+      const { ids, names } = buildPlayers(count, humanName);
       const game = createGame(ids, {
         seed: (Math.random() * 2 ** 32) >>> 0,
         rules: { variant, throwInScope, playStyle },
@@ -599,7 +634,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         submittingMove: false,
         pot: 0,
         humanId: HUMAN_ID,
-        names: { [HUMAN_ID]: "You" },
+        names: { [HUMAN_ID]: get().onlineDisplayName.trim() || "Player" },
       });
     },
 
