@@ -12,13 +12,28 @@ export async function chargeBuyIn(args: {
   if (args.convexEnabled) {
     try {
       await args.ensureAuthenticated();
-      const result = await args.spendCredits({
-        amount: args.buyIn,
-        reason: "buy_in",
-      });
+      let result;
+      try {
+        result = await args.spendCredits({
+          amount: args.buyIn,
+          reason: "buy_in",
+        });
+      } catch (err: any) {
+        if (err.message && err.message.includes("Not authenticated")) {
+          // Wait for the WebSocket to receive the new auth token
+          await new Promise((r) => setTimeout(r, 500));
+          result = await args.spendCredits({
+            amount: args.buyIn,
+            reason: "buy_in",
+          });
+        } else {
+          throw err;
+        }
+      }
       args.syncCreditBalance(result.creditBalance);
       return true;
-    } catch {
+    } catch (err) {
+      console.warn("chargeBuyIn failed:", err);
       return false;
     }
   }
