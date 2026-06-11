@@ -23,6 +23,7 @@ import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { radius, spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
+import { useAppActive } from "../hooks/useAppActive";
 import { useReduceMotion } from "../hooks/useReduceMotion";
 import { EconomyBar } from "../components/EconomyBar";
 import { useGameStore } from "../game/store";
@@ -44,6 +45,7 @@ const TITLE_LETTERS = ["D", "U", "R", "A", "K"] as const;
 export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   const ui = useUiTheme();
   const reduceMotion = useReduceMotion();
+  const appActive = useAppActive();
   const lay = useGameLayout();
   const insets = useSafeAreaInsets();
   const playerNameHydrated = useGameStore((s) => s.playerNameHydrated);
@@ -75,7 +77,7 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
     if (action === "rules") onOpenRules();
   };
 
-  const showAnimatedDecor = decorReady && !reduceMotion;
+  const showAnimatedDecor = decorReady && !reduceMotion && appActive;
 
   return (
     <Background variant="home" deferAmbience={!decorReady}>

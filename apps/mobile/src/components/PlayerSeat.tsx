@@ -8,9 +8,10 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import type { SeatIndication, SeatRole } from "../game/selectors";
+import type { TurnClockConfig } from "../game/turnClockEngine";
 import { PlayerAvatar, indicationColor } from "./playerSeatShared";
 import { SeatReactionBurst } from "./SeatReactionBurst";
-import { TurnTimerRing } from "./TurnTimerRing";
+import { SeatTurnTimerRing } from "./SeatTurnTimerRing";
 import { TakeSpeechBubble } from "./TakeSpeechBubble";
 import { useCardTheme } from "../theme/CardThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
@@ -29,7 +30,7 @@ export interface PlayerSeatProps {
   role: SeatRole;
   indication: SeatIndication | null;
   onClock: boolean;
-  turnProgress: number;
+  clockConfig: TurnClockConfig;
   timerEnabled?: boolean;
   showTimerRing?: boolean;
   finished?: boolean;
@@ -99,7 +100,7 @@ function PlayerSeatComponent({
   role,
   indication,
   onClock,
-  turnProgress,
+  clockConfig,
   timerEnabled = true,
   showTimerRing = true,
   finished,
@@ -172,11 +173,11 @@ function PlayerSeatComponent({
           )}
         </Animated.View>
         {showTimer && timerEnabled && showTimerRing && (
-          <TurnTimerRing
+          <SeatTurnTimerRing
             visible
             color={ringColor}
             maxBorderRadius={radius.panel}
-            progress={turnProgress}
+            clockConfig={clockConfig}
             clockActive={onClock}
             width={ringWidth}
             height={ringHeight}

@@ -35,7 +35,7 @@ function ReturnPill() {
     };
 
     tick();
-    const iv = setInterval(tick, 50);
+    const iv = setInterval(tick, 150);
     return () => clearInterval(iv);
   }, [windowActive, returnExpiresAt]);
 
@@ -164,7 +164,7 @@ export interface AbilityDockProps {
   chargeGold?: boolean;
 }
 
-export function AbilityDock({
+function AbilityDockComponent({
   discardCount,
   canReveal,
   canGraveyard,
@@ -198,6 +198,8 @@ export function AbilityDock({
     </View>
   );
 }
+
+export const AbilityDock = React.memo(AbilityDockComponent);
 
 const styles = StyleSheet.create({
   row: {

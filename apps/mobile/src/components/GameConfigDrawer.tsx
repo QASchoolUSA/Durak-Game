@@ -31,6 +31,7 @@ import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
 import { chargeBuyIn } from "../game/chargeBuyIn";
+import { convexEnabled } from "../game/convexClient";
 import { saveRoomSession } from "../game/onlineSessionStorage";
 import { useOnlineAuth } from "../game/useAuthBootstrap";
 import { usePreferencesStore } from "../game/preferencesStore";
@@ -200,7 +201,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
   const turnSeconds = usePreferencesStore((s) => s.turnSeconds);
 
-  const convexConfigured = Boolean(process.env.EXPO_PUBLIC_CONVEX_URL);
+  const convexConfigured = convexEnabled;
   const { authReady, authLoading, ensureAuthenticated } = useOnlineAuth();
 
   const handleStart = useCallback(async () => {

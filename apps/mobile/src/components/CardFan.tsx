@@ -153,6 +153,12 @@ export function CardFan({ animate = true }: CardFanProps) {
       -1,
       true,
     );
+
+    return () => {
+      cancelAnimation(sway);
+      cancelAnimation(spread);
+      cancelAnimation(floatY);
+    };
   }, [animate, sway, spread, floatY]);
 
   const containerStyle = useAnimatedStyle(() => ({

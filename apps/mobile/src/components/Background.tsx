@@ -3,6 +3,7 @@ import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   Easing,
+  cancelAnimation,
   interpolate,
   makeMutable,
   type SharedValue,
@@ -13,6 +14,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { useAppActive } from "../hooks/useAppActive";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 
@@ -91,7 +93,7 @@ function SparkleDot({
   );
 }
 
-function SparkleLayer({ color }: { color: string }) {
+function SparkleLayer({ color, active }: { color: string; active: boolean }) {
   const sparkles = useMemo(() => buildSparkles(SPARKLE_COUNT), []);
   const motion = useMemo(
     () => sparkles.map(() => ({ progress: makeMutable(0) })),
@@ -99,6 +101,11 @@ function SparkleLayer({ color }: { color: string }) {
   );
 
   useEffect(() => {
+    if (!active) {
+      motion.forEach(({ progress }) => cancelAnimation(progress));
+      return;
+    }
+
     sparkles.forEach((spec, i) => {
       const { progress } = motion[i]!;
       progress.value = withDelay(
@@ -119,7 +126,11 @@ function SparkleLayer({ color }: { color: string }) {
         ),
       );
     });
-  }, [sparkles, motion]);
+
+    return () => {
+      motion.forEach(({ progress }) => cancelAnimation(progress));
+    };
+  }, [sparkles, motion, active]);
 
   return (
     <>
@@ -137,6 +148,7 @@ function PulsingRing({
   borderColor,
   borderWidth,
   duration,
+  active,
 }: {
   size: number;
   left: number;
@@ -144,10 +156,16 @@ function PulsingRing({
   borderColor: string;
   borderWidth: number;
   duration: number;
+  active: boolean;
 }) {
   const pulse = useSharedValue(0);
 
   useEffect(() => {
+    if (!active) {
+      cancelAnimation(pulse);
+      return;
+    }
+
     pulse.value = withRepeat(
       withSequence(
         withTiming(1, { duration, easing: Easing.inOut(Easing.sin) }),
@@ -156,7 +174,9 @@ function PulsingRing({
       -1,
       false,
     );
-  }, [pulse, duration]);
+
+    return () => cancelAnimation(pulse);
+  }, [pulse, duration, active]);
 
   const aStyle = useAnimatedStyle(() => ({
     opacity: interpolate(pulse.value, [0, 1], [0.35, 0.85]),
@@ -214,6 +234,7 @@ function HomeDecorShapes({
 function HomeAmbience({ deferAmbience }: { deferAmbience: boolean }) {
   const ui = useUiTheme();
   const { width, height } = useWindowDimensions();
+  const appActive = useAppActive();
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -239,6 +260,7 @@ function HomeAmbience({ deferAmbience }: { deferAmbience: boolean }) {
             borderColor={ui.panelBorderSoft}
             borderWidth={1}
             duration={9000}
+            active={appActive}
           />
           <PulsingRing
             size={width * 0.62}
@@ -247,8 +269,9 @@ function HomeAmbience({ deferAmbience }: { deferAmbience: boolean }) {
             borderColor={ui.panelBorder}
             borderWidth={1.5}
             duration={7200}
+            active={appActive}
           />
-          <SparkleLayer color={ui.accent} />
+          <SparkleLayer color={ui.accent} active={appActive} />
         </>
       )}
     </View>

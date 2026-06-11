@@ -61,7 +61,7 @@ import {
   type TableExitKind,
 } from "../components/TableArea";
 import { GameCoachOverlay, type CoachStep } from "../components/GameCoachOverlay";
-import { useTurnProgress } from "../hooks/useTurnProgressSV";
+import { useTurnTimeout } from "../hooks/useTurnTimeout";
 import { anySeatOnClock, seatOnClockOnline } from "../game/turnClockEngine";
 import { toWorkletZones } from "../game/dropZoneWorklet";
 import { computeTableLayout } from "../game/tableLayout";
@@ -817,7 +817,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     ],
   );
 
-  const turnProgress = useTurnProgress(timerClock);
+  // Side effects only (haptics + timeout auto-play); does not re-render
+  // GameScreen on the 100ms tick. Visual ring progress is owned per-seat by
+  // SeatTurnTimerRing, gated to the single seat currently on the clock.
+  useTurnTimeout(timerClock);
 
   const humanHand = useStableHandCards(game?.hands[humanId] ?? []);
   const abilitiesMode = game?.rules.playStyle === "abilities";
@@ -879,6 +882,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     pauseForOverlay,
     setOnlineStatusMessage,
   ]);
+
+  const handleGraveyardPress = useCallback(() => {
+    void openGraveyard();
+  }, [openGraveyard]);
 
   const openReveal = useCallback(() => {
     if (!revealEnabled) return;
@@ -1124,7 +1131,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               role={role}
               indication={oppIndication}
               onClock={oppOnClock}
-              turnProgress={turnProgress}
+              clockConfig={timerClock}
               timerEnabled={timerEnabled}
               finished={oppFinished}
               skipEnterAnimation={dealKind === "initial"}
@@ -1243,7 +1250,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
                 showRevealGraveyard={abilitiesMode || goldAbilitiesEnabled}
                 chargeGold={goldAbilitiesEnabled}
                 onRevealPress={openReveal}
-                onGraveyardPress={() => void openGraveyard()}
+                onGraveyardPress={handleGraveyardPress}
               />
             </View>
           )}
@@ -1264,7 +1271,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               role={seatRoleForFinished(game, humanId)}
               indication={humanIndication}
               onClock={humanOnClock}
-              turnProgress={turnProgress}
+              clockConfig={timerClock}
               timerEnabled={timerEnabled}
               timerRunning={timerClock.enabled}
               finished={humanFinished}

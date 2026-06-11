@@ -7,13 +7,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "durak",
-    "splash": {
-      "backgroundColor": "#0A0A0A"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kedrov.durakgame",
-      "buildNumber": "4",
       "icon": {
         "light": "./assets/ios-icon-light.png",
         "dark": "./assets/ios-icon-dark.png",
@@ -45,7 +41,18 @@
     "owner": "kedrov",
     "plugins": [
       "expo-audio",
-      "expo-splash-screen"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "backgroundColor": "#0A0A0A",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#0A0A0A"
+          }
+        }
+      ]
     ]
   }
 }

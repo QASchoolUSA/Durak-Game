@@ -8,8 +8,8 @@
     "start": "pnpm --filter @durak/mobile start",
     "mobile": "pnpm --filter @durak/mobile start",
     "mobile:clear": "pnpm --filter @durak/mobile exec expo start -c",
-    "convex:deploy": "pnpm --filter @durak/mobile exec convex deploy --preview-name dev",
-    "convex:fix-auth": "pnpm --filter @durak/mobile fix:auth-env",
+    "convex:deploy": "pnpm --filter @durak/mobile exec convex dev --once",
+    "convex:fix-auth": "pnpm --filter @durak/mobile fix:auth",
     "convex:dev": "pnpm convex:deploy",
     "convex:once": "pnpm convex:deploy",
     "ios:preview": "pnpm --filter @durak/mobile exec eas build --platform ios --profile preview",
@@ -18,5 +18,10 @@
   "devDependencies": {
     "typescript": "^5.5.4"
   },
-  "packageManager": "pnpm@11.4.0"
+  "packageManager": "pnpm@11.4.0",
+  "dependencies": {
+    "expo": "~56.0.0-preview.9",
+    "react": "19.2.3",
+    "react-native": "0.85.3"
+  }
 }

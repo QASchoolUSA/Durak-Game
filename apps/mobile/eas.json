@@ -12,13 +12,16 @@
       "distribution": "internal",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://neighborly-blackbird-943.convex.cloud"
+        "EXPO_PUBLIC_CONVEX_URL": "https://marvelous-marlin-178.convex.cloud"
       }
     },
     "production": {
       "autoIncrement": true,
       "ios": {
         "distribution": "store"
+      },
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://marvelous-marlin-178.convex.cloud"
       }
     }
   },

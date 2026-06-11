@@ -451,6 +451,9 @@ function CardComponent({
           width: w,
           height: h,
           borderRadius: radius.card,
+          // Opaque background matching the body lets iOS derive a cheap
+          // shadowPath instead of rasterizing the layer offscreen each frame.
+          backgroundColor: isFaceDown ? theme.back : theme.face,
         },
         highlighted && styles.highlight,
         dimmed && styles.dimmed,

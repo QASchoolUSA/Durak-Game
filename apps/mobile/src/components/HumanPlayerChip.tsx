@@ -1,10 +1,11 @@
 import React, { useCallback, useState } from "react";
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from "react-native";
 import type { SeatIndication, SeatRole } from "../game/selectors";
+import type { TurnClockConfig } from "../game/turnClockEngine";
 import { PlayerAvatar, indicationColor } from "./playerSeatShared";
 import { TakeSpeechBubble } from "./TakeSpeechBubble";
 import { SeatReactionBurst } from "./SeatReactionBurst";
-import { TurnTimerRing } from "./TurnTimerRing";
+import { SeatTurnTimerRing } from "./SeatTurnTimerRing";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { radius, typography } from "../theme";
 
@@ -16,7 +17,7 @@ export interface HumanPlayerChipProps {
   role: SeatRole;
   indication: SeatIndication | null;
   onClock: boolean;
-  turnProgress: number;
+  clockConfig: TurnClockConfig;
   timerEnabled?: boolean;
   showTimerRing?: boolean;
   /** When false, ring stays full (clock paused e.g. reveal overlay). */
@@ -32,7 +33,7 @@ function HumanPlayerChipComponent({
   role,
   indication,
   onClock,
-  turnProgress,
+  clockConfig,
   timerEnabled = true,
   showTimerRing = true,
   timerRunning = true,
@@ -93,11 +94,11 @@ function HumanPlayerChipComponent({
           </Pressable>
         </View>
         {onClock && timerEnabled && showTimerRing && (
-          <TurnTimerRing
+          <SeatTurnTimerRing
             visible
             color={ringColor}
             maxBorderRadius={radius.panel}
-            progress={turnProgress}
+            clockConfig={clockConfig}
             clockActive={timerRunning}
             width={ringWidth}
             height={ringHeight}

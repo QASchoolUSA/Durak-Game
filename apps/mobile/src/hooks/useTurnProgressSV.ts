@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   computeTurnRemaining,
-  tickTurnClock,
   turnProgressFromRemaining,
   type TurnClockConfig,
 } from "../game/turnClockEngine";
@@ -13,46 +12,25 @@ function progressFromConfig(config: TurnClockConfig): number {
 }
 
 /**
- * Turn progress on the JS thread (no useFrameCallback / SVG worklets).
- * Stable in Expo Go; timer ring reads the returned 0–1 value each tick.
+ * Turn progress (0-1) on the JS thread, polled every 100ms while enabled.
+ * Side effects (haptics, timeout) are handled separately by useTurnTimeout —
+ * callers should pass `enabled: false` for any seat that isn't the one
+ * currently on the clock so only one instance polls at a time.
  */
 export function useTurnProgress(config: TurnClockConfig): number {
   const [progress, setProgress] = useState(() => progressFromConfig(config));
-  const configRef = useRef(config);
-  configRef.current = config;
-
-  const firedRef = useRef(false);
-  const prevRemainingRef = useRef(config.totalSeconds);
-  const onTimeoutRef = useRef(config.onTimeout);
-  onTimeoutRef.current = config.onTimeout;
 
   useEffect(() => {
-    firedRef.current = false;
-    prevRemainingRef.current = config.totalSeconds;
-
     if (!config.enabled || config.totalSeconds <= 0) {
       setProgress(0);
       return;
     }
 
-    const tick = () => {
-      const c = configRef.current;
-      const remaining = computeTurnRemaining(c);
-      setProgress(turnProgressFromRemaining(remaining, c.totalSeconds));
-      tickTurnClock(c, {
-        firedRef,
-        prevRemainingRef,
-        onTimeoutRef,
-      });
-    };
+    const tick = () => setProgress(progressFromConfig(config));
 
-    setProgress(progressFromConfig(config));
     tick();
     const intervalId = setInterval(tick, 100);
-
-    return () => {
-      clearInterval(intervalId);
-    };
+    return () => clearInterval(intervalId);
   }, [
     config.enabled,
     config.totalSeconds,
