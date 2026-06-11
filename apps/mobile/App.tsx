@@ -10,6 +10,7 @@ import {
   loadCredits,
   loadGameConfig,
   loadGold,
+  loadOnboarded,
   loadPlayerName,
   useGameStore,
 } from "./src/game/store";
@@ -20,9 +21,13 @@ import { useGoldWallet } from "./src/game/useGoldWallet";
 import { useSoloCreditSettlement } from "./src/game/useSoloCreditSettlement";
 import { useOnlineGame } from "./src/game/useOnlineGame";
 import { usePlaySessionIdle } from "./src/game/usePlaySessionIdle";
+import { usePushRegistration } from "./src/game/usePushRegistration";
 import { OnlineStatusBanner } from "./src/components/OnlineStatusBanner";
+import { IncomingInviteBanner } from "./src/components/IncomingInviteBanner";
 import { GameResultCrossfade } from "./src/components/GameResultCrossfade";
 import { HomeScreen } from "./src/screens/HomeScreen";
+import { WelcomeScreen } from "./src/screens/WelcomeScreen";
+import { FriendsScreen } from "./src/screens/FriendsScreen";
 import { LobbyScreen } from "./src/screens/LobbyScreen";
 import { SettingsModal } from "./src/components/SettingsModal";
 import { RulesModal } from "./src/components/RulesModal";
@@ -85,6 +90,11 @@ function GoldWalletSync() {
   return null;
 }
 
+function PushSync() {
+  usePushRegistration();
+  return null;
+}
+
 function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
   if (!convex) {
     return (
@@ -99,7 +109,9 @@ function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
       <AuthGateProvider>
         <OnlineGameSync />
         <GoldWalletSync />
+        <PushSync />
         {children}
+        <IncomingInviteBanner />
       </AuthGateProvider>
     </ConvexAuthProvider>
   );
@@ -146,6 +158,8 @@ function SplashGate({
 export default function App() {
   const screen = useGameStore((s) => s.screen);
   const game = useGameStore((s) => s.game);
+  const onboarded = useGameStore((s) => s.onboarded);
+  const onboardedHydrated = useGameStore((s) => s.onboardedHydrated);
   const appearanceLoaded = usePreferencesStore((s) => s.appearanceLoaded);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [rulesVisible, setRulesVisible] = useState(false);
@@ -157,6 +171,7 @@ export default function App() {
       loadPlayerName(),
       loadGold(),
       loadCredits(),
+      loadOnboarded(),
     ]);
   }, []);
 
@@ -167,12 +182,16 @@ export default function App() {
   }, [screen]);
 
   const showHome = screen === "home";
+  // Show the welcome/auth landing on first run. With no Convex backend the auth
+  // hooks can't run, so guests skip straight in.
+  const showWelcome = convexEnabled && !onboarded;
 
   const content = (
     <View style={styles.appShell}>
       <OnlineStatusBanner />
       <PerfOverlay />
       <StatusBar style="light" />
+      {screen === "friends" && <FriendsScreen />}
       {homeMounted && (
         <View
           style={showHome ? styles.homeLayerActive : styles.homeLayerHidden}
@@ -205,10 +224,16 @@ export default function App() {
         visible={rulesVisible}
         onClose={() => setRulesVisible(false)}
       />
+
+      {showWelcome && (
+        <View style={styles.welcomeLayer}>
+          <WelcomeScreen />
+        </View>
+      )}
     </View>
   );
 
-  if (!appearanceLoaded) {
+  if (!appearanceLoaded || !onboardedHydrated) {
     return null;
   }
 
@@ -243,6 +268,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     opacity: 0,
     zIndex: -1,
+  },
+  welcomeLayer: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 50,
   },
   fallback: {
     flex: 1,

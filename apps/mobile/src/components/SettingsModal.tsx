@@ -28,8 +28,10 @@ import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { AppearancePicker } from "./AppearancePicker";
+import { AccountSection } from "./AccountSection";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { MenuButton } from "./MenuButton";
+import { convexEnabled } from "../game/convexClient";
 import { trigger } from "../feedback/haptics";
 import { clearAllAppStorage } from "../game/devStorage";
 import { formatOnlineMutationError } from "../game/onlineMutationErrors";
@@ -397,6 +399,8 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                 </Text>
               )}
             </View>
+
+            {convexEnabled && <AccountSection />}
 
             <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textPrimary }]}>
               AUDIO & FEEDBACK

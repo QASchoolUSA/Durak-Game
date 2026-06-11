@@ -38,6 +38,7 @@ import {
   getStoredGoldBalance,
   setStoredGoldBalance,
 } from "./goldStorage";
+import { getStoredOnboarded, setStoredOnboarded } from "./onboardingStorage";
 import { submitOnlineReturn } from "./onlineBridge";
 import {
   generateGuestDisplayName,
@@ -50,7 +51,7 @@ import {
 import { usePreferencesStore } from "./preferencesStore";
 import type { TurnSecondsOption } from "./turnTimerStorage";
 
-export type Screen = "home" | "lobby" | "game" | "result";
+export type Screen = "welcome" | "home" | "friends" | "lobby" | "game" | "result";
 export type Difficulty = "easy" | "medium" | "hard";
 export type PlayMode = "solo" | "online";
 
@@ -136,6 +137,11 @@ interface GameStore {
   goldHydrated: boolean;
   creditBalance: number;
   creditHydrated: boolean;
+  onboarded: boolean;
+  onboardedHydrated: boolean;
+  setOnboarded: (value: boolean) => void;
+  openFriends: () => void;
+  openHome: () => void;
   setPlayMode: (mode: PlayMode) => void;
   setNumPlayers: (n: number) => void;
   setVariant: (variant: GameVariant) => void;
@@ -330,6 +336,16 @@ export const useGameStore = create<GameStore>((set, get) => {
     goldHydrated: false,
     creditBalance: STARTING_CREDITS,
     creditHydrated: false,
+    onboarded: false,
+    onboardedHydrated: false,
+
+    setOnboarded: (onboarded) => {
+      set({ onboarded });
+      void setStoredOnboarded(onboarded);
+    },
+
+    openFriends: () => set({ screen: "friends" }),
+    openHome: () => set({ screen: "home" }),
 
     setPlayMode: (playMode) => set({ playMode }),
 
@@ -811,6 +827,15 @@ export async function loadCredits(): Promise<void> {
     useGameStore.setState({ creditBalance: balance, creditHydrated: true });
   } catch {
     useGameStore.setState({ creditHydrated: true });
+  }
+}
+
+export async function loadOnboarded(): Promise<void> {
+  try {
+    const onboarded = await getStoredOnboarded();
+    useGameStore.setState({ onboarded, onboardedHydrated: true });
+  } catch {
+    useGameStore.setState({ onboardedHydrated: true });
   }
 }
 

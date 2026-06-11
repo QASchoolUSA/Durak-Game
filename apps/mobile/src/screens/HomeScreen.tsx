@@ -27,18 +27,54 @@ import { useAppActive } from "../hooks/useAppActive";
 import { useReduceMotion } from "../hooks/useReduceMotion";
 import { EconomyBar } from "../components/EconomyBar";
 import { useGameStore } from "../game/store";
+import { convexEnabled } from "../game/convexClient";
+import { useConvexAuth, useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 export interface HomeScreenProps {
   onOpenSettings: () => void;
   onOpenRules:    () => void;
 }
 
-const MENU_ITEMS = [
-  { label: "PLAY",        variant: "primary"   as const, icon: "▶", action: "play"     },
-  { label: "JOIN GAME",   variant: "secondary" as const, icon: "⎘", action: "join"     },
-  { label: "SETTINGS",    variant: "secondary" as const, icon: "⚙", action: "settings" },
-  { label: "HOW TO PLAY", variant: "ghost"     as const, icon: "?", action: "rules"    },
+type MenuItem = {
+  label: string;
+  variant: "primary" | "secondary" | "ghost";
+  icon: string;
+  action: string;
+};
+
+const BASE_MENU_ITEMS: MenuItem[] = [
+  { label: "PLAY",        variant: "primary",   icon: "▶", action: "play"     },
+  { label: "JOIN GAME",   variant: "secondary", icon: "⎘", action: "join"     },
+  ...(convexEnabled
+    ? [{ label: "FRIENDS", variant: "secondary" as const, icon: "♣", action: "friends" }]
+    : []),
+  { label: "SETTINGS",    variant: "secondary", icon: "⚙", action: "settings" },
+  { label: "HOW TO PLAY", variant: "ghost",     icon: "?", action: "rules"    },
 ];
+
+/** Reactive badge for pending friend requests + game invites. */
+function FriendsMenuButton({ onPress }: { onPress: () => void }) {
+  const { isAuthenticated } = useConvexAuth();
+  const requests = useQuery(
+    api.friends.incomingRequests,
+    isAuthenticated ? {} : "skip",
+  );
+  const invites = useQuery(
+    api.invites.incomingInvites,
+    isAuthenticated ? {} : "skip",
+  );
+  const count = (requests?.length ?? 0) + (invites?.length ?? 0);
+  return (
+    <MenuButton
+      label="FRIENDS"
+      variant="secondary"
+      icon="♣"
+      onPress={onPress}
+      badgeCount={count}
+    />
+  );
+}
 
 const TITLE_LETTERS = ["D", "U", "R", "A", "K"] as const;
 
@@ -49,6 +85,7 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   const lay = useGameLayout();
   const insets = useSafeAreaInsets();
   const playerNameHydrated = useGameStore((s) => s.playerNameHydrated);
+  const openFriends = useGameStore((s) => s.openFriends);
   const goldBalance = useGameStore((s) => s.goldBalance);
   const creditBalance = useGameStore((s) => s.creditBalance);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -73,6 +110,7 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
     }
     if (action === "play") setDrawerOpen(true);
     if (action === "join") setJoinOpen(true);
+    if (action === "friends") openFriends();
     if (action === "settings") onOpenSettings();
     if (action === "rules") onOpenRules();
   };
@@ -119,15 +157,19 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
             }
             style={[styles.menu, { maxWidth: lay.maxContent }]}
           >
-            {MENU_ITEMS.map((item) => (
-              <MenuButton
-                key={item.label}
-                label={item.label}
-                variant={item.variant}
-                onPress={() => handleMenu(item.action)}
-                icon={item.icon}
-              />
-            ))}
+            {BASE_MENU_ITEMS.map((item) =>
+              item.action === "friends" ? (
+                <FriendsMenuButton key={item.label} onPress={() => handleMenu("friends")} />
+              ) : (
+                <MenuButton
+                  key={item.label}
+                  label={item.label}
+                  variant={item.variant}
+                  onPress={() => handleMenu(item.action)}
+                  icon={item.icon}
+                />
+              ),
+            )}
           </Animated.View>
 
           <Text style={[styles.version, { color: ui.textFaint }]}>
