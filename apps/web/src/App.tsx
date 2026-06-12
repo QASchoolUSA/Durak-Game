@@ -9,6 +9,8 @@ import { Home } from "./components/Home";
 import { Lobby } from "./components/Lobby";
 import { Table } from "./components/Table";
 import { Result } from "./components/Result";
+import { getAppearance } from "./theme/appearanceThemes";
+import { getUiTheme } from "./theme/uiThemes";
 
 function OnlineGameSync() {
   useOnlineGame();
@@ -48,10 +50,30 @@ function GameRouter() {
 function AppContent() {
   const playMode = useGameStore((s) => s.playMode);
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
+  const cardDesign = useGameStore((s) => s.cardDesign);
   const { isAuthenticated } = useConvexAuth();
 
+  const preset = getAppearance(cardDesign);
+  const uiTheme = getUiTheme(cardDesign);
+
+  const style = {
+    background: preset.table.backgroundGradient
+      ? `radial-gradient(ellipse at center, ${preset.table.backgroundGradient[0]} 0%, ${preset.table.backgroundGradient[1]} 100%)`
+      : preset.table.backgroundColor,
+    "--panel": uiTheme.panelBg,
+    "--panel-border": uiTheme.panelBorder,
+    "--panel-border-inner": uiTheme.panelBorderSoft,
+    "--gold": uiTheme.accent,
+    "--gold-bright": uiTheme.accent,
+    "--suit-red": preset.card.suitRed,
+    "--suit-black": preset.card.suitBlack,
+    "--text-muted": uiTheme.textMuted,
+    "--text-faint": uiTheme.textFaint,
+    "--text-light": uiTheme.textPrimary,
+  } as React.CSSProperties;
+
   return (
-    <div className="table-background">
+    <div className="table-background" style={style}>
       <div className="table-vignette" />
       
       {/* Header bar */}

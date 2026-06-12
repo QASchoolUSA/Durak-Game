@@ -1,3 +1,5 @@
+import { type AppearanceId, isValidAppearanceId } from "../theme/appearanceThemes";
+
 export interface GameConfig {
   numPlayers: number;
   variant: "podkidnoy" | "perevodnoy";
@@ -13,6 +15,7 @@ const KEYS = {
   credits: "@durak/creditBalance",
   gold: "@durak/goldBalance",
   gameConfig: "@durak/gameConfig",
+  cardDesign: "@durak/cardDesign",
 };
 
 export const MAX_DISPLAY_NAME_LENGTH = 12;
@@ -27,6 +30,22 @@ export function generateGuestDisplayName(): string {
 }
 
 export const storage = {
+  getCardDesign(): AppearanceId {
+    try {
+      const val = localStorage.getItem(KEYS.cardDesign);
+      if (val && isValidAppearanceId(val)) return val;
+    } catch {}
+    return "green";
+  },
+
+  setCardDesign(val: AppearanceId) {
+    try {
+      localStorage.setItem(KEYS.cardDesign, val);
+    } catch (e) {
+      console.warn("Storage failed", e);
+    }
+  },
+
   getPlayerName(): { name: string; isCustom: boolean } {
     try {
       const name = localStorage.getItem(KEYS.playerName);

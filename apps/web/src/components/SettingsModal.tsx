@@ -1,5 +1,8 @@
 import React from "react";
 import { useGameStore } from "../store/gameStore";
+import { APPEARANCE_ORDER, APPEARANCE_PRESETS } from "../theme/appearanceThemes";
+import { getCardTheme } from "../theme/cardThemes";
+import { Card } from "./Card";
 
 interface SettingsModalProps {
   visible: boolean;
@@ -17,6 +20,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
   const setPlayStyle = useGameStore((s) => s.setPlayStyle);
   const difficulty = useGameStore((s) => s.difficulty);
   const setDifficulty = useGameStore((s) => s.setDifficulty);
+  const cardDesign = useGameStore((s) => s.cardDesign);
+  const setCardDesign = useGameStore((s) => s.setCardDesign);
 
   if (!visible) return null;
 
@@ -110,6 +115,64 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
               >
                 Abilities (Powers)
               </button>
+            </div>
+          </div>
+          <div className="settings-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: "10px" }}>
+            <div className="settings-label">APPEARANCE</div>
+            <div className="appearance-scroll-container">
+              {APPEARANCE_ORDER.map((id) => {
+                const preset = APPEARANCE_PRESETS[id];
+                const cardTheme = getCardTheme(id);
+                const selected = cardDesign === id;
+                const swatchBg = preset.table.backgroundGradient 
+                  ? `linear-gradient(180deg, ${preset.table.backgroundGradient.join(", ")})`
+                  : preset.table.backgroundColor;
+
+                return (
+                  <div
+                    key={id}
+                    className={`appearance-tile ${selected ? "active" : ""}`}
+                    onClick={() => setCardDesign(id)}
+                  >
+                    <div className="appearance-swatch" style={{ background: swatchBg }}>
+                      <div className="appearance-card-preview-stack">
+                        <Card
+                          card={{ rank: 14, suit: "spades", id: `prev-${id}-face` }}
+                          themeOverride={cardTheme}
+                          style={{
+                            width: "30px",
+                            height: "44px",
+                            boxShadow: "none",
+                            pointerEvents: "none",
+                            position: "absolute",
+                            left: "6px",
+                            top: "6px",
+                            zIndex: 2,
+                            borderRadius: "4px"
+                          }}
+                        />
+                        <Card
+                          faceDown
+                          themeOverride={cardTheme}
+                          style={{
+                            width: "30px",
+                            height: "44px",
+                            boxShadow: "none",
+                            pointerEvents: "none",
+                            position: "absolute",
+                            left: "16px",
+                            top: "12px",
+                            zIndex: 1,
+                            borderRadius: "4px"
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="appearance-tile-name">{preset.name}</div>
+                    <div className={`appearance-tile-mode-badge ${preset.mode}`}>{preset.mode}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

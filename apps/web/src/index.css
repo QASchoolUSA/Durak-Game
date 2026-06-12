@@ -677,21 +677,18 @@ body, html {
   z-index: 101 !important;
 }
 
-/* Rendered Playing Card */
+/* Rendered Playing Card Face */
 .card {
   width: 85px;
   height: 125px;
-  background: var(--card-face);
+  background: linear-gradient(135deg, #FFFFFF 0%, #FAF7F0 100%);
   border: 1.5px solid var(--card-face-edge);
-  border-radius: 8px;
+  border-radius: 9px;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   cursor: pointer;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-sizing: border-box;
 }
 
 .card.red {
@@ -702,48 +699,76 @@ body, html {
   color: var(--suit-black);
 }
 
-.card-top {
+.card-corner {
+  position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  line-height: 1.1;
+  line-height: 1;
 }
 
-.card-value-label {
-  font-size: 18px;
-  font-weight: 800;
+.card-corner.tl {
+  top: calc(5px * var(--card-font-scale, 1));
+  left: calc(7px * var(--card-font-scale, 1));
 }
 
-.card-suit-small {
-  font-size: 14px;
-}
-
-.card-center {
-  font-size: 32px;
-  align-self: center;
-}
-
-.card-bottom {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.card-corner.br {
+  bottom: calc(5px * var(--card-font-scale, 1));
+  right: calc(7px * var(--card-font-scale, 1));
   transform: rotate(180deg);
-  line-height: 1.1;
+}
+
+.card-value {
+  font-size: calc(19px * var(--card-font-scale, 1));
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.card-suit {
+  font-size: calc(13px * var(--card-font-scale, 1));
+  margin-top: calc(-1px * var(--card-font-scale, 1));
+  font-weight: 700;
+}
+
+.card-center-suit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: calc(42px * var(--card-font-scale, 1));
+  font-weight: 700;
+  opacity: 0.95;
+}
+
+/* Card Glow States */
+.card.highlighted {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 10px rgba(245, 210, 122, 0.45);
+}
+
+.card.selected {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 16px var(--gold-bright);
+  transform: translateY(-20px) scale(1.06) !important;
+  z-index: 100 !important;
+}
+
+.card.trump-highlight {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 12px rgba(242, 210, 122, 0.6);
+}
+
+.card.dimmed {
+  opacity: 0.45;
 }
 
 /* Back face of playing card */
 .card-back {
   background: var(--card-back);
-  border: 3px solid var(--card-face);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-}
-
-.card-back-pattern {
-  width: 100%;
-  height: 100%;
-  border-radius: 4px;
-  border: 1px solid rgba(231, 192, 103, 0.25);
-  background-image: repeating-linear-gradient(45deg, var(--card-back) 0px, var(--card-back) 4px, var(--card-back-accent) 4px, var(--card-back-accent) 8px);
+  border: 1.5px solid var(--card-face);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+  padding: 0;
+  overflow: hidden;
 }
 
 /* Modal Popup Window */
@@ -942,16 +967,9 @@ body, html {
   }
   
   .card {
+    --card-font-scale: 0.76;
     width: 65px;
     height: 95px;
-  }
-  
-  .card-center {
-    font-size: 24px;
-  }
-  
-  .card-value-label {
-    font-size: 14px;
   }
   
   .hand-cards-list {
@@ -967,3 +985,116 @@ body, html {
     transform: translateY(-10px) scale(1.04);
   }
 }
+
+/* Drag & Drop Highlights */
+.card-battlefield.drag-over {
+  border: 2px dashed var(--gold);
+  background: rgba(231, 192, 103, 0.08);
+  box-shadow: 0 0 20px rgba(231, 192, 103, 0.15) inset;
+  border-radius: 16px;
+}
+
+.battle-pair.drag-over {
+  border: 2px dashed var(--gold-bright) !important;
+  background: rgba(245, 210, 122, 0.12);
+  box-shadow: 0 0 15px rgba(245, 210, 122, 0.2);
+  transform: scale(1.03);
+  z-index: 10;
+}
+
+/* Appearance Picker inside SettingsModal */
+.appearance-scroll-container {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  width: 100%;
+  padding: 8px 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-dim) transparent;
+}
+
+.appearance-scroll-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.appearance-scroll-container::-webkit-scrollbar-thumb {
+  background-color: var(--gold-dim);
+  border-radius: 3px;
+}
+
+.appearance-tile {
+  flex: 0 0 100px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.appearance-tile:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+.appearance-tile.active {
+  border-color: var(--gold);
+  background: rgba(231, 192, 103, 0.08);
+}
+
+.appearance-swatch {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
+  margin-bottom: 8px;
+}
+
+.appearance-card-preview-stack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.appearance-tile-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-light);
+  text-align: center;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.appearance-tile.active .appearance-tile-name {
+  color: var(--gold);
+}
+
+.appearance-tile-mode-badge {
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 8px;
+  letter-spacing: 0.5px;
+}
+
+.appearance-tile-mode-badge.light {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.appearance-tile-mode-badge.dark {
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--text-muted);
+}
+

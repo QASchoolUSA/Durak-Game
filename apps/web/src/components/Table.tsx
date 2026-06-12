@@ -25,6 +25,10 @@ export const Table: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
 
+  // Drag and drop states
+  const [isDraggingOverField, setIsDraggingOverField] = useState(false);
+  const [draggingOverPairIdx, setDraggingOverPairIdx] = useState<number | null>(null);
+
   // Time tracking for turn timer clock
   const turnClockPlayerId = useGameStore((s) => s.turnClockPlayerId);
   const turnDeadlineAt = useGameStore((s) => s.turnDeadlineAt);
@@ -149,6 +153,93 @@ export const Table: React.FC = () => {
     }
   };
 
+  // Drag and drop event handlers
+  const handleDragStart = (e: React.DragEvent, cardId: string) => {
+    e.dataTransfer.setData("text/plain", cardId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDragEnterField = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOverField(true);
+  };
+
+  const handleDragLeaveField = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOverField(false);
+  };
+
+  const handleDropField = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOverField(false);
+    const cardId = e.dataTransfer.getData("text/plain");
+    if (!cardId) return;
+    const card = myHand.find((c) => c.id === cardId);
+    if (!card) return;
+
+    // 1. Attack / Throw-in
+    if (game.defenderId !== humanId) {
+      const attacks = legalAttacks(game, humanId);
+      if (attacks.some((c) => c.id === cardId)) {
+        submitHuman({ type: "ATTACK", player: humanId, card });
+      }
+      return;
+    }
+
+    // 2. Transfer / Defend auto
+    if (game.defenderId === humanId) {
+      const transfers = legalTransfers(game, 0);
+      if (transfers.some((c) => c.id === cardId)) {
+        submitHuman({ type: "TRANSFER", player: humanId, card, target: 0 });
+        return;
+      }
+
+      // If only one unbeaten attack, drop on field plays defense
+      const unbeatenIndexes = game.table
+        .map((p, i) => (p.defense ? -1 : i))
+        .filter((i) => i !== -1);
+      if (unbeatenIndexes.length === 1) {
+        const targetIdx = unbeatenIndexes[0]!;
+        const defenses = legalDefenses(game, targetIdx);
+        if (defenses.some((c) => c.id === cardId)) {
+          submitHuman({ type: "DEFEND", player: humanId, card, target: targetIdx });
+        }
+      }
+    }
+  };
+
+  const handleDragEnterPair = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    setDraggingOverPairIdx(idx);
+  };
+
+  const handleDragLeavePair = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDraggingOverPairIdx(null);
+  };
+
+  const handleDropPair = (e: React.DragEvent, targetIndex: number) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setDraggingOverPairIdx(null);
+    const cardId = e.dataTransfer.getData("text/plain");
+    if (!cardId) return;
+    const card = myHand.find((c) => c.id === cardId);
+    if (!card) return;
+
+    if (game.defenderId === humanId) {
+      const defenses = legalDefenses(game, targetIndex);
+      if (defenses.some((c) => c.id === cardId)) {
+        submitHuman({ type: "DEFEND", player: humanId, card, target: targetIndex });
+      }
+    }
+  };
+
   return (
     <div className="game-area">
       {/* Opponents Row at top */}
@@ -207,7 +298,13 @@ export const Table: React.FC = () => {
         </div>
 
         {/* Center column: Battlefield */}
-        <div className="card-battlefield">
+        <div
+          className={`card-battlefield ${isDraggingOverField ? "drag-over" : ""}`}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnterField}
+          onDragLeave={handleDragLeaveField}
+          onDrop={handleDropField}
+        >
           {game.table.map((pair, idx) => {
             const unbeaten = !pair.defense;
             const isClickableTarget =
@@ -217,14 +314,24 @@ export const Table: React.FC = () => {
                 (c) => c.id === selectedCardId
               );
 
+            const isTargetedByDrag = draggingOverPairIdx === idx;
+
             return (
               <div
                 key={idx}
-                className="battle-pair"
+                className={`battle-pair ${isTargetedByDrag ? "drag-over" : ""}`}
                 onClick={() => isClickableTarget && handleTableCardClick(idx)}
+                onDragOver={handleDragOver}
+                onDragEnter={(e) => handleDragEnterPair(e, idx)}
+                onDragLeave={handleDragLeavePair}
+                onDrop={(e) => handleDropPair(e, idx)}
                 style={{
                   cursor: isClickableTarget ? "pointer" : "default",
-                  border: isClickableTarget ? "2px dashed var(--gold-bright)" : "none",
+                  border: isClickableTarget 
+                    ? "2px dashed var(--gold-bright)" 
+                    : isTargetedByDrag 
+                      ? "2px dashed var(--gold-bright)" 
+                      : "none",
                   borderRadius: "8px",
                 }}
               >
@@ -290,6 +397,8 @@ export const Table: React.FC = () => {
                     selected={selected}
                     highlighted={playable}
                     onClick={() => handleCardClick(card.id)}
+                    draggable={playable}
+                    onDragStart={(e) => handleDragStart(e, card.id)}
                   />
                 </div>
               );
