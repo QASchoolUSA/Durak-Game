@@ -87,6 +87,22 @@ export const setHandle = mutation({
   },
 });
 
+export const checkHandle = query({
+  args: { handle: v.string() },
+  handler: async (ctx, { handle }) => {
+    try {
+      const { handleLower } = normalizeHandle(handle);
+      const taken = await ctx.db
+        .query("profiles")
+        .withIndex("by_handleLower", (q) => q.eq("handleLower", handleLower))
+        .unique();
+      return { ok: true, available: !taken };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Invalid handle." };
+    }
+  },
+});
+
 /**
  * Sync a custom display name onto the profile so friends/invites show it.
  * No-op when no profile exists — `setHandle` is the sole profile creator and

@@ -35,6 +35,7 @@ import { convexEnabled } from "../game/convexClient";
 import { saveRoomSession } from "../game/onlineSessionStorage";
 import { useOnlineAuth } from "../game/useAuthBootstrap";
 import { usePreferencesStore } from "../game/preferencesStore";
+import { CoinIcon } from "./CoinIcon";
 
 // ── Static config ─────────────────────────────────────────────────────────────
 
@@ -79,6 +80,8 @@ const PLAY_STYLE_OPTIONS: { id: PlayStyle; label: string; desc: string }[] = [
   { id: "standard",  label: "Standard",       desc: "Classic Durak — no special powers" },
   { id: "abilities", label: "With Abilities", desc: "Return, graveyard & reveal a card" },
 ];
+
+const BUY_IN_OPTIONS = [100, 250, 500, 1000, 5000, 10000, 20000];
 
 // ── Animation springs ─────────────────────────────────────────────────────────
 
@@ -196,6 +199,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
   const setPlayMode = useGameStore((s) => s.setPlayMode);
   const startGame   = useGameStore((s) => s.startGame);
   const buyIn = useGameStore((s) => s.buyIn);
+  const setBuyIn = useGameStore((s) => s.setBuyIn);
   const syncCreditBalance = useGameStore((s) => s.syncCreditBalance);
   const deductCreditsLocal = useGameStore((s) => s.deductCreditsLocal);
   const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
@@ -215,7 +219,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
         convexEnabled: convexConfigured,
         ensureAuthenticated,
         spendCredits,
-        buyIn,
+        buyIn: playMode === "solo" ? 100 : buyIn,
         syncCreditBalance,
         deductCreditsLocal,
       });
@@ -245,6 +249,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
           difficulty,
         },
         turnTimerSeconds: turnSeconds,
+        buyIn,
       });
       await saveRoomSession({
         roomId: result.roomId,
@@ -386,6 +391,23 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
               </View>
 
               <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
+
+              {/* Buy in */}
+              {playMode === "online" && (
+                <>
+                  <View style={styles.section}>
+                    <SectionLabel label="BUY IN" />
+                    <BuyInStrip
+                      value={buyIn}
+                      onChange={(val) => {
+                        trigger("selection");
+                        setBuyIn(val);
+                      }}
+                    />
+                  </View>
+                  <View style={[styles.sectionSep, { backgroundColor: ui.panelBorderSoft }]} />
+                </>
+              )}
 
               {/* Game Mode */}
               <View style={styles.section}>
@@ -594,6 +616,56 @@ function PlayerCountStrip({
         {playerCountHint(value, playMode)}
       </Text>
     </View>
+  );
+}
+
+function BuyInStrip({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+}) {
+  const ui = useUiTheme();
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.buyInScrollContainer}
+    >
+      {BUY_IN_OPTIONS.map((opt) => {
+        const active = value === opt;
+        const label = opt >= 1000 ? `${opt / 1000}K` : `${opt}`;
+        return (
+          <Pressable
+            key={opt}
+            style={[
+              styles.buyInChip,
+              {
+                borderColor: ui.panelBorderSoft,
+                backgroundColor: ui.panelBg,
+              },
+              active && {
+                borderColor: ui.accent,
+                backgroundColor: ui.accentSoft,
+              },
+            ]}
+            onPress={() => onChange(opt)}
+          >
+            <CoinIcon variant="credit" size={14} />
+            <Text
+              style={[
+                styles.buyInChipText,
+                { color: ui.textPrimary },
+                active && { color: ui.accent },
+              ]}
+            >
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
   );
 }
 
@@ -950,5 +1022,23 @@ const styles = StyleSheet.create({
     ...typography.caption,
     textAlign: "center",
     marginBottom: spacing.xs,
+  },
+  buyInScrollContainer: {
+    gap: spacing.xs,
+    paddingRight: spacing.lg,
+  },
+  buyInChip: {
+    height: 40,
+    paddingHorizontal: spacing.sm + 4,
+    borderRadius: radius.panel,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+  },
+  buyInChipText: {
+    fontSize: 15,
+    fontWeight: "700",
   },
 });

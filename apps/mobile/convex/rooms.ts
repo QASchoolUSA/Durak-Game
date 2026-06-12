@@ -55,6 +55,7 @@ import {
 } from "./wallets";
 import { pickRevealedCard } from "./lib/revealHelpers";
 import { normalizeDisplayName } from "./lib/displayName";
+import { MATCH_BUY_IN } from "./lib/goldEconomy";
 
 const CLEANUP_BATCH_SIZE = 100;
 const RETURN_WINDOW_MS = 3000;
@@ -255,6 +256,7 @@ export async function createRoomForHost(
     displayName: string;
     config: Infer<typeof roomConfigValidator>;
     turnTimerSeconds?: number;
+    buyIn?: number;
   },
 ): Promise<{ roomId: Id<"rooms">; code: string }> {
   const numPlayers = Math.min(6, Math.max(2, args.config.numPlayers));
@@ -285,6 +287,7 @@ export async function createRoomForHost(
         isReady: false,
       },
     ],
+    buyIn: args.buyIn ?? MATCH_BUY_IN,
     lastMoveAt: now,
     lastTouchedAt: now,
     turnTimerSeconds: normalizeTurnSeconds(args.turnTimerSeconds),
@@ -299,6 +302,7 @@ export const createRoom = mutation({
     config: roomConfigValidator,
     displayName: v.string(),
     turnTimerSeconds: v.optional(v.number()),
+    buyIn: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
@@ -307,6 +311,7 @@ export const createRoom = mutation({
       displayName: args.displayName,
       config: args.config,
       turnTimerSeconds: args.turnTimerSeconds,
+      buyIn: args.buyIn,
     });
   },
 });
@@ -634,7 +639,7 @@ async function beginNextRound(
     rules,
   });
 
-  await chargeMatchBuyIns(ctx, membersWithIds);
+  await chargeMatchBuyIns(ctx, membersWithIds, room.buyIn ?? MATCH_BUY_IN);
 
   const nextVersion = room.version + 1;
   await ctx.db.patch(roomId, {
@@ -975,6 +980,7 @@ export const getRoomView = query({
       roomId: room._id,
       code: room.code,
       status: room.status,
+      buyIn: room.buyIn ?? MATCH_BUY_IN,
       config: room.config,
       members: room.members.map((m) => ({
         displayName: m.displayName,
@@ -1165,6 +1171,7 @@ export type RoomView = {
   roomId: Id<"rooms">;
   code: string;
   status: "lobby" | "playing" | "finished";
+  buyIn: number;
   config: {
     numPlayers: number;
     variant: "podkidnoy" | "perevodnoy";

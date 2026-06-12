@@ -82,6 +82,7 @@ export default defineSchema({
         settled: v.boolean(),
       }),
     ),
+    buyIn: v.optional(v.number()),
     version: v.number(),
   })
     .index("by_code", ["code"])
