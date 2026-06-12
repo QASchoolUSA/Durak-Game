@@ -2,7 +2,12 @@ import type { TablePair } from "@durak/game-core";
 import type { AnchorRect } from "./anchorMath";
 import { anchorCenter } from "./anchorMath";
 import type { CardFlightStep } from "./cardFlight";
-import { dealTimingForMode, getDealTiming, type DealTimingMode } from "./dealSequence";
+import {
+  dealTimingForMode,
+  getDealTiming,
+  tableCardIdsFromPairs,
+  type DealTimingMode,
+} from "./dealSequence";
 
 export const TABLE_CARD_ANCHOR_PREFIX = "table-card-";
 
@@ -12,15 +17,6 @@ export function tableCardAnchorId(cardId: string): string {
 
 export function isTableCardAnchorId(anchorId: string): boolean {
   return anchorId.startsWith(TABLE_CARD_ANCHOR_PREFIX);
-}
-
-export function tableCardIdsFromPairs(table: TablePair[]): string[] {
-  const ids: string[] = [];
-  for (const pair of table) {
-    ids.push(pair.attack.id);
-    if (pair.defense) ids.push(pair.defense.id);
-  }
-  return ids;
 }
 
 export interface TakeSnapshot {

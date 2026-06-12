@@ -38,11 +38,13 @@ import {
   getStoredGoldBalance,
   setStoredGoldBalance,
 } from "./goldStorage";
+import { getStoredOnboarded, setStoredOnboarded } from "./onboardingStorage";
 import { submitOnlineReturn } from "./onlineBridge";
 import {
   generateGuestDisplayName,
   getStoredNameIsCustom,
   getStoredPlayerName,
+  isLegacyGuestName,
   normalizeDisplayName,
   setStoredCustomName,
   setStoredGuestName,
@@ -50,7 +52,7 @@ import {
 import { usePreferencesStore } from "./preferencesStore";
 import type { TurnSecondsOption } from "./turnTimerStorage";
 
-export type Screen = "home" | "lobby" | "game" | "result";
+export type Screen = "welcome" | "home" | "lobby" | "game" | "result";
 export type Difficulty = "easy" | "medium" | "hard";
 export type PlayMode = "solo" | "online";
 
@@ -136,6 +138,10 @@ interface GameStore {
   goldHydrated: boolean;
   creditBalance: number;
   creditHydrated: boolean;
+  onboarded: boolean;
+  onboardedHydrated: boolean;
+  setOnboarded: (value: boolean) => void;
+  openHome: () => void;
   setPlayMode: (mode: PlayMode) => void;
   setNumPlayers: (n: number) => void;
   setVariant: (variant: GameVariant) => void;
@@ -144,6 +150,7 @@ interface GameStore {
   setDifficulty: (d: Difficulty) => void;
   applyTurnTimerMidGame: (seconds: TurnSecondsOption) => void;
   setOnlineDisplayName: (name: string) => void;
+  adoptHandleDisplayName: (handle: string) => void;
   enterOnlineLobby: (args: {
     roomId: string;
     displayName: string;
@@ -330,6 +337,15 @@ export const useGameStore = create<GameStore>((set, get) => {
     goldHydrated: false,
     creditBalance: STARTING_CREDITS,
     creditHydrated: false,
+    onboarded: false,
+    onboardedHydrated: false,
+
+    setOnboarded: (onboarded) => {
+      set({ onboarded });
+      void setStoredOnboarded(onboarded);
+    },
+
+    openHome: () => set({ screen: "home" }),
 
     setPlayMode: (playMode) => set({ playMode }),
 
@@ -346,6 +362,24 @@ export const useGameStore = create<GameStore>((set, get) => {
         names: { ...names, [humanId]: trimmed },
       });
       void setStoredCustomName(trimmed);
+      if (playMode === "online" && onlineRoomId) {
+        submitUpdateDisplayName(trimmed);
+      }
+    },
+
+    // Handle-derived names are persisted as non-custom so a later handle
+    // change (or custom name) can replace them; never overrides a custom name.
+    adoptHandleDisplayName: (handle) => {
+      const trimmed = normalizeDisplayName(handle);
+      if (!trimmed) return;
+      const { humanId, names, playMode, onlineRoomId, hasCustomDisplayName } = get();
+      if (hasCustomDisplayName) return;
+      set({
+        onlineDisplayName: trimmed,
+        hasCustomDisplayName: false,
+        names: { ...names, [humanId]: trimmed },
+      });
+      void setStoredGuestName(trimmed);
       if (playMode === "online" && onlineRoomId) {
         submitUpdateDisplayName(trimmed);
       }
@@ -774,6 +808,17 @@ export async function loadPlayerName(): Promise<void> {
     const stored = await getStoredPlayerName();
     if (stored) {
       const isCustom = await getStoredNameIsCustom();
+      // Migrate old pool-generated guest names ("Olga342") to Guest### once.
+      if (!isCustom && isLegacyGuestName(stored)) {
+        const fresh = generateGuestDisplayName();
+        await setStoredGuestName(fresh);
+        useGameStore.setState({
+          onlineDisplayName: fresh,
+          hasCustomDisplayName: false,
+          playerNameHydrated: true,
+        });
+        return;
+      }
       useGameStore.setState({
         onlineDisplayName: stored,
         hasCustomDisplayName: isCustom,
@@ -811,6 +856,15 @@ export async function loadCredits(): Promise<void> {
     useGameStore.setState({ creditBalance: balance, creditHydrated: true });
   } catch {
     useGameStore.setState({ creditHydrated: true });
+  }
+}
+
+export async function loadOnboarded(): Promise<void> {
+  try {
+    const onboarded = await getStoredOnboarded();
+    useGameStore.setState({ onboarded, onboardedHydrated: true });
+  } catch {
+    useGameStore.setState({ onboardedHydrated: true });
   }
 }
 

@@ -1,7 +1,6 @@
-import React, { Component, useCallback, useEffect, useRef, useState } from "react";
+import React, { Component, useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
@@ -10,6 +9,7 @@ import {
   loadCredits,
   loadGameConfig,
   loadGold,
+  loadOnboarded,
   loadPlayerName,
   useGameStore,
 } from "./src/game/store";
@@ -20,10 +20,15 @@ import { useGoldWallet } from "./src/game/useGoldWallet";
 import { useSoloCreditSettlement } from "./src/game/useSoloCreditSettlement";
 import { useOnlineGame } from "./src/game/useOnlineGame";
 import { usePlaySessionIdle } from "./src/game/usePlaySessionIdle";
+import { usePushRegistration } from "./src/game/usePushRegistration";
+import { useProfileNameSync } from "./src/game/useProfileNameSync";
 import { OnlineStatusBanner } from "./src/components/OnlineStatusBanner";
+import { IncomingInviteBanner } from "./src/components/IncomingInviteBanner";
 import { GameResultCrossfade } from "./src/components/GameResultCrossfade";
 import { HomeScreen } from "./src/screens/HomeScreen";
+import { WelcomeScreen } from "./src/screens/WelcomeScreen";
 import { LobbyScreen } from "./src/screens/LobbyScreen";
+import { BootScreen } from "./src/screens/BootScreen";
 import { SettingsModal } from "./src/components/SettingsModal";
 import { RulesModal } from "./src/components/RulesModal";
 import { CardThemeProvider } from "./src/theme/CardThemeContext";
@@ -85,6 +90,16 @@ function GoldWalletSync() {
   return null;
 }
 
+function PushSync() {
+  usePushRegistration();
+  return null;
+}
+
+function ProfileNameSync() {
+  useProfileNameSync();
+  return null;
+}
+
 function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
   if (!convex) {
     return (
@@ -99,57 +114,27 @@ function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
       <AuthGateProvider>
         <OnlineGameSync />
         <GoldWalletSync />
+        <PushSync />
+        <ProfileNameSync />
         {children}
+        <IncomingInviteBanner />
       </AuthGateProvider>
     </ConvexAuthProvider>
   );
 }
 
-function SplashGate({
-  ready,
-  children,
-}: {
-  ready: boolean;
-  children: React.ReactNode;
-}) {
-  const splashHiddenRef = useRef(false);
-  const layoutReadyRef = useRef(false);
 
-  const tryHideSplash = useCallback(() => {
-    if (splashHiddenRef.current || !ready || !layoutReadyRef.current) {
-      return;
-    }
-    splashHiddenRef.current = true;
-    requestAnimationFrame(() => {
-      void SplashScreen.hideAsync().catch(() => {
-        // Non-fatal if splash was already hidden or API unavailable.
-      });
-    });
-  }, [ready]);
-
-  const onLayout = useCallback(() => {
-    layoutReadyRef.current = true;
-    tryHideSplash();
-  }, [tryHideSplash]);
-
-  useEffect(() => {
-    tryHideSplash();
-  }, [tryHideSplash]);
-
-  return (
-    <View style={styles.splashGate} onLayout={onLayout}>
-      {children}
-    </View>
-  );
-}
 
 export default function App() {
   const screen = useGameStore((s) => s.screen);
   const game = useGameStore((s) => s.game);
+  const onboarded = useGameStore((s) => s.onboarded);
+  const onboardedHydrated = useGameStore((s) => s.onboardedHydrated);
   const appearanceLoaded = usePreferencesStore((s) => s.appearanceLoaded);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [rulesVisible, setRulesVisible] = useState(false);
   const [homeMounted, setHomeMounted] = useState(screen === "home");
+  const [bootComplete, setBootComplete] = useState(false);
 
   useEffect(() => {
     void Promise.all([
@@ -157,6 +142,7 @@ export default function App() {
       loadPlayerName(),
       loadGold(),
       loadCredits(),
+      loadOnboarded(),
     ]);
   }, []);
 
@@ -167,6 +153,9 @@ export default function App() {
   }, [screen]);
 
   const showHome = screen === "home";
+  // Show the welcome/auth landing on first run. With no Convex backend the auth
+  // hooks can't run, so guests skip straight in.
+  const showWelcome = convexEnabled && !onboarded;
 
   const content = (
     <View style={styles.appShell}>
@@ -205,12 +194,14 @@ export default function App() {
         visible={rulesVisible}
         onClose={() => setRulesVisible(false)}
       />
+
+      {showWelcome && (
+        <View style={styles.welcomeLayer}>
+          <WelcomeScreen />
+        </View>
+      )}
     </View>
   );
-
-  if (!appearanceLoaded) {
-    return null;
-  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -218,9 +209,14 @@ export default function App() {
         <TableThemeProvider>
           <UiThemeProvider>
             <CardThemeProvider>
-              <SplashGate ready={appearanceLoaded}>
-                <ConvexOnlineLayer>{content}</ConvexOnlineLayer>
-              </SplashGate>
+              <ConvexOnlineLayer>
+                {!bootComplete && (
+                  <View style={styles.bootLayer}>
+                    <BootScreen onReady={() => setBootComplete(true)} />
+                  </View>
+                )}
+                {bootComplete && content}
+              </ConvexOnlineLayer>
             </CardThemeProvider>
           </UiThemeProvider>
         </TableThemeProvider>
@@ -230,8 +226,9 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  splashGate: {
-    flex: 1,
+  bootLayer: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 100,
   },
   appShell: {
     flex: 1,
@@ -243,6 +240,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     opacity: 0,
     zIndex: -1,
+  },
+  welcomeLayer: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 50,
   },
   fallback: {
     flex: 1,

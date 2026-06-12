@@ -6,6 +6,8 @@ import {
   type TurnSecondsOption,
 } from "@durak/game-core";
 
+import { getNativeStorage } from "./nativeAsyncStorage";
+
 const STORAGE_KEY = "@durak/turnSeconds";
 
 export type { TurnSecondsOption };
@@ -13,11 +15,6 @@ export const TURN_SECONDS_OPTIONS: TurnSecondsOption[] = [...VALID_TURN_SECONDS]
 export { DEFAULT_TURN_SECONDS };
 
 let memoryValue: string | null = null;
-
-let nativeStorage: typeof import("@react-native-async-storage/async-storage").default | null =
-  null;
-let nativeChecked = false;
-let nativeUsable = false;
 
 function webGet(): string | null {
   if (typeof localStorage === "undefined") return memoryValue;
@@ -35,26 +32,6 @@ function webSet(value: string): void {
     localStorage.setItem(STORAGE_KEY, value);
   } catch {
     // Ignore
-  }
-}
-
-async function getNativeStorage() {
-  if (nativeChecked) return nativeUsable ? nativeStorage : null;
-  nativeChecked = true;
-  if (Platform.OS === "web") {
-    nativeUsable = false;
-    return null;
-  }
-  try {
-    const mod = await import("@react-native-async-storage/async-storage");
-    nativeStorage = mod.default;
-    await nativeStorage.getItem(STORAGE_KEY);
-    nativeUsable = true;
-    return nativeStorage;
-  } catch {
-    nativeStorage = null;
-    nativeUsable = false;
-    return null;
   }
 }
 

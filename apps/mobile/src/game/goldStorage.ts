@@ -1,13 +1,9 @@
-import { Platform } from "react-native";
 import { STARTING_GOLD } from "./goldEconomy";
+import { getNativeStorage } from "./nativeAsyncStorage";
 
 const STORAGE_KEY = "@durak/goldCoins";
 
 let memoryValue: number | null = null;
-let nativeStorage: typeof import("@react-native-async-storage/async-storage").default | null =
-  null;
-let nativeChecked = false;
-let nativeUsable = false;
 
 function parseBalance(raw: string | null): number | null {
   if (raw === null) return null;
@@ -34,25 +30,6 @@ function webSet(value: number): void {
     localStorage.setItem(STORAGE_KEY, String(value));
   } catch {
     /* ignore */
-  }
-}
-
-async function getNativeStorage() {
-  if (nativeChecked) return nativeUsable ? nativeStorage : null;
-  nativeChecked = true;
-  if (Platform.OS === "web") {
-    nativeUsable = false;
-    return null;
-  }
-  try {
-    const mod = await import("@react-native-async-storage/async-storage");
-    nativeStorage = mod.default;
-    await nativeStorage.getItem(STORAGE_KEY);
-    nativeUsable = true;
-    return nativeStorage;
-  } catch {
-    nativeUsable = false;
-    return null;
   }
 }
 

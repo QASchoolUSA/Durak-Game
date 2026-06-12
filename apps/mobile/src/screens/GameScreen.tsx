@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  InteractionManager,
   Platform,
   Pressable,
   StyleSheet,
@@ -28,10 +27,9 @@ import type { AnchorRect } from "../components/MeasuredAnchor";
 import { useDealAnimation } from "../hooks/useDealAnimation";
 import { useTakeAnimation } from "../hooks/useTakeAnimation";
 import { timeoutMoveFor } from "../game/autoMove";
-import type { QueuedDealStep } from "../game/dealSequence";
+import { QueuedDealStep, tableCardIdsFromPairs } from "../game/dealSequence";
 import {
   isTableCardAnchorId,
-  tableCardIdsFromPairs,
   type TakeSnapshot,
 } from "../game/takeSequence";
 import { AbilityDock } from "../components/AbilityDock";
@@ -197,11 +195,11 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       setCoachVisible(false);
       return;
     }
-    const task = InteractionManager.runAfterInteractions(() => {
+    const handle = requestIdleCallback(() => {
       setCoachVisible(true);
       setCoachStepIndex(0);
     });
-    return () => task.cancel();
+    return () => cancelIdleCallback(handle);
   }, [prefsHydrated, tutorialCompleted]);
 
   const dismissCoach = useCallback(() => {
@@ -675,10 +673,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   );
 
   useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
+    const handle = requestIdleCallback(() => {
       void prewarmSounds();
     });
-    return () => task.cancel();
+    return () => cancelIdleCallback(handle);
   }, []);
 
   const confirmTake = useCallback(() => {

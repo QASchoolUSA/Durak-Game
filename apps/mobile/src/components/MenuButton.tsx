@@ -19,6 +19,7 @@ export interface MenuButtonProps {
   onPress?: () => void;
   disabled?: boolean;
   icon?: string;
+  badgeCount?: number;
 }
 
 function MenuButtonComponent({
@@ -27,6 +28,7 @@ function MenuButtonComponent({
   onPress,
   disabled = false,
   icon,
+  badgeCount = 0,
 }: MenuButtonProps) {
   const ui = useUiTheme();
   const scale = useSharedValue(1);
@@ -86,6 +88,13 @@ function MenuButtonComponent({
           <Text style={[styles.icon, { color: textColor }]}>{icon}</Text>
         ) : null}
         <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+        {badgeCount > 0 ? (
+          <View style={[styles.badge, { backgroundColor: ui.badgeBg ?? ui.accent }]}>
+            <Text style={[styles.badgeText, { color: ui.badgeText }]}>
+              {badgeCount > 9 ? "9+" : badgeCount}
+            </Text>
+          </View>
+        ) : null}
       </Pressable>
       </Animated.View>
     </View>
@@ -110,6 +119,18 @@ const styles = StyleSheet.create({
   label: {
     ...typography.heading,
     letterSpacing: 1.5,
+  },
+  badge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: {
+    ...typography.caption,
+    fontWeight: "800",
   },
   disabled: { opacity: 0.40 },
 });

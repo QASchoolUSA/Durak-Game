@@ -9,4 +9,10 @@ crons.interval(
   internal.rooms.cleanupStaleRooms,
 );
 
+crons.interval(
+  "expire stale game invites",
+  { minutes: 1 },
+  internal.invites.expireStale,
+);
+
 export default crons;

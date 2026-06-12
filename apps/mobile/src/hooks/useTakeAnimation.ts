@@ -4,11 +4,11 @@ import type { CardFlightStep } from "../game/cardFlight";
 import type { AnchorRect } from "../components/MeasuredAnchor";
 import {
   buildTakeFlightQueue,
-  tableCardIdsFromPairs,
   tableCardAnchorId,
   takeTimingForMode,
   type TakeSnapshot,
 } from "../game/takeSequence";
+import { tableCardIdsFromPairs } from "../game/dealSequence";
 
 export interface UseTakeAnimationOptions {
   game: GameState | null;

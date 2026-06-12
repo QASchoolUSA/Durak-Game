@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { InteractionManager, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { Background } from "../components/Background";
@@ -244,10 +244,10 @@ export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
       setShowConfetti(false);
       return;
     }
-    const task = InteractionManager.runAfterInteractions(() => {
+    const handle = requestIdleCallback(() => {
       setShowConfetti(true);
     });
-    return () => task.cancel();
+    return () => cancelIdleCallback(handle);
   }, [humanRank1, isDraw, reduceMotion, celebrateReady]);
 
   return (

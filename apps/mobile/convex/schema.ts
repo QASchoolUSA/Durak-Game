@@ -96,4 +96,64 @@ export default defineSchema({
     lastWinAwardRoomId: v.optional(v.id("rooms")),
     lastCreditAwardRoomId: v.optional(v.id("rooms")),
   }).index("by_userId", ["userId"]),
+
+  // Public-facing player profile, keyed by the canonical users._id.
+  profiles: defineTable({
+    userId: v.id("users"),
+    handle: v.string(),
+    handleLower: v.string(),
+    displayName: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_handleLower", ["handleLower"]),
+
+  // Single row per relationship. Friends = accepted; requests = pending.
+  friendships: defineTable({
+    requesterId: v.id("users"),
+    recipientId: v.id("users"),
+    status: v.union(v.literal("pending"), v.literal("accepted")),
+    createdAt: v.number(),
+    respondedAt: v.optional(v.number()),
+  })
+    .index("by_requester", ["requesterId"])
+    .index("by_recipient", ["recipientId"])
+    .index("by_pair", ["requesterId", "recipientId"]),
+
+  gameInvites: defineTable({
+    fromUserId: v.id("users"),
+    toUserId: v.id("users"),
+    roomId: v.id("rooms"),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("declined"),
+      v.literal("canceled"),
+      v.literal("expired"),
+    ),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  })
+    .index("by_toUser_status", ["toUserId", "status"])
+    .index("by_room", ["roomId"]),
+
+  pushTokens: defineTable({
+    userId: v.id("users"),
+    token: v.string(),
+    platform: v.union(v.literal("ios"), v.literal("android")),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_token", ["token"]),
+
+  // One-time tokens minted by an anonymous session, redeemed after the user
+  // signs in, to securely migrate guest data to the new account.
+  guestUpgrades: defineTable({
+    token: v.string(),
+    fromUserId: v.id("users"),
+    fromSubject: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  }).index("by_token", ["token"]),
 });

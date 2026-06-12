@@ -7,7 +7,7 @@ import {
   mutation,
   query,
 } from "./_generated/server";
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import {
   applyMove,
   canTransfer,
@@ -244,6 +244,56 @@ async function removeMemberFromRoom(
   });
 }
 
+/**
+ * Create a fresh lobby room owned by `hostUserId` (a session-scoped subject
+ * from `requireUserId`). Shared by `createRoom` and the invites flow.
+ */
+export async function createRoomForHost(
+  ctx: MutationCtx,
+  args: {
+    hostUserId: string;
+    displayName: string;
+    config: Infer<typeof roomConfigValidator>;
+    turnTimerSeconds?: number;
+  },
+): Promise<{ roomId: Id<"rooms">; code: string }> {
+  const numPlayers = Math.min(6, Math.max(2, args.config.numPlayers));
+  const config = { ...args.config, numPlayers };
+  const now = Date.now();
+
+  let code = randomRoomCode();
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const existing = await ctx.db
+      .query("rooms")
+      .withIndex("by_code", (q) => q.eq("code", code))
+      .first();
+    if (!existing) break;
+    code = randomRoomCode();
+  }
+
+  const roomId = await ctx.db.insert("rooms", {
+    code,
+    status: "lobby",
+    hostUserId: args.hostUserId,
+    config,
+    members: [
+      {
+        userId: args.hostUserId,
+        displayName: normalizeDisplayName(args.displayName) || "Host",
+        seatIndex: 0,
+        isBot: false,
+        isReady: false,
+      },
+    ],
+    lastMoveAt: now,
+    lastTouchedAt: now,
+    turnTimerSeconds: normalizeTurnSeconds(args.turnTimerSeconds),
+    version: 0,
+  });
+
+  return { roomId, code };
+}
+
 export const createRoom = mutation({
   args: {
     config: roomConfigValidator,
@@ -252,41 +302,12 @@ export const createRoom = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
-    const numPlayers = Math.min(6, Math.max(2, args.config.numPlayers));
-    const config = { ...args.config, numPlayers };
-    const now = Date.now();
-
-    let code = randomRoomCode();
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const existing = await ctx.db
-        .query("rooms")
-        .withIndex("by_code", (q) => q.eq("code", code))
-        .first();
-      if (!existing) break;
-      code = randomRoomCode();
-    }
-
-    const roomId = await ctx.db.insert("rooms", {
-      code,
-      status: "lobby",
+    return await createRoomForHost(ctx, {
       hostUserId: userId,
-      config,
-      members: [
-        {
-          userId,
-          displayName: normalizeDisplayName(args.displayName) || "Host",
-          seatIndex: 0,
-          isBot: false,
-          isReady: false,
-        },
-      ],
-      lastMoveAt: now,
-      lastTouchedAt: now,
-      turnTimerSeconds: normalizeTurnSeconds(args.turnTimerSeconds),
-      version: 0,
+      displayName: args.displayName,
+      config: args.config,
+      turnTimerSeconds: args.turnTimerSeconds,
     });
-
-    return { roomId, code };
   },
 });
 
