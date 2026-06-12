@@ -1,12 +1,8 @@
-import { Platform } from "react-native";
+import { getNativeStorage } from "./nativeAsyncStorage";
 
 const STORAGE_KEY = "@durak/onboarded";
 
 let memoryValue: boolean | null = null;
-let nativeStorage: typeof import("@react-native-async-storage/async-storage").default | null =
-  null;
-let nativeChecked = false;
-let nativeUsable = false;
 
 function webGet(): boolean | null {
   if (typeof localStorage === "undefined") return memoryValue;
@@ -25,25 +21,6 @@ function webSet(value: boolean): void {
     localStorage.setItem(STORAGE_KEY, value ? "1" : "0");
   } catch {
     /* ignore */
-  }
-}
-
-async function getNativeStorage() {
-  if (nativeChecked) return nativeUsable ? nativeStorage : null;
-  nativeChecked = true;
-  if (Platform.OS === "web") {
-    nativeUsable = false;
-    return null;
-  }
-  try {
-    const mod = await import("@react-native-async-storage/async-storage");
-    nativeStorage = mod.default;
-    await nativeStorage.getItem(STORAGE_KEY);
-    nativeUsable = true;
-    return nativeStorage;
-  } catch {
-    nativeUsable = false;
-    return null;
   }
 }
 

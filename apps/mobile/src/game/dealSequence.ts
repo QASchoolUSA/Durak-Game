@@ -1,10 +1,19 @@
 import {
   type GameState,
   type PlayerId,
+  type TablePair,
   drawUpOrder,
   initialDealOrder,
 } from "@durak/game-core";
-import { tableCardIdsFromPairs } from "./takeSequence";
+
+export function tableCardIdsFromPairs(table: TablePair[]): string[] {
+  const ids: string[] = [];
+  for (const pair of table) {
+    ids.push(pair.attack.id);
+    if (pair.defense) ids.push(pair.defense.id);
+  }
+  return ids;
+}
 
 export type DealKind = "initial" | "refill";
 

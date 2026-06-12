@@ -1,4 +1,8 @@
 import { Platform } from "react-native";
+// Statically imported: a runtime `import("expo-audio")` becomes a lazy Metro
+// segment that can fail in Expo Go ("Requiring unknown module"). Player
+// instances and clip assets are still created lazily on first play.
+import * as ExpoAudio from "expo-audio";
 import type { HapticEvent } from "./haptics";
 import { usePreferencesStore } from "../game/preferencesStore";
 
@@ -15,7 +19,7 @@ type SoundKey =
   | "deal"
   | "turnStart";
 
-type AudioPlayer = import("expo-audio").AudioPlayer;
+type AudioPlayer = ExpoAudio.AudioPlayer;
 
 const EVENT_SOUND: Partial<Record<HapticEvent, SoundKey>> = {
   uiTap: "tap",
@@ -69,26 +73,23 @@ const KEY_VOLUME: Partial<Record<SoundKey, number>> = {
   turnStart: 0.45,
 };
 
-type AudioModule = typeof import("expo-audio");
+type AudioModule = typeof ExpoAudio;
 
 let audioState: "unknown" | "available" | "unavailable" = "unknown";
-let audioMod: AudioModule | null = null;
 let modeConfigured = false;
 const playerPool = new Map<SoundKey, AudioPlayer>();
 
 async function loadAudioModule(): Promise<AudioModule | null> {
   if (audioState === "unavailable") return null;
-  if (audioMod) return audioMod;
+  if (audioState === "available") return ExpoAudio;
 
   try {
-    const mod = await import("expo-audio");
     if (!modeConfigured) {
-      await mod.setAudioModeAsync({ playsInSilentMode: true });
+      await ExpoAudio.setAudioModeAsync({ playsInSilentMode: true });
       modeConfigured = true;
     }
-    audioMod = mod;
     audioState = "available";
-    return mod;
+    return ExpoAudio;
   } catch {
     audioState = "unavailable";
     return null;
@@ -138,7 +139,6 @@ export function playSound(event: HapticEvent): void {
 
   void playKey(key).catch(() => {
     audioState = "unavailable";
-    audioMod = null;
     playerPool.clear();
   });
 }

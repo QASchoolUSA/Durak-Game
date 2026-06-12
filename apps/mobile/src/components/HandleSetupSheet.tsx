@@ -32,6 +32,7 @@ export function HandleSetupSheet({
   const ui = useUiTheme();
   const setHandleMut = useMutation(api.profiles.setHandle);
   const displayName = useGameStore((s) => s.onlineDisplayName);
+  const hasCustomDisplayName = useGameStore((s) => s.hasCustomDisplayName);
   const [handle, setHandle] = useState(initialHandle ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,10 +47,17 @@ export function HandleSetupSheet({
     setSaving(true);
     setError(null);
     try {
+      // Without a custom name the handle IS the display name — don't bake a
+      // generated guest name into the profile.
       const res = await setHandleMut({
         handle: normalized,
-        displayName: displayName.trim() || normalized,
+        displayName: hasCustomDisplayName
+          ? displayName.trim() || normalized
+          : normalized,
       });
+      if (!hasCustomDisplayName) {
+        useGameStore.getState().adoptHandleDisplayName(res.handle);
+      }
       onSaved?.(res.handle);
       onClose();
     } catch (e) {

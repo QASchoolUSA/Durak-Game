@@ -14,8 +14,8 @@ import {
   type DealEvent,
   type DealKind,
   type QueuedDealStep,
+  tableCardIdsFromPairs,
 } from "../game/dealSequence";
-import { tableCardIdsFromPairs } from "../game/takeSequence";
 
 export const DEAL_REFILL_DELAY_MS = 450;
 const ORIGINS_FALLBACK_MS = 800;

@@ -1,14 +1,10 @@
 import { Platform } from "react-native";
+import { getNativeStorage } from "./nativeAsyncStorage";
 
 const STORAGE_KEY = "@durak/hapticsEnabled";
 
 /** In-memory fallback when native AsyncStorage is unavailable. */
 let memoryValue: string | null = null;
-
-let nativeStorage: typeof import("@react-native-async-storage/async-storage").default | null =
-  null;
-let nativeChecked = false;
-let nativeUsable = false;
 
 function webGet(): string | null {
   if (typeof localStorage === "undefined") {
@@ -30,30 +26,6 @@ function webSet(value: string): void {
     localStorage.setItem(STORAGE_KEY, value);
   } catch {
     // Ignore quota / privacy errors
-  }
-}
-
-async function getNativeStorage() {
-  if (nativeChecked) {
-    return nativeUsable ? nativeStorage : null;
-  }
-  nativeChecked = true;
-
-  if (Platform.OS === "web") {
-    nativeUsable = false;
-    return null;
-  }
-
-  try {
-    const mod = await import("@react-native-async-storage/async-storage");
-    nativeStorage = mod.default;
-    await nativeStorage.getItem(STORAGE_KEY);
-    nativeUsable = true;
-    return nativeStorage;
-  } catch {
-    nativeStorage = null;
-    nativeUsable = false;
-    return null;
   }
 }
 

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildTakeFlightQueue,
   tableCardAnchorId,
-  tableCardIdsFromPairs,
 } from "./takeSequence";
+import { tableCardIdsFromPairs } from "./dealSequence";
 
 describe("takeSequence", () => {
   it("collects attack and defense ids from table pairs", () => {

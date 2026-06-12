@@ -12,6 +12,7 @@ import type * as account from "../account.js";
 import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
 import type * as friends from "../friends.js";
+import type * as health from "../health.js";
 import type * as http from "../http.js";
 import type * as invites from "../invites.js";
 import type * as lib_codes from "../lib/codes.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   crons: typeof crons;
   friends: typeof friends;
+  health: typeof health;
   http: typeof http;
   invites: typeof invites;
   "lib/codes": typeof lib_codes;

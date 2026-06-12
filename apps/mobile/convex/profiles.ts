@@ -87,6 +87,29 @@ export const setHandle = mutation({
   },
 });
 
+/**
+ * Sync a custom display name onto the profile so friends/invites show it.
+ * No-op when no profile exists — `setHandle` is the sole profile creator and
+ * the rest of the code assumes `handle` is always present.
+ */
+export const updateMyDisplayName = mutation({
+  args: { displayName: v.string() },
+  handler: async (ctx, { displayName }) => {
+    const userId = await requireStableUserId(ctx);
+    const normalized = normalizeDisplayName(displayName.trim());
+    if (!normalized) throw new Error("Display name cannot be empty.");
+    const profile = await getProfileByUserId(ctx, userId);
+    if (!profile) return null;
+    if (profile.displayName !== normalized) {
+      await ctx.db.patch(profile._id, {
+        displayName: normalized,
+        updatedAt: Date.now(),
+      });
+    }
+    return { displayName: normalized };
+  },
+});
+
 export const searchByHandle = query({
   args: { query: v.string() },
   handler: async (ctx, { query: raw }) => {

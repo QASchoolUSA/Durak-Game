@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { getNativeStorage } from "./nativeAsyncStorage";
 
 const STORAGE_KEY = "@durak/playerDisplayName";
 const CUSTOM_FLAG_KEY = "@durak/displayNameIsCustom";
@@ -12,15 +13,18 @@ export function normalizeDisplayName(name: string): string {
   return normalizeName(name);
 }
 
-const GUEST_NAME_POOL = ["Olga", "Ivan", "Dmitri", "Maria", "Sergey"];
+// Shape of names produced by the old pool-based guest generator; used to
+// migrate them to Guest### on load. (A handle that happens to match this
+// pattern gets transiently regenerated on cold start, then re-adopted by
+// ProfileNameSync once the profile query resolves — self-healing.)
+const LEGACY_GUEST_NAME_RE = /^(Olga|Ivan|Dmitri|Maria|Sergey)\d{3}$/;
+
+export function isLegacyGuestName(name: string): boolean {
+  return LEGACY_GUEST_NAME_RE.test(name);
+}
 
 let memoryValue: string | null = null;
 let memoryIsCustom: boolean | null = null;
-
-let nativeStorage: typeof import("@react-native-async-storage/async-storage").default | null =
-  null;
-let nativeChecked = false;
-let nativeUsable = false;
 
 function webGet(key: string): string | null {
   if (typeof localStorage === "undefined") {
@@ -46,26 +50,6 @@ function webSet(key: string, value: string): void {
     localStorage.setItem(key, value);
   } catch {
     // Ignore quota / privacy errors
-  }
-}
-
-async function getNativeStorage() {
-  if (nativeChecked) return nativeUsable ? nativeStorage : null;
-  nativeChecked = true;
-  if (Platform.OS === "web") {
-    nativeUsable = false;
-    return null;
-  }
-  try {
-    const mod = await import("@react-native-async-storage/async-storage");
-    nativeStorage = mod.default;
-    await nativeStorage.getItem(STORAGE_KEY);
-    nativeUsable = true;
-    return nativeStorage;
-  } catch {
-    nativeStorage = null;
-    nativeUsable = false;
-    return null;
   }
 }
 
@@ -104,9 +88,8 @@ async function writeItem(key: string, value: string): Promise<void> {
 }
 
 export function generateGuestDisplayName(): string {
-  const base = GUEST_NAME_POOL[Math.floor(Math.random() * GUEST_NAME_POOL.length)]!;
   const suffix = Math.floor(Math.random() * 900) + 100;
-  return normalizeName(`${base}${suffix}`);
+  return normalizeName(`Guest${suffix}`);
 }
 
 export async function getStoredPlayerName(): Promise<string | null> {
