@@ -21,6 +21,8 @@ import {
   legalAttacks,
 } from "@durak/game-core";
 import { storage, MAX_DISPLAY_NAME_LENGTH } from "./storage";
+import { type AppearanceId } from "../theme/appearanceThemes";
+
 import { submitOnlineMove, submitOnlineReturn, submitUpdateDisplayName } from "./onlineBridge";
 
 export type Screen = "welcome" | "home" | "lobby" | "game" | "result";
@@ -132,11 +134,14 @@ interface GameStore {
   creditHydrated: boolean;
   onboarded: boolean;
   onboardedHydrated: boolean;
+  cardDesign: AppearanceId;
   
   initializeStore: () => void;
   setOnboarded: (value: boolean) => void;
   openHome: () => void;
   setPlayMode: (mode: PlayMode) => void;
+  setCardDesign: (id: AppearanceId) => void;
+
   setNumPlayers: (n: number) => void;
   setVariant: (variant: GameVariant) => void;
   setThrowInScope: (scope: ThrowInScope) => void;
@@ -333,6 +338,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     creditHydrated: false,
     onboarded: false,
     onboardedHydrated: false,
+    cardDesign: "green",
 
     initializeStore: () => {
       const { name, isCustom } = storage.getPlayerName();
@@ -340,6 +346,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const credits = storage.getCreditBalance();
       const gold = storage.getGoldBalance();
       const config = storage.getGameConfig();
+      const cardDesign = storage.getCardDesign();
 
       set({
         onlineDisplayName: name,
@@ -357,6 +364,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         throwInScope: config.throwInScope,
         playStyle: config.playStyle,
         difficulty: config.difficulty,
+        cardDesign,
       });
     },
 
@@ -368,6 +376,11 @@ export const useGameStore = create<GameStore>((set, get) => {
     openHome: () => set({ screen: "home" }),
 
     setPlayMode: (playMode) => set({ playMode, ...(playMode === "solo" ? { buyIn: 100 } : {}) }),
+
+    setCardDesign: (cardDesign) => {
+      set({ cardDesign });
+      storage.setCardDesign(cardDesign);
+    },
 
     setOnlineStatusMessage: (onlineStatusMessage) => set({ onlineStatusMessage }),
     clearOnlineStatusMessage: () => set({ onlineStatusMessage: null }),

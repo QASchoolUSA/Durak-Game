@@ -5,6 +5,7 @@ import { api } from "../../../mobile/convex/_generated/api";
 import { useGameStore } from "../store/gameStore";
 import { SettingsModal } from "./SettingsModal";
 import { RulesModal } from "./RulesModal";
+import { Card } from "./Card";
 
 export const Home: React.FC = () => {
   const { signOut } = useAuthActions();
@@ -118,10 +119,10 @@ export const Home: React.FC = () => {
 
       <div className="hero-panel" style={{ maxWidth: "520px" }}>
         <div className="card-fan">
-          <div className="deco-card" />
-          <div className="deco-card" />
-          <div className="deco-card" />
-          <div className="deco-card" />
+          <div className="deco-card"><Card faceDown style={{ width: "100%", height: "100%", boxShadow: "none" }} /></div>
+          <div className="deco-card"><Card faceDown style={{ width: "100%", height: "100%", boxShadow: "none" }} /></div>
+          <div className="deco-card"><Card faceDown style={{ width: "100%", height: "100%", boxShadow: "none" }} /></div>
+          <div className="deco-card"><Card faceDown style={{ width: "100%", height: "100%", boxShadow: "none" }} /></div>
         </div>
 
         <h1 className="glow-title">DURAK</h1>
