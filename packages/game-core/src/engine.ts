@@ -7,7 +7,6 @@ import {
   handOf,
   isTrump,
   legalAttacks,
-  legalDefenses,
   legalTransfers,
   seatAfter,
   undefendedCount,
