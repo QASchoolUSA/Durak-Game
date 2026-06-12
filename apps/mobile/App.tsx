@@ -4,7 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { usePreferencesStore } from "./src/game/preferencesStore";
+import { usePreferencesStore, loadPreferences } from "./src/game/preferencesStore";
 import {
   loadCredits,
   loadGameConfig,
@@ -145,6 +145,7 @@ export default function App() {
 
   useEffect(() => {
     void Promise.all([
+      loadPreferences(),
       loadGameConfig(),
       loadPlayerName(),
       loadGold(),

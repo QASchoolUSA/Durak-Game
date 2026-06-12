@@ -4,7 +4,6 @@ import {
   canTransfer,
   legalAttacks,
   legalDefenses,
-  legalTransfers,
   pickMove,
   type GameState,
   type Move,
