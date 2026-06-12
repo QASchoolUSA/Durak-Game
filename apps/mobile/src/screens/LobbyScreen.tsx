@@ -364,7 +364,14 @@ function SeatRow({
   if (!member) {
     return (
       <View
-        style={[styles.playerRow, { borderBottomColor: ui.panelBorderSoft }]}
+        style={[
+          styles.playerRow,
+          {
+            borderColor: ui.panelBorderSoft,
+            borderStyle: "dashed",
+            backgroundColor: "rgba(255, 255, 255, 0.01)",
+          },
+        ]}
       >
         <View style={[styles.avatar, { backgroundColor: ui.panelBorderSoft }]}>
           <Text style={[styles.avatarText, { color: ui.textMuted }]}>—</Text>
@@ -395,7 +402,13 @@ function SeatRow({
   if (member.isBot) {
     return (
       <View
-        style={[styles.playerRow, { borderBottomColor: ui.panelBorderSoft }]}
+        style={[
+          styles.playerRow,
+          {
+            borderColor: ui.panelBorderSoft,
+            backgroundColor: "rgba(255, 255, 255, 0.03)",
+          },
+        ]}
       >
         <View style={[styles.avatar, { backgroundColor: ui.accentSoft }]}>
           <Text style={[styles.avatarText, { color: ui.accent }]}>🤖</Text>
@@ -424,8 +437,10 @@ function SeatRow({
     <View
       style={[
         styles.playerRow,
-        { borderBottomColor: ui.panelBorderSoft },
-        isYou && { backgroundColor: ui.accentSoft },
+        {
+          borderColor: isYou ? ui.accent : ui.panelBorderSoft,
+          backgroundColor: isYou ? ui.accentSoft : "rgba(255, 255, 255, 0.03)",
+        },
       ]}
     >
       <View style={[styles.avatar, { backgroundColor: ui.accentSoft }]}>
@@ -523,7 +538,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
     paddingVertical: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: spacing.sm,
   },
   avatar: {
     width: 36,
