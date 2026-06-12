@@ -143,19 +143,29 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
         if (!target) return;
 
         target.measureInWindow((_x, y, _w, h) => {
-          const overflow = Math.max(0, y + h - visibleBottom);
-          if (overflow <= 0) return;
+          // Calculate baseline Y coordinate invariant of current translation/scroll.
+          // Since keyboardLift.value is negative when shifted up, we subtract it.
+          const currentLift = keyboardLift.value;
+          const baselineY = y - currentLift + scrollYRef.current;
+          const overflow = Math.max(0, (baselineY + h) - visibleBottom);
+
+          if (overflow <= 0) {
+            keyboardAdjustedRef.current = true;
+            keyboardLift.value = withTiming(0, { duration });
+            scrollRef.current?.scrollTo({ y: 0, animated: false });
+            scrollYRef.current = 0;
+            return;
+          }
 
           keyboardAdjustedRef.current = true;
 
-          if (overflow > 0) {
-            const nextScrollY = scrollYRef.current + overflow;
-            scrollRef.current?.scrollTo({ y: nextScrollY, animated: false });
-            scrollYRef.current = nextScrollY;
-          }
-
+          // Lift the sheet up to the cap, then scroll any remaining overflow
           const lift = capSheetLift(overflow, kbHeight);
           keyboardLift.value = withTiming(-lift, { duration });
+
+          const scrollAmount = overflow - lift;
+          scrollRef.current?.scrollTo({ y: scrollAmount, animated: false });
+          scrollYRef.current = scrollAmount;
         });
       };
 

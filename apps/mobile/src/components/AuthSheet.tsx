@@ -104,6 +104,10 @@ export function AuthSheet({
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [accessoryId, setAccessoryId] = useState(AUTH_ACCESSORY_ID);
+
+  const handleAccessoryId = `${accessoryId}-handle`;
+  const emailAccessoryId = `${accessoryId}-email`;
+  const passwordAccessoryId = `${accessoryId}-password`;
   const passwordRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const handleRef = useRef<TextInput>(null);
@@ -158,19 +162,29 @@ export function AuthSheet({
         if (!target) return;
 
         target.measureInWindow((_x, y, _w, h) => {
-          const overflow = Math.max(0, y + h - visibleBottom);
-          if (overflow <= 0) return;
+          // Calculate baseline Y coordinate invariant of current translation/scroll.
+          // Since keyboardLift.value is negative when shifted up, we subtract it.
+          const currentLift = keyboardLift.value;
+          const baselineY = y - currentLift + scrollYRef.current;
+          const overflow = Math.max(0, (baselineY + h) - visibleBottom);
+
+          if (overflow <= 0) {
+            keyboardAdjustedRef.current = true;
+            keyboardLift.value = withTiming(0, { duration });
+            scrollRef.current?.scrollTo({ y: 0, animated: false });
+            scrollYRef.current = 0;
+            return;
+          }
 
           keyboardAdjustedRef.current = true;
 
-          if (overflow > 0) {
-            const nextScrollY = scrollYRef.current + overflow;
-            scrollRef.current?.scrollTo({ y: nextScrollY, animated: false });
-            scrollYRef.current = nextScrollY;
-          }
-
+          // Lift the sheet up to the cap, then scroll any remaining overflow
           const lift = capSheetLift(overflow, kbHeight);
           keyboardLift.value = withTiming(-lift, { duration });
+
+          const scrollAmount = overflow - lift;
+          scrollRef.current?.scrollTo({ y: scrollAmount, animated: false });
+          scrollYRef.current = scrollAmount;
         });
       };
 
@@ -565,11 +579,11 @@ export function AuthSheet({
                       placeholderTextColor={ui.textFaint}
                       autoCapitalize="none"
                       autoCorrect={false}
-                      returnKeyType="next"
+                      returnKeyType="done"
                       onSubmitEditing={() => emailRef.current?.focus()}
                       editable={!busy}
                       inputAccessoryViewID={
-                        Platform.OS === "ios" ? accessoryId : undefined
+                        Platform.OS === "ios" ? handleAccessoryId : undefined
                       }
                       onFocus={() => handleFieldFocus("handle")}
                     />
@@ -598,11 +612,11 @@ export function AuthSheet({
                     keyboardType="email-address"
                     textContentType="emailAddress"
                     autoComplete="email"
-                    returnKeyType="next"
+                    returnKeyType="done"
                     onSubmitEditing={() => passwordRef.current?.focus()}
                     editable={!busy}
                     inputAccessoryViewID={
-                      Platform.OS === "ios" ? accessoryId : undefined
+                      Platform.OS === "ios" ? emailAccessoryId : undefined
                     }
                     onFocus={() => handleFieldFocus("email")}
                   />
@@ -632,11 +646,11 @@ export function AuthSheet({
                     secureTextEntry={!showPassword}
                     textContentType={mode === "signUp" ? "newPassword" : "password"}
                     autoComplete={mode === "signUp" ? "new-password" : "current-password"}
-                    returnKeyType="go"
+                    returnKeyType="done"
                     onSubmitEditing={() => void handleEmailAuth()}
                     editable={!busy}
                     inputAccessoryViewID={
-                      Platform.OS === "ios" ? accessoryId : undefined
+                      Platform.OS === "ios" ? passwordAccessoryId : undefined
                     }
                     onFocus={() => handleFieldFocus("password")}
                   />
@@ -685,25 +699,67 @@ export function AuthSheet({
         </Animated.View>
 
         {Platform.OS === "ios" && (
-          <InputAccessoryView nativeID={accessoryId}>
-            <View
-              style={[
-                styles.accessoryBar,
-                {
-                  borderTopColor: ui.panelBorderSoft,
-                  backgroundColor: ui.panelBg,
-                },
-              ]}
-            >
-              <Pressable
-                style={styles.accessoryDone}
-                onPress={dismissKeyboard}
-                hitSlop={8}
+          <>
+            <InputAccessoryView nativeID={handleAccessoryId}>
+              <View
+                style={[
+                  styles.accessoryBar,
+                  {
+                    borderTopColor: ui.panelBorderSoft,
+                    backgroundColor: ui.panelBg,
+                  },
+                ]}
               >
-                <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>Done</Text>
-              </Pressable>
-            </View>
-          </InputAccessoryView>
+                <Pressable
+                  style={styles.accessoryDone}
+                  onPress={dismissKeyboard}
+                  hitSlop={8}
+                >
+                  <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>Done</Text>
+                </Pressable>
+              </View>
+            </InputAccessoryView>
+
+            <InputAccessoryView nativeID={emailAccessoryId}>
+              <View
+                style={[
+                  styles.accessoryBar,
+                  {
+                    borderTopColor: ui.panelBorderSoft,
+                    backgroundColor: ui.panelBg,
+                  },
+                ]}
+              >
+                <Pressable
+                  style={styles.accessoryDone}
+                  onPress={dismissKeyboard}
+                  hitSlop={8}
+                >
+                  <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>Done</Text>
+                </Pressable>
+              </View>
+            </InputAccessoryView>
+
+            <InputAccessoryView nativeID={passwordAccessoryId}>
+              <View
+                style={[
+                  styles.accessoryBar,
+                  {
+                    borderTopColor: ui.panelBorderSoft,
+                    backgroundColor: ui.panelBg,
+                  },
+                ]}
+              >
+                <Pressable
+                  style={styles.accessoryDone}
+                  onPress={dismissKeyboard}
+                  hitSlop={8}
+                >
+                  <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>Done</Text>
+                </Pressable>
+              </View>
+            </InputAccessoryView>
+          </>
         )}
       </GestureHandlerRootView>
     </Modal>
