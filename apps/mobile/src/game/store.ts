@@ -148,6 +148,7 @@ interface GameStore {
   setThrowInScope: (scope: ThrowInScope) => void;
   setPlayStyle: (style: PlayStyle) => void;
   setDifficulty: (d: Difficulty) => void;
+  setBuyIn: (buyIn: number) => void;
   applyTurnTimerMidGame: (seconds: TurnSecondsOption) => void;
   setOnlineDisplayName: (name: string) => void;
   adoptHandleDisplayName: (handle: string) => void;
@@ -347,7 +348,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     openHome: () => set({ screen: "home" }),
 
-    setPlayMode: (playMode) => set({ playMode }),
+    setPlayMode: (playMode) => set({ playMode, ...(playMode === "solo" ? { buyIn: 100 } : {}) }),
 
     setOnlineStatusMessage: (onlineStatusMessage) => set({ onlineStatusMessage }),
     clearOnlineStatusMessage: () => set({ onlineStatusMessage: null }),
@@ -440,7 +441,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         turnDeadlineAt: view.turnDeadlineAt,
         turnClockPlayerId: view.turnClockPlayerId,
         turnTimerSeconds: view.turnTimerSeconds,
-        pot: prev.buyIn * view.config.numPlayers,
+        buyIn: view.buyIn ?? 100,
+        pot: (view.buyIn ?? 100) * view.config.numPlayers,
         pendingReveal: nextPendingReveal,
         submittingMove: false,
         ...(view.recentReaction && view.recentReaction.at !== prev.remoteReaction?.at
@@ -567,6 +569,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       set({ difficulty });
       persistConfig(get());
     },
+    setBuyIn: (buyIn) => {
+      set({ buyIn });
+    },
 
     applyTurnTimerMidGame: (seconds) => {
       usePreferencesStore.getState().setTurnSeconds(seconds);
@@ -581,7 +586,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       clearReturnWindow();
       cancelResultTimer();
       const count = n ?? get().numPlayers;
-      const buyIn = get().buyIn;
+      const buyIn = get().playMode === "solo" ? 100 : get().buyIn;
       const buyInCharged = options?.buyInCharged === true;
       if (convexEnabled && !buyInCharged) {
         set({ onlineStatusMessage: "Not enough credits." });

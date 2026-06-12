@@ -169,3 +169,63 @@ export const expireStale = internalMutation({
     }
   },
 });
+
+export const inviteFriendToRoom = mutation({
+  args: {
+    toUserId: v.id("users"),
+    roomId: v.id("rooms"),
+  },
+  handler: async (ctx, { toUserId, roomId }) => {
+    const me = await requireStableUserId(ctx);
+    if (toUserId === me) throw new Error("You can't invite yourself.");
+
+    const friendship = await findFriendship(ctx, me, toUserId);
+    if (!friendship || friendship.status !== "accepted") {
+      throw new Error("You can only invite friends.");
+    }
+
+    const room = await ctx.db.get(roomId);
+    if (!room || room.status !== "lobby") {
+      throw new Error("This game is no longer available.");
+    }
+
+    // Check if they are already in the room
+    const alreadyIn = room.members.some((m) => m.userId === toUserId);
+    if (alreadyIn) {
+      throw new Error("Player is already in this game.");
+    }
+
+    // Check if there is an existing pending invite for this room and friend
+    const existing = await ctx.db
+      .query("gameInvites")
+      .withIndex("by_toUser_status", (q) =>
+        q.eq("toUserId", toUserId).eq("status", "pending")
+      )
+      .filter((q) => q.eq(q.field("roomId"), roomId))
+      .first();
+
+    if (existing) {
+      return { inviteId: existing._id };
+    }
+
+    const now = Date.now();
+    const inviteId = await ctx.db.insert("gameInvites", {
+      fromUserId: me,
+      toUserId,
+      roomId,
+      status: "pending",
+      createdAt: now,
+      expiresAt: now + INVITE_TTL_MS,
+    });
+
+    const mine = await getProfileByUserId(ctx, me);
+    const name = mine?.displayName ?? mine?.handle ?? "A friend";
+    await notifyUser(ctx, toUserId, {
+      title: "Game invite",
+      body: `${name} invited you to play Durak`,
+      data: { type: "game_invite", roomId, code: room.code },
+    });
+
+    return { inviteId };
+  },
+});

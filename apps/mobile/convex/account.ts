@@ -13,7 +13,7 @@ export const getAccountStatus = query({
     const user = await ctx.db.get(userId);
     return {
       userId,
-      isAnonymous: Boolean((user as { isAnonymous?: boolean } | null)?.isAnonymous),
+      isAnonymous: !user || !(user as { email?: string }).email || Boolean((user as { isAnonymous?: boolean }).isAnonymous),
       email: (user as { email?: string } | null)?.email ?? null,
     };
   },

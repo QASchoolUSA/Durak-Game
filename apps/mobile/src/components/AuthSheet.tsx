@@ -24,7 +24,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth, useMutation } from "convex/react";
+import { useConvex, useConvexAuth, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { MenuButton } from "./MenuButton";
 import { useTableTheme } from "../theme/TableThemeContext";
@@ -51,7 +51,7 @@ const EXTRA_SHEET_LIFT = 6;
 /** Safety cap so a bad measure never launches the sheet off-screen */
 const MAX_SHEET_LIFT = 350;
 
-type FocusedField = "email" | "password";
+type FocusedField = "email" | "password" | "handle";
 
 function capSheetLift(lift: number, keyboardHeight: number): number {
   if (lift <= 0) return 0;
@@ -91,17 +91,22 @@ export function AuthSheet({
   const { isAuthenticated } = useConvexAuth();
   const beginGuestUpgrade = useMutation(api.account.beginGuestUpgrade);
   const completeGuestUpgrade = useMutation(api.account.completeGuestUpgrade);
+  const setHandleMut = useMutation(api.profiles.setHandle);
   const setOnboarded = useGameStore((s) => s.setOnboarded);
+  const convex = useConvex();
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [handle, setHandle] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [accessoryId, setAccessoryId] = useState(AUTH_ACCESSORY_ID);
   const passwordRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
+  const handleRef = useRef<TextInput>(null);
   const scrollRef = useRef<ScrollView>(null);
   const submitRef = useRef<View>(null);
   const scrollYRef = useRef(0);
@@ -134,6 +139,7 @@ export function AuthSheet({
     clearAdjustTimeouts();
     keyboardLift.value = 0;
     keyboardHeightRef.current = 0;
+    setKeyboardHeight(0);
     keyboardAdjustedRef.current = false;
     focusedFieldRef.current = null;
     scrollYRef.current = 0;
@@ -185,11 +191,15 @@ export function AuthSheet({
       const height = e.endCoordinates.height;
       const prevHeight = keyboardHeightRef.current;
       keyboardHeightRef.current = height;
+      setKeyboardHeight(height);
       if (
         keyboardAdjustedRef.current &&
         Math.abs(height - prevHeight) < 8
       ) {
         return;
+      }
+      if (Math.abs(height - prevHeight) >= 8) {
+        keyboardAdjustedRef.current = false;
       }
       const dur = "duration" in e && e.duration ? e.duration : 250;
       applyKeyboardAdjustment(height, dur);
@@ -197,6 +207,7 @@ export function AuthSheet({
 
     const hideSub = Keyboard.addListener(hideEvent, (e) => {
       keyboardHeightRef.current = 0;
+      setKeyboardHeight(0);
       focusedFieldRef.current = null;
       clearAdjustTimeouts();
       const dur = "duration" in e && e.duration ? e.duration : 250;
@@ -219,7 +230,7 @@ export function AuthSheet({
 
   const handleFieldFocus = useCallback((field: FocusedField) => {
     focusedFieldRef.current = field;
-    if (keyboardAdjustedRef.current) return;
+    keyboardAdjustedRef.current = false;
     const kb = keyboardHeightRef.current;
     if (kb > 0) {
       applyKeyboardAdjustment(kb, 250);
@@ -258,6 +269,7 @@ export function AuthSheet({
       // Fresh open: reset to a clean slate (never keep a typed password around).
       setMode(initialMode);
       setPassword("");
+      setHandle("");
       setShowPassword(false);
       setError(null);
       setAccessoryId(`${AUTH_ACCESSORY_ID}-${Date.now()}`);
@@ -316,6 +328,23 @@ export function AuthSheet({
   };
 
   const finishAuth = async (guestToken: string | null) => {
+    if (mode === "signUp" && handle) {
+      const trimmedHandle = handle.trim();
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const res = await setHandleMut({
+            handle: trimmedHandle,
+            displayName: trimmedHandle,
+          });
+          useGameStore.getState().adoptHandleDisplayName(res.handle);
+          break;
+        } catch {
+          /* transient token issues, wait and retry */
+          await new Promise((r) => setTimeout(r, 400));
+        }
+      }
+    }
+
     if (guestToken) {
       // Retry briefly: right after sign-in the new auth token may not have
       // propagated yet, in which case the server leaves the token for a retry.
@@ -337,6 +366,12 @@ export function AuthSheet({
   };
 
   const validate = (): string | null => {
+    if (mode === "signUp") {
+      const trimmedHandle = handle.trim();
+      if (!trimmedHandle) return "Choose a handle.";
+      if (trimmedHandle.length < 3) return "Handle must be at least 3 characters.";
+      if (trimmedHandle.length > 20) return "Handle must be at most 20 characters.";
+    }
     const trimmedEmail = email.trim();
     if (!trimmedEmail) return "Enter your email address.";
     if (!EMAIL_RE.test(trimmedEmail)) return "That doesn't look like a valid email.";
@@ -356,6 +391,30 @@ export function AuthSheet({
     }
     setBusy(true);
     setError(null);
+
+    if (mode === "signUp") {
+      try {
+        const checkRes = await convex.query(api.profiles.checkHandle, { handle: handle.trim() });
+        if (!checkRes.ok) {
+          setError(checkRes.error ?? "Invalid handle.");
+          trigger("error");
+          setBusy(false);
+          return;
+        }
+        if (!checkRes.available) {
+          setError("That handle is already taken.");
+          trigger("error");
+          setBusy(false);
+          return;
+        }
+      } catch (err) {
+        setError("Could not verify handle availability.");
+        trigger("error");
+        setBusy(false);
+        return;
+      }
+    }
+
     const guestToken = await captureGuestToken();
     try {
       await signIn("password", {
@@ -388,7 +447,11 @@ export function AuthSheet({
     transform: [{ translateY: ty.value + keyboardLift.value }],
   }));
 
-  const canSubmit = email.trim().length > 0 && password.length > 0 && !busy;
+  const canSubmit =
+    email.trim().length > 0 &&
+    password.length > 0 &&
+    (mode !== "signUp" || handle.trim().length >= 3) &&
+    !busy;
 
   return (
     <Modal
@@ -438,7 +501,10 @@ export function AuthSheet({
           <ScrollView
             ref={scrollRef}
             style={styles.scroll}
-            contentContainerStyle={styles.body}
+            contentContainerStyle={[
+              styles.body,
+              keyboardHeight > 0 && { paddingBottom: keyboardHeight + spacing.lg },
+            ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             onScroll={(e) => {
@@ -477,6 +543,38 @@ export function AuthSheet({
                     );
                   })}
                 </View>
+
+                {mode === "signUp" && (
+                  <View
+                    style={[
+                      styles.inputRow,
+                      { backgroundColor: ui.panelBg, borderColor: ui.panelBorder },
+                    ]}
+                  >
+                    <Text style={[styles.inputIcon, { color: ui.accent }]}>@</Text>
+                    <TextInput
+                      ref={handleRef}
+                      style={[styles.input, { color: ui.textPrimary }]}
+                      value={handle}
+                      onChangeText={(t) => {
+                        const clean = t.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20);
+                        setHandle(clean);
+                        if (error) setError(null);
+                      }}
+                      placeholder="Handle (letters, numbers, _)"
+                      placeholderTextColor={ui.textFaint}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      returnKeyType="next"
+                      onSubmitEditing={() => emailRef.current?.focus()}
+                      editable={!busy}
+                      inputAccessoryViewID={
+                        Platform.OS === "ios" ? accessoryId : undefined
+                      }
+                      onFocus={() => handleFieldFocus("handle")}
+                    />
+                  </View>
+                )}
 
                 <View
                   style={[

@@ -21,13 +21,16 @@ export interface TablePalette {
 
 export type AppearanceId =
   | "green"
-  | "greenDay"
   | "purple"
-  | "purpleDay"
   | "blue"
-  | "blueDay"
   | "red"
-  | "redDay";
+  | "charcoal"
+  | "obsidian"
+  | "navy"
+  | "plum"
+  | "pine"
+  | "sienna"
+  | "indigo";
 
 export type AppearanceMode = "light" | "dark";
 
@@ -65,57 +68,80 @@ const RED_BACK = "#5C1A24";
 const RED_BACK_LIGHT = "#6E222E";
 const RED_ACCENT = "#F0A0A8";
 
-// ── Day (light) theme tokens ──────────────────────────────────────────────────
-const GREEN_DAY_TOP = "#3BA87A";
-const GREEN_DAY_BOTTOM = "#14724F";
-const GREEN_DAY_BACK = "#F4F1E8";
-const GREEN_DAY_BACK_LIGHT = "#FAF7F0";
-const GREEN_DAY_ACCENT = "#0F5A3C";
-const GREEN_DAY_ACCENT_SOFT = "#6BCF9A";
+// ── Desaturated dark theme tokens ─────────────────────────────────────────────
+const CHARCOAL_TOP = "#2D3238";
+const CHARCOAL_BOTTOM = "#1B1E22";
+const CHARCOAL_BACK = "#353A40";
+const CHARCOAL_BACK_LIGHT = "#424850";
+const CHARCOAL_ACCENT = "#8E959E";
 
-const PURPLE_DAY_TOP = "#A88BD4";
-const PURPLE_DAY_BOTTOM = "#6B3FA0";
-const PURPLE_DAY_BACK = "#F5F0FA";
-const PURPLE_DAY_BACK_LIGHT = "#FBF8FD";
-const PURPLE_DAY_ACCENT = "#5B3A8C";
-const PURPLE_DAY_ACCENT_SOFT = "#9B7BC4";
+const OBSIDIAN_TOP = "#1E1F22";
+const OBSIDIAN_BOTTOM = "#0D0E10";
+const OBSIDIAN_BACK = "#25262B";
+const OBSIDIAN_BACK_LIGHT = "#313239";
+const OBSIDIAN_ACCENT = "#767881";
 
-const BLUE_DAY_TOP = "#5A9FD4";
-const BLUE_DAY_BOTTOM = "#2563A8";
-const BLUE_DAY_BACK = "#F0F5FA";
-const BLUE_DAY_BACK_LIGHT = "#F8FAFD";
-const BLUE_DAY_ACCENT = "#1A5080";
-const BLUE_DAY_ACCENT_SOFT = "#4A90C4";
+const NAVY_TOP = "#243642";
+const NAVY_BOTTOM = "#141E26";
+const NAVY_BACK = "#2C3E4C";
+const NAVY_BACK_LIGHT = "#384C5C";
+const NAVY_ACCENT = "#7F9CB5";
 
-const RED_DAY_TOP = "#D46A7A";
-const RED_DAY_BOTTOM = "#9B2335";
-const RED_DAY_BACK = "#FBF2F0";
-const RED_DAY_BACK_LIGHT = "#FFF8F6";
-const RED_DAY_ACCENT = "#8B2230";
-const RED_DAY_ACCENT_SOFT = "#C45A6A";
+// ── New desaturated dark theme tokens ─────────────────────────────────────────
+const PLUM_TOP = "#4E243D";
+const PLUM_BOTTOM = "#2A1120";
+const PLUM_BACK = "#5B2C49";
+const PLUM_BACK_LIGHT = "#723A5D";
+const PLUM_ACCENT = "#BD89AA";
+
+const PINE_TOP = "#1C2D27";
+const PINE_BOTTOM = "#0D1815";
+const PINE_BACK = "#243B33";
+const PINE_BACK_LIGHT = "#2F4F44";
+const PINE_ACCENT = "#76A394";
+
+const SIENNA_TOP = "#3D221A";
+const SIENNA_BOTTOM = "#20110C";
+const SIENNA_BACK = "#4F2B20";
+const SIENNA_BACK_LIGHT = "#63392B";
+const SIENNA_ACCENT = "#BD7D6A";
+
+const INDIGO_TOP = "#22273D";
+const INDIGO_BOTTOM = "#111420";
+const INDIGO_BACK = "#2C3352";
+const INDIGO_BACK_LIGHT = "#384169";
+const INDIGO_ACCENT = "#808EC4";
 
 /** Maps removed appearance ids to the nearest preset. */
 export const LEGACY_APPEARANCE: Record<string, AppearanceId> = {
   classic: "green",
   velvet: "green",
   emeraldNight: "green",
-  golden: "greenDay",
-  emeraldDay: "greenDay",
-  linenDay: "greenDay",
-  sunlit: "greenDay",
-  arcticDay: "blueDay",
-  espressoNight: "purple",
-  graphiteNight: "blue",
+  golden: "green",
+  emeraldDay: "green",
+  linenDay: "green",
+  sunlit: "green",
+  arcticDay: "blue",
+  greenDay: "green",
+  purpleDay: "purple",
+  blueDay: "blue",
+  redDay: "red",
+  espressoNight: "charcoal",
+  graphiteNight: "charcoal",
   royal: "purple",
   tavern: "purple",
-  ember: "purple",
-  walnut: "purple",
-  midnight: "blue",
-  onyx: "blue",
-  noir: "blue",
-  void: "blue",
-  slate: "blue",
-  minimal: "blue",
+  ember: "red",
+  walnut: "charcoal",
+  midnight: "navy",
+  onyx: "obsidian",
+  noir: "obsidian",
+  void: "obsidian",
+  slate: "charcoal",
+  minimal: "charcoal",
+  espresso: "sienna",
+  sage: "pine",
+  bronze: "sienna",
+  olive: "pine",
 };
 
 export const APPEARANCE_PRESETS: Record<AppearanceId, AppearancePreset> = {
@@ -134,27 +160,6 @@ export const APPEARANCE_PRESETS: Record<AppearanceId, AppearancePreset> = {
       back: GREEN_BACK,
       backLight: GREEN_BACK_LIGHT,
       backAccent: GREEN_ACCENT,
-      suitRed: "#C62828",
-      suitBlack: "#1A2E24",
-      backPattern: "crest",
-    },
-  },
-  greenDay: {
-    id: "greenDay",
-    name: "Emerald Day",
-    tagline: "Sunlit felt, paper crest backs",
-    mode: "light",
-    table: {
-      backgroundColor: GREEN_DAY_TOP,
-      backgroundGradient: [GREEN_DAY_TOP, GREEN_DAY_BOTTOM],
-    },
-    card: {
-      face: colors.cardFace,
-      faceEdge: colors.cardFaceEdge,
-      back: GREEN_DAY_BACK,
-      backLight: GREEN_DAY_BACK_LIGHT,
-      backAccent: GREEN_DAY_ACCENT,
-      backAccentSoft: GREEN_DAY_ACCENT_SOFT,
       suitRed: "#C62828",
       suitBlack: "#1A2E24",
       backPattern: "crest",
@@ -180,27 +185,6 @@ export const APPEARANCE_PRESETS: Record<AppearanceId, AppearancePreset> = {
       backPattern: "seal",
     },
   },
-  purpleDay: {
-    id: "purpleDay",
-    name: "Lilac Day",
-    tagline: "Soft lilac felt, paper seal backs",
-    mode: "light",
-    table: {
-      backgroundColor: PURPLE_DAY_TOP,
-      backgroundGradient: [PURPLE_DAY_TOP, PURPLE_DAY_BOTTOM],
-    },
-    card: {
-      face: "#F6F2FA",
-      faceEdge: "#D8CCE8",
-      back: PURPLE_DAY_BACK,
-      backLight: PURPLE_DAY_BACK_LIGHT,
-      backAccent: PURPLE_DAY_ACCENT,
-      backAccentSoft: PURPLE_DAY_ACCENT_SOFT,
-      suitRed: "#C62828",
-      suitBlack: "#1A2E24",
-      backPattern: "seal",
-    },
-  },
   blue: {
     id: "blue",
     name: "Sapphire Room",
@@ -216,27 +200,6 @@ export const APPEARANCE_PRESETS: Record<AppearanceId, AppearancePreset> = {
       back: BLUE_BACK,
       backLight: BLUE_BACK_LIGHT,
       backAccent: BLUE_ACCENT,
-      suitRed: "#D7263D",
-      suitBlack: "#20232A",
-      backPattern: "weave",
-    },
-  },
-  blueDay: {
-    id: "blueDay",
-    name: "Sky Day",
-    tagline: "Bright sky felt, paper weave backs",
-    mode: "light",
-    table: {
-      backgroundColor: BLUE_DAY_TOP,
-      backgroundGradient: [BLUE_DAY_TOP, BLUE_DAY_BOTTOM],
-    },
-    card: {
-      face: "#F5F8FC",
-      faceEdge: "#C8D8E8",
-      back: BLUE_DAY_BACK,
-      backLight: BLUE_DAY_BACK_LIGHT,
-      backAccent: BLUE_DAY_ACCENT,
-      backAccentSoft: BLUE_DAY_ACCENT_SOFT,
       suitRed: "#D7263D",
       suitBlack: "#20232A",
       backPattern: "weave",
@@ -262,38 +225,160 @@ export const APPEARANCE_PRESETS: Record<AppearanceId, AppearancePreset> = {
       backPattern: "sunburst",
     },
   },
-  redDay: {
-    id: "redDay",
-    name: "Rose Day",
-    tagline: "Rose felt, paper sunburst backs",
-    mode: "light",
+  charcoal: {
+    id: "charcoal",
+    name: "Charcoal Lounge",
+    tagline: "Slate felt, desaturated graphite backs",
+    mode: "dark",
     table: {
-      backgroundColor: RED_DAY_TOP,
-      backgroundGradient: [RED_DAY_TOP, RED_DAY_BOTTOM],
+      backgroundColor: CHARCOAL_TOP,
+      backgroundGradient: [CHARCOAL_TOP, CHARCOAL_BOTTOM],
     },
     card: {
-      face: "#FFF5F2",
-      faceEdge: "#E8C8C0",
-      back: RED_DAY_BACK,
-      backLight: RED_DAY_BACK_LIGHT,
-      backAccent: RED_DAY_ACCENT,
-      backAccentSoft: RED_DAY_ACCENT_SOFT,
+      face: "#F5F6F8",
+      faceEdge: "#CCD0D6",
+      back: CHARCOAL_BACK,
+      backLight: CHARCOAL_BACK_LIGHT,
+      backAccent: CHARCOAL_ACCENT,
       suitRed: "#C62828",
-      suitBlack: "#1A2E24",
+      suitBlack: "#1E2022",
+      backPattern: "weave",
+    },
+  },
+  obsidian: {
+    id: "obsidian",
+    name: "Obsidian Felt",
+    tagline: "Jet black felt, silver-grey backs",
+    mode: "dark",
+    table: {
+      backgroundColor: OBSIDIAN_TOP,
+      backgroundGradient: [OBSIDIAN_TOP, OBSIDIAN_BOTTOM],
+    },
+    card: {
+      face: "#F4F4F6",
+      faceEdge: "#C8C8CC",
+      back: OBSIDIAN_BACK,
+      backLight: OBSIDIAN_BACK_LIGHT,
+      backAccent: OBSIDIAN_ACCENT,
+      suitRed: "#E53935",
+      suitBlack: "#111215",
       backPattern: "sunburst",
+    },
+  },
+  navy: {
+    id: "navy",
+    name: "Steel Navy",
+    tagline: "Muted steel blue felt, slate wave backs",
+    mode: "dark",
+    table: {
+      backgroundColor: NAVY_TOP,
+      backgroundGradient: [NAVY_TOP, NAVY_BOTTOM],
+    },
+    card: {
+      face: "#F4F7F9",
+      faceEdge: "#C8D4DD",
+      back: NAVY_BACK,
+      backLight: NAVY_BACK_LIGHT,
+      backAccent: NAVY_ACCENT,
+      suitRed: "#C62828",
+      suitBlack: "#171D22",
+      backPattern: "seal",
+    },
+  },
+  plum: {
+    id: "plum",
+    name: "Midnight Plum",
+    tagline: "Deep plum felt, orchid seal backs",
+    mode: "dark",
+    table: {
+      backgroundColor: PLUM_TOP,
+      backgroundGradient: [PLUM_TOP, PLUM_BOTTOM],
+    },
+    card: {
+      face: "#FAF2F6",
+      faceEdge: "#E8C8DC",
+      back: PLUM_BACK,
+      backLight: PLUM_BACK_LIGHT,
+      backAccent: PLUM_ACCENT,
+      suitRed: "#C62828",
+      suitBlack: "#251520",
+      backPattern: "seal",
+    },
+  },
+  pine: {
+    id: "pine",
+    name: "Nordic Pine",
+    tagline: "Deep forest felt, sage pine backs",
+    mode: "dark",
+    table: {
+      backgroundColor: PINE_TOP,
+      backgroundGradient: [PINE_TOP, PINE_BOTTOM],
+    },
+    card: {
+      face: "#F3F7F5",
+      faceEdge: "#C2D1CB",
+      back: PINE_BACK,
+      backLight: PINE_BACK_LIGHT,
+      backAccent: PINE_ACCENT,
+      suitRed: "#C62828",
+      suitBlack: "#161E1B",
+      backPattern: "crest",
+    },
+  },
+  sienna: {
+    id: "sienna",
+    name: "Sienna Hearth",
+    tagline: "Warm terracotta felt, copper sunburst backs",
+    mode: "dark",
+    table: {
+      backgroundColor: SIENNA_TOP,
+      backgroundGradient: [SIENNA_TOP, SIENNA_BOTTOM],
+    },
+    card: {
+      face: "#FBF2F0",
+      faceEdge: "#E5CBC2",
+      back: SIENNA_BACK,
+      backLight: SIENNA_BACK_LIGHT,
+      backAccent: SIENNA_ACCENT,
+      suitRed: "#B71C1C",
+      suitBlack: "#221613",
+      backPattern: "sunburst",
+    },
+  },
+  indigo: {
+    id: "indigo",
+    name: "Twilight Room",
+    tagline: "Midnight indigo felt, steel weave backs",
+    mode: "dark",
+    table: {
+      backgroundColor: INDIGO_TOP,
+      backgroundGradient: [INDIGO_TOP, INDIGO_BOTTOM],
+    },
+    card: {
+      face: "#F2F4FB",
+      faceEdge: "#C2CADF",
+      back: INDIGO_BACK,
+      backLight: INDIGO_BACK_LIGHT,
+      backAccent: INDIGO_ACCENT,
+      suitRed: "#C62828",
+      suitBlack: "#151822",
+      backPattern: "weave",
     },
   },
 };
 
 export const APPEARANCE_ORDER: AppearanceId[] = [
   "green",
-  "greenDay",
   "purple",
-  "purpleDay",
   "blue",
-  "blueDay",
   "red",
-  "redDay",
+  "charcoal",
+  "obsidian",
+  "navy",
+  "plum",
+  "pine",
+  "sienna",
+  "indigo",
 ];
 
 export function getTableSwatchColor(table: TablePalette): string {

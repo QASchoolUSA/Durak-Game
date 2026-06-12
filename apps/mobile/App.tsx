@@ -22,6 +22,7 @@ import { useOnlineGame } from "./src/game/useOnlineGame";
 import { usePlaySessionIdle } from "./src/game/usePlaySessionIdle";
 import { usePushRegistration } from "./src/game/usePushRegistration";
 import { useProfileNameSync } from "./src/game/useProfileNameSync";
+import { useDeepLinking } from "./src/hooks/useDeepLinking";
 import { OnlineStatusBanner } from "./src/components/OnlineStatusBanner";
 import { IncomingInviteBanner } from "./src/components/IncomingInviteBanner";
 import { GameResultCrossfade } from "./src/components/GameResultCrossfade";
@@ -95,6 +96,11 @@ function PushSync() {
   return null;
 }
 
+function DeepLinkSync() {
+  useDeepLinking();
+  return null;
+}
+
 function ProfileNameSync() {
   useProfileNameSync();
   return null;
@@ -115,6 +121,7 @@ function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
         <OnlineGameSync />
         <GoldWalletSync />
         <PushSync />
+        <DeepLinkSync />
         <ProfileNameSync />
         {children}
         <IncomingInviteBanner />

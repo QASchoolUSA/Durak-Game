@@ -14,6 +14,9 @@ import {
   addNotificationResponseListener,
   configureNotificationHandler,
 } from "./notifications";
+import { useGameStore } from "./store";
+import { saveRoomSession } from "./onlineSessionStorage";
+import { trigger } from "../feedback/haptics";
 
 function getProjectId(): string | undefined {
   return (
@@ -30,16 +33,31 @@ function getProjectId(): string | undefined {
 export function usePushRegistration(): void {
   const { isAuthenticated } = useConvexAuth();
   const registerPushToken = useMutation(api.push.registerPushToken);
+  const joinRoom = useMutation(api.rooms.joinRoom);
+  const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
   const registeredRef = useRef(false);
 
   useEffect(() => {
     configureNotificationHandler();
-    const unsub = addNotificationResponseListener(() => {
-      // Bringing the app to the foreground is enough; the reactive
-      // incomingInvites query renders the in-app banner.
+    const unsub = addNotificationResponseListener((data) => {
+      if (data.type === "game_invite" && data.code && data.roomId) {
+        const code = data.code as string;
+        const roomId = data.roomId as string;
+        const displayName = useGameStore.getState().onlineDisplayName.trim() || "Player";
+        (async () => {
+          try {
+            await joinRoom({ code, displayName });
+            await saveRoomSession({ roomId, displayName });
+            trigger("gameStart");
+            enterOnlineLobby({ roomId, displayName, code, isHost: false });
+          } catch (err) {
+            if (__DEV__) console.warn("[push] failed to join room via invite tap", err);
+          }
+        })();
+      }
     });
     return unsub;
-  }, []);
+  }, [joinRoom, enterOnlineLobby]);
 
   useEffect(() => {
     if (!isAuthenticated || registeredRef.current) return;

@@ -100,10 +100,11 @@ type RoomMemberLike = { userId: string; isBot: boolean };
 export async function chargeMatchBuyIns(
   ctx: { db: any },
   members: RoomMemberLike[],
+  buyIn: number = MATCH_BUY_IN,
 ): Promise<void> {
   for (const member of members) {
     if (member.isBot) continue;
-    await deductCredits(ctx, member.userId, MATCH_BUY_IN, "buy_in");
+    await deductCredits(ctx, member.userId, buyIn, "buy_in");
   }
 }
 
@@ -117,6 +118,7 @@ type RoomForSettlement = {
   config: { numPlayers: number };
   members: Array<{ userId: string; isBot: boolean; playerId?: string }>;
   economy?: { buyInsCharged?: boolean; settled?: boolean } | null;
+  buyIn?: number;
 };
 
 /** Award pot or refund buy-ins when a match ends (online, server-authoritative). */
@@ -129,10 +131,11 @@ export async function settleMatchEconomy(
   if (!room.economy?.buyInsCharged || room.economy.settled) return;
 
   const humans = room.members.filter((m) => !m.isBot);
+  const buyIn = room.buyIn ?? MATCH_BUY_IN;
 
   if (state.loserId === null) {
     for (const member of humans) {
-      await awardCredits(ctx, member.userId, MATCH_BUY_IN, "draw_refund");
+      await awardCredits(ctx, member.userId, buyIn, "draw_refund");
     }
     return;
   }
@@ -143,7 +146,7 @@ export async function settleMatchEconomy(
   );
   if (!winnerMember) return;
 
-  const pot = MATCH_BUY_IN * room.config.numPlayers;
+  const pot = buyIn * room.config.numPlayers;
   await awardCredits(ctx, winnerMember.userId, pot, "win_pot");
 }
 
@@ -347,7 +350,8 @@ export const awardWinCredits = mutation({
       };
     }
 
-    const pot = MATCH_BUY_IN * room.config.numPlayers;
+    const buyIn = (room as any).buyIn ?? MATCH_BUY_IN;
+    const pot = buyIn * room.config.numPlayers;
     const creditBalance = resolveCreditBalance(wallet) + pot;
     await ctx.db.patch(wallet._id, {
       creditBalance,
