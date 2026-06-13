@@ -59,6 +59,25 @@
             "backgroundColor": "#0A0A0A"
           }
         }
+      ],
+      [
+        "@howincodes/expo-dynamic-app-icon",
+        {
+          "glass": {
+            "ios": {
+              "light": "./assets/ios-icon-glass-light.png",
+              "dark": "./assets/ios-icon-glass-dark.png",
+              "tinted": "./assets/ios-icon-glass-tinted.png"
+            }
+          },
+          "tinted": {
+            "ios": {
+              "light": "./assets/ios-icon-tinted-light.png",
+              "dark": "./assets/ios-icon-tinted-dark.png",
+              "tinted": "./assets/ios-icon-tinted-tinted.png"
+            }
+          }
+        }
       ]
     ]
   }

@@ -28,6 +28,7 @@ import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { AppearancePicker } from "./AppearancePicker";
+import { AppIconPicker } from "./AppIconPicker";
 import { AccountSection } from "./AccountSection";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { MenuButton } from "./MenuButton";
@@ -470,6 +471,18 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               ]}
             >
               <AppearancePicker />
+            </View>
+
+            <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textPrimary }]}>
+              APP ICON
+            </Text>
+            <View
+              style={[
+                styles.cardDesignPanel,
+                { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
+              ]}
+            >
+              <AppIconPicker />
             </View>
 
             {__DEV__ && (
