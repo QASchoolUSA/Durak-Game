@@ -316,7 +316,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     deckAnchor,
     handAnchor,
     seatAnchors,
-    deferRefillOverlay: takeInProgress || takeQueue.length > 0,
+    deferRefillOverlay: false,
   });
 
   const {
@@ -699,15 +699,22 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
 
     const prev = prevGameRef.current;
     if (prev) {
-      if (prev.table.length > 0 && game.table.length === 0) {
-        const kind: TableExitKind = prev.takeInProgress
+      const prevTableIds = new Set(tableCardIdsFromPairs(prev.table));
+      const tableWasCleared =
+        prev.table.length > 0 &&
+        !tableCardIdsFromPairs(game.table).some((id) => prevTableIds.has(id));
+
+      if (tableWasCleared) {
+        const defenderTook =
+          prev.takeInProgress || game.discard.length === prev.discard.length;
+        const kind: TableExitKind = defenderTook
           ? prev.defenderId === humanId
             ? "toHand"
             : "toOpponent"
           : "toDiscard";
         setTableExitKind(kind);
         scheduleExitKindReset();
-        if (!prev.takeInProgress) {
+        if (!defenderTook) {
           if (roundClearTimerRef.current) clearTimeout(roundClearTimerRef.current);
           roundClearTimerRef.current = setTimeout(() => {
             roundClearTimerRef.current = null;
@@ -779,9 +786,17 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     if (game) {
       const move = timeoutMoveFor(game, humanId);
       if (move?.type === "TAKE") {
+        const cardsMap: Record<string, any> = {};
+        for (const pair of game.table) {
+          cardsMap[pair.attack.id] = pair.attack;
+          if (pair.defense) {
+            cardsMap[pair.defense.id] = pair.defense;
+          }
+        }
         pendingTakeSnapshotRef.current = {
           cardIds: tableCardIdsFromPairs(game.table),
           anchors: { ...tableCardAnchorsRef.current },
+          cards: cardsMap,
         };
       }
     }

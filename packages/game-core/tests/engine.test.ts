@@ -305,6 +305,7 @@ describe("round resolution", () => {
     s = applyMove(s, { type: "TAKE", player: "B" });
     s = applyMove(s, { type: "PASS", player: "C" });
     expect(s.hands["B"]!.map((c) => c.id)).toContain(cardId(9, "hearts"));
+    expect(s.hands["B"]).toHaveLength(2);
     // After B takes, the attack passes to C; A becomes the next defender.
     expect(s.attackerId).toBe("C");
     expect(s.defenderId).toBe("A");

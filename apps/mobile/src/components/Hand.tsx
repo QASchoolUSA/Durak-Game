@@ -131,12 +131,14 @@ interface HandCardProps {
   trump: boolean;
   isNew: boolean;
   instantDeal: boolean;
+  overlayActive: boolean;
   revealed: boolean;
   activeSlot: SharedValue<number>;
   gestureMode: SharedValue<number>;
   dragX: SharedValue<number>;
   dragY: SharedValue<number>;
   press: SharedValue<number>;
+  dealt?: boolean;
 }
 
 const HandCard = React.memo(function HandCard({
@@ -151,12 +153,14 @@ const HandCard = React.memo(function HandCard({
   trump,
   isNew,
   instantDeal,
+  overlayActive,
   revealed,
   activeSlot,
   gestureMode,
   dragX,
   dragY,
   press,
+  dealt = false,
 }: HandCardProps) {
   const w = cardW;
   const h = cardH;
@@ -167,10 +171,10 @@ const HandCard = React.memo(function HandCard({
   const restY = 0;
   const restRot = rel * rotPerSlot;
 
-  const tx = useSharedValue(isNew ? restX + DEAL_FROM_X : restX);
-  const ty = useSharedValue(isNew ? restY + DEAL_FROM_Y : restY);
-  const rot = useSharedValue(isNew ? restRot + 12 : restRot);
-  const dealtRef = useRef(!isNew);
+  const tx = useSharedValue(isNew && !dealt ? restX + DEAL_FROM_X : restX);
+  const ty = useSharedValue(isNew && !dealt ? restY + DEAL_FROM_Y : restY);
+  const rot = useSharedValue(isNew && !dealt ? restRot + 12 : restRot);
+  const dealtRef = useRef(!isNew || dealt);
 
   useEffect(() => {
     if (activeSlot.value === slotIndex) return;
@@ -180,6 +184,24 @@ const HandCard = React.memo(function HandCard({
       tx.value = restX;
       ty.value = restY;
       rot.value = restRot;
+      return;
+    }
+
+    if (dealt) {
+      dealtRef.current = true;
+    }
+
+    if (overlayActive) {
+      if (isNew && !dealtRef.current) {
+        dealtRef.current = true;
+        tx.value = restX;
+        ty.value = restY;
+        rot.value = restRot;
+        return;
+      }
+      tx.value = withSpring(restX, SPRING);
+      ty.value = withSpring(restY, SPRING);
+      rot.value = withSpring(restRot, SPRING);
       return;
     }
 
@@ -198,7 +220,7 @@ const HandCard = React.memo(function HandCard({
     tx.value = withSpring(restX, SPRING);
     ty.value = withSpring(restY, SPRING);
     rot.value = withSpring(restRot, SPRING);
-  }, [restX, restY, restRot, isNew, instantDeal, tx, ty, rot, activeSlot, slotIndex, layoutWidth]);
+  }, [restX, restY, restRot, isNew, instantDeal, overlayActive, tx, ty, rot, activeSlot, slotIndex, layoutWidth, dealt]);
 
   useAnimatedReaction(
     () => activeSlot.value,
@@ -385,6 +407,24 @@ function HandComponent({
   useEffect(() => {
     prevIdsRef.current = new Set(sortedCards.map((c) => c.id));
   }, [sortedCards]);
+
+  const animatedCardIdsRef = useRef<Set<string>>(new Set());
+
+  const isOverlayRunning = dealOverlayMode != null || takeOverlayActive || dealingInProgress;
+  if (isOverlayRunning) {
+    for (const c of sortedCards) {
+      if (newIdSet.has(c.id)) {
+        animatedCardIdsRef.current.add(c.id);
+      }
+    }
+  }
+
+  const currentCardIds = new Set(sortedCards.map((c) => c.id));
+  for (const id of animatedCardIdsRef.current) {
+    if (!currentCardIds.has(id)) {
+      animatedCardIdsRef.current.delete(id);
+    }
+  }
 
   const dealtFiredRef = useRef(false);
   useEffect(() => {
@@ -812,8 +852,10 @@ function HandComponent({
                   cardW={w}
                   cardH={h}
                   trump={card.suit === trumpSuit}
-                  isNew={!effectiveInstantDeal && newIdSet.has(card.id)}
-                  instantDeal={effectiveInstantDeal}
+                  isNew={newIdSet.has(card.id)}
+                  dealt={animatedCardIdsRef.current.has(card.id)}
+                  instantDeal={instantDeal}
+                  overlayActive={dealOverlayMode != null || takeOverlayActive}
                   revealed
                   activeSlot={activeSlot}
                   gestureMode={gestureMode}

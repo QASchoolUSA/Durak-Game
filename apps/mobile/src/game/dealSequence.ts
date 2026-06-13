@@ -71,13 +71,20 @@ function handCounts(state: GameState): Record<PlayerId, number> {
 function buildRefillSteps(prev: GameState, next: GameState): DealStep[] {
   const prevCounts = handCounts(prev);
   const steps: DealStep[] = [];
-  const takenCount = prev.takeInProgress
+  const prevTableIds = new Set(tableCardIdsFromPairs(prev.table));
+  const tableWasCleared =
+    prev.table.length > 0 &&
+    !tableCardIdsFromPairs(next.table).some((id) => prevTableIds.has(id));
+  const defenderTook =
+    prev.takeInProgress ||
+    (tableWasCleared && next.discard.length === prev.discard.length);
+  const takenCount = defenderTook
     ? tableCardIdsFromPairs(prev.table).length
     : 0;
 
   for (const playerId of drawUpOrder(next)) {
     let gained = (next.hands[playerId] ?? []).length - (prevCounts[playerId] ?? 0);
-    if (prev.takeInProgress && playerId === prev.defenderId) {
+    if (defenderTook && playerId === prev.defenderId) {
       gained = Math.max(0, gained - takenCount);
     }
     for (let i = 0; i < gained; i++) {

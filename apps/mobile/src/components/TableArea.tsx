@@ -5,6 +5,7 @@ import Animated, {
   FadeIn,
   FadeOut,
   withDelay,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import type { SharedValue } from "react-native-reanimated";
@@ -98,7 +99,6 @@ function exitTargetFor(kind: "toHand" | "toOpponent", pairIndex: number): ExitTa
 
 function makeDiscardExit(screenWidth: number, pairIndex: number) {
   const delay = Math.min(pairIndex * 45, 180);
-  const duration = DISCARD_EXIT_DURATION;
   const offScreenX = screenWidth * 0.55 + 40;
   const target = {
     translateX: offScreenX + pairIndex * 18,
@@ -109,7 +109,11 @@ function makeDiscardExit(screenWidth: number, pairIndex: number) {
 
   return () => {
     "worklet";
-    const ease = Easing.out(Easing.cubic);
+    const easeLift = Easing.out(Easing.quad);
+    const easeSweep = Easing.bezier(0.25, 1, 0.5, 1);
+    const liftDuration = 120;
+    const sweepDuration = 320;
+
     return {
       initialValues: {
         opacity: 1,
@@ -122,32 +126,44 @@ function makeDiscardExit(screenWidth: number, pairIndex: number) {
       },
       animations: {
         opacity: withDelay(
-          delay + duration * 0.75,
-          withTiming(0, { duration: duration * 0.25 }),
+          delay + liftDuration + sweepDuration * 0.5,
+          withTiming(0, { duration: sweepDuration * 0.5 }),
         ),
         transform: [
           {
             translateX: withDelay(
               delay,
-              withTiming(target.translateX, { duration, easing: ease }),
+              withSequence(
+                withTiming(0, { duration: liftDuration, easing: easeLift }),
+                withTiming(target.translateX, { duration: sweepDuration, easing: easeSweep }),
+              ),
             ),
           },
           {
             translateY: withDelay(
               delay,
-              withTiming(target.translateY, { duration, easing: ease }),
+              withSequence(
+                withTiming(-12, { duration: liftDuration, easing: easeLift }),
+                withTiming(target.translateY, { duration: sweepDuration, easing: easeSweep }),
+              ),
             ),
           },
           {
             rotate: withDelay(
               delay,
-              withTiming(target.rotate, { duration, easing: ease }),
+              withSequence(
+                withTiming("-4deg", { duration: liftDuration, easing: easeLift }),
+                withTiming(target.rotate, { duration: sweepDuration, easing: easeSweep }),
+              ),
             ),
           },
           {
             scale: withDelay(
               delay,
-              withTiming(target.scale, { duration, easing: ease }),
+              withSequence(
+                withTiming(1.06, { duration: liftDuration, easing: easeLift }),
+                withTiming(target.scale, { duration: sweepDuration, easing: easeSweep }),
+              ),
             ),
           },
         ],
@@ -157,12 +173,16 @@ function makeDiscardExit(screenWidth: number, pairIndex: number) {
 }
 
 function makeTableExit(kind: "toHand" | "toOpponent", pairIndex: number) {
-  const delay = Math.min(pairIndex * 55, 220);
+  const delay = Math.min(pairIndex * 45, 180);
   const target = exitTargetFor(kind, pairIndex);
 
   return () => {
     "worklet";
-    const duration = EXIT_DURATION;
+    const easeLift = Easing.out(Easing.quad);
+    const easeSweep = Easing.bezier(0.25, 1, 0.5, 1);
+    const liftDuration = 100;
+    const sweepDuration = 300;
+
     return {
       initialValues: {
         opacity: 1,
@@ -174,16 +194,47 @@ function makeTableExit(kind: "toHand" | "toOpponent", pairIndex: number) {
         ],
       },
       animations: {
-        opacity: withDelay(delay, withTiming(0, { duration })),
+        opacity: withDelay(
+          delay + liftDuration + sweepDuration * 0.4,
+          withTiming(0, { duration: sweepDuration * 0.6 }),
+        ),
         transform: [
           {
-            translateX: withDelay(delay, withTiming(target.translateX, { duration })),
+            translateX: withDelay(
+              delay,
+              withSequence(
+                withTiming(0, { duration: liftDuration, easing: easeLift }),
+                withTiming(target.translateX, { duration: sweepDuration, easing: easeSweep }),
+              ),
+            ),
           },
           {
-            translateY: withDelay(delay, withTiming(target.translateY, { duration })),
+            translateY: withDelay(
+              delay,
+              withSequence(
+                withTiming(-12, { duration: liftDuration, easing: easeLift }),
+                withTiming(target.translateY, { duration: sweepDuration, easing: easeSweep }),
+              ),
+            ),
           },
-          { rotate: withDelay(delay, withTiming(target.rotate, { duration })) },
-          { scale: withDelay(delay, withTiming(target.scale, { duration })) },
+          {
+            rotate: withDelay(
+              delay,
+              withSequence(
+                withTiming("-3deg", { duration: liftDuration, easing: easeLift }),
+                withTiming(target.rotate, { duration: sweepDuration, easing: easeSweep }),
+              ),
+            ),
+          },
+          {
+            scale: withDelay(
+              delay,
+              withSequence(
+                withTiming(1.05, { duration: liftDuration, easing: easeLift }),
+                withTiming(target.scale, { duration: sweepDuration, easing: easeSweep }),
+              ),
+            ),
+          },
         ],
       },
     };

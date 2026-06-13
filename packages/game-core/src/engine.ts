@@ -385,8 +385,11 @@ function resolveIfReady(state: GameState): void {
   }
 }
 
-function drawUp(state: GameState): void {
+function drawUp(state: GameState, defenderTook: boolean): void {
   for (const p of drawUpOrder(state)) {
+    if (defenderTook && p === state.defenderId) {
+      continue;
+    }
     const hand = state.hands[p] ?? [];
     while (hand.length < HAND_SIZE && state.deck.length > 0) {
       const card = state.deck.shift();
@@ -397,7 +400,7 @@ function drawUp(state: GameState): void {
 }
 
 function endRound(state: GameState, defenderTook: boolean): void {
-  drawUp(state);
+  drawUp(state, defenderTook);
   markFinishedPlayers(state);
 
   state.table = [];

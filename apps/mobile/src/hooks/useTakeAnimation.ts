@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { GameState, PlayerId } from "@durak/game-core";
+import type { Card, GameState, PlayerId } from "@durak/game-core";
 import type { CardFlightStep } from "../game/cardFlight";
 import type { AnchorRect } from "../components/MeasuredAnchor";
 import {
@@ -80,11 +80,15 @@ export function useTakeAnimation({
     }
 
     const prev = prevGameRef.current;
-    const tableCleared = prev != null && prev.table.length > 0 && game.table.length === 0;
-    const humanTook =
-      tableCleared &&
-      prev!.takeInProgress &&
-      prev!.defenderId === humanId;
+    const prevTableIds = prev ? new Set(tableCardIdsFromPairs(prev.table)) : new Set<string>();
+    const tableWasCleared =
+      prev != null &&
+      prev.table.length > 0 &&
+      !tableCardIdsFromPairs(game.table).some((id) => prevTableIds.has(id));
+    const defenderTook =
+      tableWasCleared &&
+      (prev!.takeInProgress || game.discard.length === prev!.discard.length);
+    const humanTook = defenderTook && prev!.defenderId === humanId;
 
     if (
       humanTook &&
@@ -92,10 +96,20 @@ export function useTakeAnimation({
       timingMode !== "instant" &&
       handAnchor
     ) {
-      const snapshot = pendingTakeSnapshotRef.current ?? {
-        cardIds: tableCardIdsFromPairs(prev!.table),
-        anchors: { ...tableCardAnchorsRef.current },
-      };
+      const snapshot: TakeSnapshot = pendingTakeSnapshotRef.current ?? (() => {
+        const cardsMap: Record<string, Card> = {};
+        for (const pair of prev!.table) {
+          cardsMap[pair.attack.id] = pair.attack;
+          if (pair.defense) {
+            cardsMap[pair.defense.id] = pair.defense;
+          }
+        }
+        return {
+          cardIds: tableCardIdsFromPairs(prev!.table),
+          anchors: { ...tableCardAnchorsRef.current },
+          cards: cardsMap,
+        };
+      })();
       pendingTakeSnapshotRef.current = null;
 
       if (snapshot.cardIds.length > 0) {

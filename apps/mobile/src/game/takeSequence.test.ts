@@ -39,4 +39,24 @@ describe("takeSequence", () => {
     expect(queue[0]!.toY).toBeCloseTo(540);
     expect(queue[0]!.flightMs).toBe(220);
   });
+
+  it("attaches card models to flight steps when present in snapshot", () => {
+    const cardA1 = { id: "a1", suit: "hearts" as const, rank: 6 as const };
+    const queue = buildTakeFlightQueue(
+      {
+        cardIds: ["a1"],
+        anchors: {
+          [tableCardAnchorId("a1")]: { x: 180, y: 220, width: 40, height: 56 },
+        },
+        cards: {
+          a1: cardA1,
+        },
+      },
+      { x: 100, y: 500, width: 200, height: 80 },
+      "solo",
+    );
+    expect(queue).toHaveLength(1);
+    expect(queue[0]!.card).toEqual(cardA1);
+  });
 });
+
