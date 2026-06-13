@@ -17,7 +17,7 @@ import {
   tableCardIdsFromPairs,
 } from "../game/dealSequence";
 
-export const DEAL_REFILL_DELAY_MS = 450;
+export const DEAL_REFILL_DELAY_MS = 150;
 const ORIGINS_FALLBACK_MS = 800;
 
 function syncCountsFromGame(state: GameState): Record<PlayerId, number> {

@@ -1,4 +1,4 @@
-import type { TablePair } from "@durak/game-core";
+import type { Card, TablePair } from "@durak/game-core";
 import type { AnchorRect } from "./anchorMath";
 import { anchorCenter } from "./anchorMath";
 import type { CardFlightStep } from "./cardFlight";
@@ -22,6 +22,7 @@ export function isTableCardAnchorId(anchorId: string): boolean {
 export interface TakeSnapshot {
   cardIds: string[];
   anchors: Record<string, AnchorRect>;
+  cards?: Record<string, Card>;
 }
 
 export function buildTakeFlightQueue(
@@ -42,9 +43,11 @@ export function buildTakeFlightQueue(
       toX: handCenter.x,
       toY: handCenter.y,
       flightMs: timing.flightMs,
+      card: snapshot.cards?.[cardId],
     };
   });
 }
+
 
 export function takeTimingForMode(
   playMode: "solo" | "online",

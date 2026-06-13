@@ -1,16 +1,16 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { useCardTheme } from "../theme/CardThemeContext";
-import { radius } from "../theme";
 import { useGameLayoutContext } from "../theme/GameLayoutContext";
-
+import { Card } from "./Card";
 import type { CardFlightStep } from "../game/cardFlight";
 import { cardFlightDurationMs } from "../game/cardFlight";
 
@@ -23,36 +23,41 @@ export interface CardFlightOverlayProps {
   onFlightSound?: () => void;
   /** Throttle per-card sounds in solo; online plays once per run. */
   soundMode?: "solo" | "online" | "none";
+  staggerMs?: number;
 }
 
 const SOUND_THROTTLE_MS = 200;
 const WATCHDOG_BUFFER_MS = 2000;
 
-function CardFlightOverlayComponent({
-  queue,
+interface FlyingCardItemProps {
+  step: CardFlightStep;
+  index: number;
+  staggerMs: number;
+  cardW: number;
+  cardH: number;
+  maybePlaySound: () => void;
+  onStepComplete: (step: CardFlightStep) => void;
+  onFinished: (id: string) => void;
+}
+
+function FlyingCardItem({
+  step,
+  index,
+  staggerMs,
+  cardW,
+  cardH,
+  maybePlaySound,
   onStepComplete,
-  onComplete,
-  onFlightSound,
-  soundMode = "solo",
-}: CardFlightOverlayProps) {
-  const theme = useCardTheme();
-  const { cardSizes } = useGameLayoutContext();
-  const { w: cardW, h: cardH } = cardSizes.small;
-
-  const x = useSharedValue(0);
-  const y = useSharedValue(0);
-  const rot = useSharedValue(-8);
+  onFinished,
+}: FlyingCardItemProps) {
+  const x = useSharedValue(step.fromX - cardW / 2);
+  const y = useSharedValue(step.fromY - cardH / 2);
+  const scale = useSharedValue(1);
   const opacity = useSharedValue(0);
-
-  const onStepCompleteRef = useRef(onStepComplete);
-  const onCompleteRef = useRef(onComplete);
-  const onFlightSoundRef = useRef(onFlightSound);
-  const lastSoundAtRef = useRef(0);
-  const onlineSoundPlayedRef = useRef(false);
-
-  onStepCompleteRef.current = onStepComplete;
-  onCompleteRef.current = onComplete;
-  onFlightSoundRef.current = onFlightSound;
+  
+  // Assign a random start tilt for an organic, physical feel
+  const startRot = useRef(Math.random() * 24 - 12);
+  const rot = useSharedValue(startRot.current);
 
   const style = useAnimatedStyle(() => ({
     position: "absolute",
@@ -61,108 +66,162 @@ function CardFlightOverlayComponent({
     width: cardW,
     height: cardH,
     opacity: opacity.value,
-    transform: [{ rotate: `${rot.value}deg` }],
-    zIndex: 5000,
-    borderRadius: radius.card,
-    backgroundColor: theme.back,
-    borderWidth: 1,
-    borderColor: theme.backAccent,
+    transform: [
+      { rotate: `${rot.value}deg` },
+      { scale: scale.value }
+    ],
+    zIndex: 5000 + index,
   }));
 
   useEffect(() => {
-    if (queue.length === 0) return;
+    let active = true;
+    const delay = index * staggerMs;
 
-    let cancelled = false;
-    let watchdogId: ReturnType<typeof setTimeout> | null = null;
-    let stepIndex = 0;
-
-    onlineSoundPlayedRef.current = false;
-    lastSoundAtRef.current = 0;
-
-    const maybePlaySound = () => {
-      if (!onFlightSoundRef.current || soundMode === "none") return;
-      if (soundMode === "online") {
-        if (onlineSoundPlayedRef.current) return;
-        onlineSoundPlayedRef.current = true;
-        onFlightSoundRef.current();
-        return;
-      }
-      const now = Date.now();
-      if (now - lastSoundAtRef.current < SOUND_THROTTLE_MS) return;
-      lastSoundAtRef.current = now;
-      onFlightSoundRef.current();
-    };
-
-    const finishRun = () => {
-      if (cancelled) return;
-      cancelled = true;
-      opacity.value = 0;
-      onCompleteRef.current();
-    };
-
-    const afterFade = () => {
-      if (cancelled) return;
-      advance();
-    };
-
-    const afterFlight = (step: CardFlightStep) => {
-      if (cancelled) return;
-      onStepCompleteRef.current(step);
-      opacity.value = withTiming(0, { duration: 60 }, (fadeDone) => {
-        if (fadeDone) runOnJS(afterFade)();
-      });
-    };
-
-    const advance = () => {
-      if (cancelled) return;
-
-      if (stepIndex >= queue.length) {
-        if (watchdogId) clearTimeout(watchdogId);
-        finishRun();
-        return;
-      }
-
-      const step = queue[stepIndex]!;
-      stepIndex += 1;
-
-      const startX = step.fromX - cardW / 2;
-      const startY = step.fromY - cardH / 2;
-      const targetX = step.toX - cardW / 2;
-      const targetY = step.toY - cardH / 2;
-      const duration = step.flightMs;
-
-      x.value = startX;
-      y.value = startY;
-      rot.value = -8;
-      opacity.value = 1;
+    const timeoutId = setTimeout(() => {
+      if (!active) return;
 
       maybePlaySound();
 
-      x.value = withTiming(targetX, { duration, easing: Easing.out(Easing.cubic) });
-      y.value = withTiming(targetY, { duration, easing: Easing.out(Easing.cubic) });
-      rot.value = withTiming(0, { duration }, (finished) => {
-        if (finished) runOnJS(afterFlight)(step);
+      // Make card visible at start of flight
+      opacity.value = 1;
+
+      const targetX = step.toX - cardW / 2;
+      const targetY = step.toY - cardH / 2;
+
+      x.value = withTiming(targetX, {
+        duration: step.flightMs,
+        easing: Easing.bezier(0.16, 1, 0.3, 1),
       });
-    };
 
-    watchdogId = setTimeout(() => {
-      if (!cancelled) finishRun();
-    }, cardFlightDurationMs(queue) + WATCHDOG_BUFFER_MS);
+      y.value = withTiming(targetY, {
+        duration: step.flightMs,
+        easing: Easing.bezier(0.16, 1, 0.3, 1),
+      });
 
-    advance();
+      scale.value = withSequence(
+        withTiming(1.12, {
+          duration: step.flightMs / 2,
+          easing: Easing.out(Easing.quad),
+        }),
+        withTiming(1.0, {
+          duration: step.flightMs / 2,
+          easing: Easing.in(Easing.quad),
+        })
+      );
+
+      rot.value = withTiming(0, {
+        duration: step.flightMs,
+        easing: Easing.bezier(0.16, 1, 0.3, 1),
+      }, (finished) => {
+        if (finished && active) {
+          runOnJS(onStepComplete)(step);
+          
+          // Smooth cross-fade once card lands to merge seamlessly
+          opacity.value = withTiming(0, { duration: 60 }, (fadeDone) => {
+            if (fadeDone && active) {
+              runOnJS(onFinished)(step.id);
+            }
+          });
+        }
+      });
+    }, delay);
 
     return () => {
-      cancelled = true;
-      if (watchdogId) clearTimeout(watchdogId);
-      opacity.value = 0;
+      active = false;
+      clearTimeout(timeoutId);
     };
-  }, [queue, cardW, cardH, x, y, rot, opacity, soundMode]);
+  }, [step, index, staggerMs, cardW, cardH, maybePlaySound, onStepComplete, onFinished]);
+
+  return (
+    <Animated.View style={style} pointerEvents="none">
+      <Card
+        card={step.card}
+        faceDown={!step.card}
+        width={cardW}
+        height={cardH}
+      />
+    </Animated.View>
+  );
+}
+
+function CardFlightOverlayComponent({
+  queue,
+  onStepComplete,
+  onComplete,
+  onFlightSound,
+  soundMode = "solo",
+  staggerMs,
+}: CardFlightOverlayProps) {
+  const { cardSizes } = useGameLayoutContext();
+  const { w: cardW, h: cardH } = cardSizes.small;
+
+  const onStepCompleteRef = useRef(onStepComplete);
+  const onCompleteRef = useRef(onComplete);
+  const onFlightSoundRef = useRef(onFlightSound);
+  const lastSoundAtRef = useRef(0);
+  const onlineSoundPlayedRef = useRef(false);
+  const finishedCountRef = useRef(0);
+
+  onStepCompleteRef.current = onStepComplete;
+  onCompleteRef.current = onComplete;
+  onFlightSoundRef.current = onFlightSound;
+
+  const resolvedStaggerMs = staggerMs ?? (soundMode === "online" ? 60 : 80);
+
+  const maybePlaySound = useCallback(() => {
+    if (!onFlightSoundRef.current || soundMode === "none") return;
+    if (soundMode === "online") {
+      if (onlineSoundPlayedRef.current) return;
+      onlineSoundPlayedRef.current = true;
+      onFlightSoundRef.current();
+      return;
+    }
+    const now = Date.now();
+    if (now - lastSoundAtRef.current < SOUND_THROTTLE_MS) return;
+    lastSoundAtRef.current = now;
+    onFlightSoundRef.current();
+  }, [soundMode]);
+
+  const handleCardFinished = useCallback((id: string) => {
+    finishedCountRef.current += 1;
+    if (finishedCountRef.current >= queue.length) {
+      onCompleteRef.current();
+    }
+  }, [queue.length]);
+
+  useEffect(() => {
+    finishedCountRef.current = 0;
+    onlineSoundPlayedRef.current = false;
+    lastSoundAtRef.current = 0;
+
+    if (queue.length === 0) return;
+
+    const watchdogId = setTimeout(() => {
+      onCompleteRef.current();
+    }, cardFlightDurationMs(queue, resolvedStaggerMs) + WATCHDOG_BUFFER_MS);
+
+    return () => {
+      clearTimeout(watchdogId);
+    };
+  }, [queue, resolvedStaggerMs]);
 
   if (queue.length === 0) return null;
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Animated.View style={style} />
+      {queue.map((step, index) => (
+        <FlyingCardItem
+          key={step.id}
+          step={step}
+          index={index}
+          staggerMs={resolvedStaggerMs}
+          cardW={cardW}
+          cardH={cardH}
+          maybePlaySound={maybePlaySound}
+          onStepComplete={onStepCompleteRef.current}
+          onFinished={handleCardFinished}
+        />
+      ))}
     </View>
   );
 }
