@@ -40,8 +40,8 @@ function MeasuredAnchorComponent({
   reportRef.current = report;
 
   useEffect(() => {
-    return scheduleMeasure(report);
-  }, [report, remeasureKey]);
+    return scheduleMeasure(() => reportRef.current());
+  }, [remeasureKey]);
 
   useEffect(() => {
     return () => onAnchorRemoved?.(anchorId);
@@ -50,7 +50,7 @@ function MeasuredAnchorComponent({
   return (
     <View
       ref={ref}
-      onLayout={() => scheduleMeasure(report)}
+      onLayout={() => scheduleMeasure(() => reportRef.current())}
       style={style}
       collapsable={false}
     >

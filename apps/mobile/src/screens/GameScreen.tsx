@@ -785,7 +785,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     playMode === "online" ? serverTurnSeconds : turnSeconds;
   const timerEnabled = effectiveTurnSeconds > 0;
 
-  const opponentsForClock = game ? opponentOrder(game, humanId) : [];
+  const opponents = useMemo(
+    () => (game ? opponentOrder(game, humanId) : []),
+    [game, humanId],
+  );
 
   const seatOnClock = useMemo(() => {
     if (playMode === "online") {
@@ -795,9 +798,9 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       game,
       humanId,
       Boolean(view?.mustAct),
-      opponentsForClock,
+      opponents,
     );
-  }, [playMode, turnClockPlayerId, game, humanId, view?.mustAct, opponentsForClock]);
+  }, [playMode, turnClockPlayerId, game, humanId, view?.mustAct, opponents]);
 
   const handleTimeoutAutoPlay = useCallback(() => {
     if (game) {
@@ -1023,7 +1026,6 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     return null;
   }
 
-  const opponents = opponentOrder(game, humanId);
   const humanFinished = game.finishedOrder.includes(humanId);
   const humanOnClock =
     playMode === "online"
@@ -1060,7 +1062,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       : null;
 
   const turnStatus = getTurnStatus(game, humanId, names);
-  const undefendedTargets = undefendedPairs(game);
+  const undefendedTargets = useMemo(
+    () => (game ? undefendedPairs(game) : []),
+    [game],
+  );
   const highlightStrong =
     Boolean(view?.isDefender) && Boolean(view?.mustAct) && !game.takeInProgress;
 

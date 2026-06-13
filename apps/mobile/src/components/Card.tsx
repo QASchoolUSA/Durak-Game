@@ -473,8 +473,6 @@ function CardComponent({
             borderColor,
           },
         ]}
-        shouldRasterizeIOS
-        renderToHardwareTextureAndroid
       >
         {isFaceDown ? (
           <CardBack width={w} height={h} theme={theme} compact={compact} />

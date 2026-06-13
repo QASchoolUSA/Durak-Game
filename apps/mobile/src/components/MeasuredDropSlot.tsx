@@ -53,18 +53,18 @@ function MeasuredDropSlotComponent({
     if (!onRegisterReporter) return;
     const unregister = onRegisterReporter(() => reportRef.current());
     return unregister;
-  }, [onRegisterReporter, report, remeasureKey]);
+  }, [onRegisterReporter, remeasureKey]);
 
   useEffect(() => {
-    return scheduleMeasure(report);
-  }, [report, remeasureKey]);
+    return scheduleMeasure(() => reportRef.current());
+  }, [remeasureKey]);
 
   useEffect(() => {
     return () => onDropZoneRemoved?.(tableIndex, kind);
   }, [tableIndex, kind, onDropZoneRemoved]);
 
   return (
-    <View ref={ref} onLayout={() => scheduleMeasure(report)} style={style} collapsable={false}>
+    <View ref={ref} onLayout={() => scheduleMeasure(() => reportRef.current())} style={style} collapsable={false}>
       {children}
     </View>
   );
