@@ -27,6 +27,8 @@ export interface CardProps {
   /** Override active card theme (e.g. design picker previews). */
   themeOverride?: CardTheme;
   style?: ViewStyle | ViewStyle[];
+  /** Disable shadow to avoid offscreen passes (e.g. during card flight). */
+  noShadow?: boolean;
 }
 
 function CornerBracket({
@@ -426,6 +428,7 @@ function CardComponent({
   compact,
   themeOverride,
   style,
+  noShadow = false,
 }: CardProps) {
   const activeTheme = useCardTheme();
   const theme = themeOverride ?? activeTheme;
@@ -446,7 +449,7 @@ function CardComponent({
   return (
     <View
       style={[
-        styles.cardShadow,
+        !noShadow && styles.cardShadow,
         {
           width: w,
           height: h,

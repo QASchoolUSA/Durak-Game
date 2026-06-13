@@ -139,6 +139,7 @@ function FlyingCardItem({
         faceDown={!step.card}
         width={cardW}
         height={cardH}
+        noShadow={true}
       />
     </Animated.View>
   );
