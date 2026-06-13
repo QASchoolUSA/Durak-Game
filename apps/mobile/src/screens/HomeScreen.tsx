@@ -103,10 +103,12 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
     if (action === "rules") onOpenRules();
   };
 
-  const showAnimatedDecor = decorReady && !reduceMotion && appActive;
+  const screen = useGameStore((s) => s.screen);
+  const active = screen === "home";
+  const showAnimatedDecor = decorReady && !reduceMotion && appActive && active;
 
   return (
-    <Background variant="home" deferAmbience={!decorReady}>
+    <Background variant="home" deferAmbience={!showAnimatedDecor}>
       <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
         <View style={[styles.topBar, { paddingHorizontal: lay.hPad }]}>
           <EconomyBar

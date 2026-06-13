@@ -17,6 +17,7 @@ import {
   type Card as CardModel,
   type GameState,
   type PlayerId,
+  undefendedPairs,
 } from "@durak/game-core";
 import { Background } from "../components/Background";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -72,11 +73,13 @@ import {
   getHumanView,
   getSeatIndication,
   getSeatRole,
+  getTurnStatus,
   playerMustAct,
   opponentOrder,
   getBeatTransferChoice,
   revealEligibleOpponents,
 } from "../game/selectors";
+import { TurnStatusBanner } from "../components/TurnStatusBanner";
 import {
   type DragCardBounds,
   type DropZone,
@@ -295,6 +298,9 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     playMode: playMode === "online" ? "online" : "solo",
     reduceMotion,
     handAnchor,
+    cardW: lay.cardSizes.hand.w,
+    cardH: lay.cardSizes.hand.h,
+    hPad: lay.hPad,
     tableCardAnchorsRef,
     pendingTakeSnapshotRef,
   });
@@ -302,7 +308,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const {
     takeInProgress,
     takeQueue,
-    revealedTakenCardIds,
+    hiddenCardIds: hiddenTakenCardIds,
     suppressTableExit,
     handleTakeStepComplete,
     handleTakeComplete,
@@ -324,12 +330,23 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     dealKind,
     displayedHandCounts,
     displayedDeckCount,
-    revealedHumanCardIds,
+    hiddenHumanCardIds,
     dealQueue,
     frozenOrigins,
     handleStepComplete,
     handleDealComplete,
   } = dealAnimation;
+
+  // Union of cards currently flying in (take + deal); these stay invisible in
+  // their final hand slot until they land, then fade in. Everything already in
+  // the hand stays visible — no disappear/re-sort.
+  const hiddenHandCardIds = useMemo(() => {
+    if (hiddenTakenCardIds.size === 0) return hiddenHumanCardIds;
+    if (hiddenHumanCardIds.size === 0) return hiddenTakenCardIds;
+    const merged = new Set(hiddenTakenCardIds);
+    for (const id of hiddenHumanCardIds) merged.add(id);
+    return merged;
+  }, [hiddenTakenCardIds, hiddenHumanCardIds]);
 
   freezeAnchorsRef.current =
     frozenOrigins != null || dealQueue.length > 0 || takeQueue.length > 0;
@@ -768,7 +785,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     playMode === "online" ? serverTurnSeconds : turnSeconds;
   const timerEnabled = effectiveTurnSeconds > 0;
 
-  const opponentsForClock = game ? opponentOrder(game, humanId) : [];
+  const opponents = useMemo(
+    () => (game ? opponentOrder(game, humanId) : []),
+    [game, humanId],
+  );
 
   const seatOnClock = useMemo(() => {
     if (playMode === "online") {
@@ -778,9 +798,9 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       game,
       humanId,
       Boolean(view?.mustAct),
-      opponentsForClock,
+      opponents,
     );
-  }, [playMode, turnClockPlayerId, game, humanId, view?.mustAct, opponentsForClock]);
+  }, [playMode, turnClockPlayerId, game, humanId, view?.mustAct, opponents]);
 
   const handleTimeoutAutoPlay = useCallback(() => {
     if (game) {
@@ -1006,7 +1026,6 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     return null;
   }
 
-  const opponents = opponentOrder(game, humanId);
   const humanFinished = game.finishedOrder.includes(humanId);
   const humanOnClock =
     playMode === "online"
@@ -1041,6 +1060,14 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     : getSeatRole(game, humanId) === "taking"
       ? "defend"
       : null;
+
+  const turnStatus = getTurnStatus(game, humanId, names);
+  const undefendedTargets = useMemo(
+    () => (game ? undefendedPairs(game) : []),
+    [game],
+  );
+  const highlightStrong =
+    Boolean(view?.isDefender) && Boolean(view?.mustAct) && !game.takeInProgress;
 
   return (
     <Background variant="game">
@@ -1146,6 +1173,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               onClock={oppOnClock}
               clockConfig={timerClock}
               timerEnabled={timerEnabled}
+              dimmed={game.phase === "playing" && !oppOnClock && role !== "taking"}
               finished={oppFinished}
               skipEnterAnimation={dealKind === "initial"}
               onSeatAnchorLayout={handleAnchorLayout}
@@ -1154,6 +1182,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             );
           })}
         </View>
+
+        {!dealingInProgress && !takeInProgress && (
+          <TurnStatusBanner status={turnStatus} />
+        )}
 
         <View style={styles.middle}>
           {/* Felt surface — visual grounding for the play area */}
@@ -1174,6 +1206,8 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               suppressExitAnimation={suppressTableExit}
               choiceTargets={beatTransferChoice.choiceIndices}
               transferTargets={transferTargets}
+              undefendedTargets={undefendedTargets}
+              highlightStrong={highlightStrong}
               hoverDefendIndexSV={showBeatTransferChoice ? hoverDefendIndexSV : undefined}
               hoverTransferIndexSV={showBeatTransferChoice ? hoverTransferIndexSV : undefined}
               dragActiveSV={showBeatTransferChoice ? dragActiveSV : undefined}
@@ -1198,36 +1232,38 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         </View>
 
         <View style={styles.bottom}>
-          <View style={styles.actionDockRow}>
-            <Pressable
-              style={[
-                styles.actionBtn,
-                styles.actionSide,
-                styles.takeBtn,
-                (!view.canTake || submittingMove) && styles.actionDisabled,
-              ]}
-              disabled={!view.canTake || submittingMove || dealingInProgress || takeInProgress}
-              onPress={() => {
-                trigger("uiTap");
-                setTakeConfirmOpen(true);
-              }}
-            >
-              <Text style={styles.actionText}>TAKE</Text>
-            </Pressable>
+          {!humanFinished && (
+            <View style={styles.actionDockRow}>
+              <Pressable
+                style={[
+                  styles.actionBtn,
+                  styles.actionSide,
+                  styles.takeBtn,
+                  (!view.canTake || submittingMove) && styles.actionDisabled,
+                ]}
+                disabled={!view.canTake || submittingMove || dealingInProgress || takeInProgress}
+                onPress={() => {
+                  trigger("uiTap");
+                  setTakeConfirmOpen(true);
+                }}
+              >
+                <Text style={styles.actionText}>TAKE</Text>
+              </Pressable>
 
-            <Pressable
-              style={[
-                styles.actionBtn,
-                styles.actionSide,
-                styles.doneBtn,
-                (!view.canPass || submittingMove) && styles.actionDisabled,
-              ]}
-              disabled={!view.canPass || submittingMove || dealingInProgress || takeInProgress}
-              onPress={() => submitHuman({ type: "PASS", player: humanId })}
-            >
-              <Text style={[styles.actionText, styles.doneText]}>DONE</Text>
-            </Pressable>
-          </View>
+              <Pressable
+                style={[
+                  styles.actionBtn,
+                  styles.actionSide,
+                  styles.doneBtn,
+                  (!view.canPass || submittingMove) && styles.actionDisabled,
+                ]}
+                disabled={!view.canPass || submittingMove || dealingInProgress || takeInProgress}
+                onPress={() => submitHuman({ type: "PASS", player: humanId })}
+              >
+                <Text style={[styles.actionText, styles.doneText]}>DONE</Text>
+              </Pressable>
+            </View>
+          )}
 
           <Hand
             cards={humanHand}
@@ -1238,9 +1274,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             dealOverlayMode={dealKind}
             takeOverlayActive={takeInProgress}
             dealingInProgress={dealingInProgress || takeInProgress}
-            revealedCardIds={
-              takeInProgress ? revealedTakenCardIds : revealedHumanCardIds
-            }
+            hiddenCardIds={hiddenHandCardIds}
             onHandAnchorLayout={handleAnchorLayout}
             onHandAnchorRemoved={handleAnchorRemoved}
             onPlay={playCard}
@@ -1287,6 +1321,11 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               clockConfig={timerClock}
               timerEnabled={timerEnabled}
               timerRunning={timerClock.enabled}
+              dimmed={
+                game.phase === "playing" &&
+                !humanOnClock &&
+                seatRoleForFinished(game, humanId) !== "taking"
+              }
               finished={humanFinished}
               onPress={() => {
                 trigger("uiTap");

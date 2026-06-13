@@ -82,11 +82,15 @@ export interface UseDealAnimationResult {
   displayedHandCounts: Record<PlayerId, number>;
   displayedDeckCount: number;
   revealedHumanCardIds: Set<string>;
+  /** Human cards still flying in from the deck (hidden until they land). */
+  hiddenHumanCardIds: Set<string>;
   dealQueue: QueuedDealStep[];
   frozenOrigins: FrozenDealOrigins | null;
   handleStepComplete: (step: QueuedDealStep) => void;
   handleDealComplete: () => void;
 }
+
+const EMPTY_SET: Set<string> = new Set();
 
 export function useDealAnimation({
   game,
@@ -118,6 +122,7 @@ export function useDealAnimation({
   const [displayedHandCounts, setDisplayedHandCounts] = useState<Record<PlayerId, number>>({});
   const [displayedDeckCount, setDisplayedDeckCount] = useState(0);
   const [revealedHumanCardIds, setRevealedHumanCardIds] = useState<Set<string>>(new Set());
+  const [hiddenHumanCardIds, setHiddenHumanCardIds] = useState<Set<string>>(EMPTY_SET);
   const [dealQueue, setDealQueue] = useState<QueuedDealStep[]>([]);
   const [frozenOrigins, setFrozenOrigins] = useState<FrozenDealOrigins | null>(null);
   const [pendingDealEpoch, setPendingDealEpoch] = useState(0);
@@ -151,6 +156,7 @@ export function useDealAnimation({
       setDisplayedHandCounts(syncCountsFromGame(state));
       setDisplayedDeckCount(state.deck.length);
       setRevealedHumanCardIds(allCardsRevealed(state, humanId));
+      setHiddenHumanCardIds(EMPTY_SET);
       pendingHumanCardsRef.current = [];
       humanRevealIndexRef.current = 0;
       pendingRefillQueueRef.current = null;
@@ -202,6 +208,7 @@ export function useDealAnimation({
         setDisplayedHandCounts(syncCountsFromGame(game));
         setDisplayedDeckCount(game.deck.length);
         setRevealedHumanCardIds(allCardsRevealed(game, humanId));
+        setHiddenHumanCardIds(EMPTY_SET);
       }
       prevGameRef.current = game;
       return;
@@ -219,6 +226,7 @@ export function useDealAnimation({
     }
 
     pendingHumanCardsRef.current = humanCardIdsForDealEvent(game, humanId, event, prev);
+    setHiddenHumanCardIds(new Set(pendingHumanCardsRef.current));
     humanRevealIndexRef.current = 0;
     stepIndexRef.current = 0;
     totalStepsRef.current = event.steps.length;
@@ -326,7 +334,16 @@ export function useDealAnimation({
       if (step.playerId === humanId) {
         const cardId = pendingHumanCardsRef.current[humanRevealIndexRef.current];
         humanRevealIndexRef.current += 1;
-        if (cardId) revealedBatch.push(cardId);
+        if (cardId) {
+          revealedBatch.push(cardId);
+          // Card has landed — stop hiding it in the hand.
+          setHiddenHumanCardIds((prev) => {
+            if (!prev.has(cardId)) return prev;
+            const next = new Set(prev);
+            next.delete(cardId);
+            return next;
+          });
+        }
       }
 
       const isRefill = dealKindRef.current === "refill";
@@ -381,12 +398,18 @@ export function useDealAnimation({
 
   const effectiveDealKind = dealingInProgress ? dealKind : null;
 
+  const effectiveHidden = useMemo(
+    () => (dealingInProgress ? hiddenHumanCardIds : EMPTY_SET),
+    [dealingInProgress, hiddenHumanCardIds],
+  );
+
   return {
     dealingInProgress,
     dealKind: effectiveDealKind,
     displayedHandCounts: effectiveHandCounts,
     displayedDeckCount: effectiveDeckCount,
     revealedHumanCardIds: effectiveRevealed,
+    hiddenHumanCardIds: effectiveHidden,
     dealQueue,
     frozenOrigins,
     handleStepComplete,

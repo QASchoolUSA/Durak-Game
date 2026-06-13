@@ -15,7 +15,6 @@ import { useGameStore } from "./store";
 const TOUCH_INTERVAL_MS = 60_000;
 
 async function expirePlaySessionOnline(
-  forfeit: (args: { roomId: Id<"rooms"> }) => Promise<unknown>,
   leaveRoom: (args: { roomId: Id<"rooms"> }) => Promise<unknown>,
 ): Promise<void> {
   const { playMode, onlineRoomId, screen } = useGameStore.getState();
@@ -23,9 +22,11 @@ async function expirePlaySessionOnline(
   if (playMode === "online" && onlineRoomId && convexEnabled) {
     const roomId = onlineRoomId as Id<"rooms">;
     try {
-      if (screen === "game") {
-        await forfeit({ roomId });
-      } else {
+      // In an active game we DON'T forfeit on idle — the seat is held and the
+      // server auto-plays the player's turns, so they can rejoin later via the
+      // "Resume game" entry points (api.rooms.myActiveRooms). Only leaving an
+      // un-started lobby frees the seat.
+      if (screen !== "game") {
         await leaveRoom({ roomId });
       }
     } catch {
@@ -33,6 +34,7 @@ async function expirePlaySessionOnline(
     }
   }
 
+  // Detach locally either way; rejoin is server-authoritative, not session-based.
   useGameStore.getState().goHome();
   await clearPlaySession();
 }
@@ -43,7 +45,6 @@ export function usePlaySessionIdle() {
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
   const onlineDisplayName = useGameStore((s) => s.onlineDisplayName);
 
-  const forfeit = useMutation(api.rooms.forfeit);
   const leaveRoom = useMutation(api.rooms.leaveRoom);
   const mountCheckedRef = useRef(false);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
@@ -91,10 +92,10 @@ export function usePlaySessionIdle() {
       void (async () => {
         const session = await loadPlaySession();
         if (!isPlaySessionExpired(session)) return;
-        await expirePlaySessionOnline(forfeit, leaveRoom);
+        await expirePlaySessionOnline(leaveRoom);
       })();
     });
 
     return () => sub.remove();
-  }, [forfeit, leaveRoom]);
+  }, [leaveRoom]);
 }

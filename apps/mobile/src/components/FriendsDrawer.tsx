@@ -36,6 +36,8 @@ import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { useInviteActions } from "../game/useInviteActions";
+import { useGameStore } from "../game/store";
+import { saveRoomSession } from "../game/onlineSessionStorage";
 import { trigger } from "../feedback/haptics";
 
 // ── Animation springs (match GameConfigDrawer) ───────────────────────────────
@@ -201,6 +203,25 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
   const incoming = useQuery(api.friends.incomingRequests, authArgs) ?? [];
   const outgoing = useQuery(api.friends.outgoingRequests, authArgs) ?? [];
   const invites = useQuery(api.invites.incomingInvites, authArgs) ?? [];
+  const resumable = useQuery(api.rooms.myActiveRooms, authArgs) ?? [];
+  const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
+
+  const resumeGame = useCallback(
+    (room: { roomId: string; code: string }) => {
+      const displayName =
+        useGameStore.getState().onlineDisplayName.trim() || "Player";
+      void saveRoomSession({ roomId: room.roomId, displayName });
+      trigger("gameStart");
+      enterOnlineLobby({
+        roomId: room.roomId,
+        displayName,
+        code: room.code,
+        isHost: false,
+      });
+      closeForNavigation();
+    },
+    [enterOnlineLobby, closeForNavigation],
+  );
 
   const acceptRequest = useMutation(api.friends.acceptRequest);
   const declineRequest = useMutation(api.friends.declineRequest);
@@ -572,10 +593,34 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
                     </>
                   )}
 
+                  {tab === "invites" && resumable.length > 0 &&
+                    resumable.map((room) => (
+                      <FriendRow
+                        key={room.roomId}
+                        displayName={
+                          room.opponents.filter(Boolean).join(", ") || "Game in progress"
+                        }
+                        handle="game"
+                        subtitle={
+                          room.isYourTurn
+                            ? "Your turn — game in progress"
+                            : "Game in progress"
+                        }
+                        actions={[
+                          {
+                            key: "resume",
+                            label: "RESUME",
+                            kind: "primary",
+                            onPress: () => resumeGame(room),
+                          },
+                        ]}
+                      />
+                    ))}
+
                   {tab === "invites" &&
-                    (invites.length === 0 ? (
+                    (invites.length === 0 && resumable.length === 0 ? (
                       <Empty text="No game invites right now." color={ui.textMuted} />
-                    ) : (
+                    ) : invites.length === 0 ? null : (
                       invites.map((inv) => (
                         <FriendRow
                           key={inv.inviteId}

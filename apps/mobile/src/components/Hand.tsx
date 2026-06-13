@@ -10,6 +10,7 @@ import Animated, {
   useSharedValue,
   withDelay,
   withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { type Card as CardModel, type Suit } from "@durak/game-core";
 import { Card } from "./Card";
@@ -176,6 +177,13 @@ const HandCard = React.memo(function HandCard({
   const rot = useSharedValue(isNew && !dealt ? restRot + 12 : restRot);
   const dealtRef = useRef(!isNew || dealt);
 
+  // Smooth reveal/hide: a card flying in stays at opacity 0 in its final slot,
+  // then fades in when it lands (revealed flips true) — no positional jump.
+  const reveal = useSharedValue(revealed ? 1 : 0);
+  useEffect(() => {
+    reveal.value = withTiming(revealed ? 1 : 0, { duration: revealed ? 130 : 90 });
+  }, [revealed, reveal]);
+
   useEffect(() => {
     if (activeSlot.value === slotIndex) return;
 
@@ -261,7 +269,7 @@ const HandCard = React.memo(function HandCard({
     }
 
     return {
-      opacity: revealed ? (fanTouchActive ? 0.85 : 1) : 0,
+      opacity: reveal.value * (fanTouchActive ? 0.85 : 1),
       transform: [
         { translateX: tx.value },
         { translateY: ty.value },
@@ -310,8 +318,12 @@ export interface HandProps {
   trumpSuit: string;
   /** Skip staggered deal springs (overlay deal or accessibility). */
   instantDeal?: boolean;
-  /** Cards revealed by the flying deal overlay. */
-  revealedCardIds?: Set<string>;
+  /**
+   * Cards currently flying in (take/deal overlay): kept invisible in their final
+   * slot until they land, then faded in. The hand layout always reflects the full
+   * sorted set, so positions never shift when a card reveals.
+   */
+  hiddenCardIds?: Set<string>;
   /** When set, deal overlay controls which cards are visible. */
   dealOverlayMode?: DealKind | null;
   /** When true, take-flight overlay controls newly taken cards. */
@@ -336,7 +348,7 @@ function HandComponent({
   interactive,
   trumpSuit,
   instantDeal = false,
-  revealedCardIds,
+  hiddenCardIds,
   dealOverlayMode = null,
   takeOverlayActive = false,
   dealingInProgress = false,
@@ -387,13 +399,6 @@ function HandComponent({
     [cards, trumpSuit],
   );
 
-  const overlayControlsVisibility = dealOverlayMode != null || takeOverlayActive;
-
-  const visibleCards = useMemo(() => {
-    if (!overlayControlsVisibility || revealedCardIds == null) return sortedCards;
-    return sortedCards.filter((c) => revealedCardIds.has(c.id));
-  }, [sortedCards, overlayControlsVisibility, revealedCardIds]);
-
   const prevIdsRef = useRef<Set<string>>(new Set());
   const newIdSet = useMemo(() => {
     const prev = prevIdsRef.current;
@@ -437,7 +442,7 @@ function HandComponent({
     onCardsDealt(newIdSet.size);
   }, [newIdSet, onCardsDealt, instantDeal, dealOverlayMode]);
 
-  const total = visibleCards.length;
+  const total = sortedCards.length;
   const { spacing, rotPerSlot } = computeHandLayout(containerWidth, w, h, total, hPad);
   const handHeight = h + TOUCH_PAD_BOTTOM + 4;
 
@@ -478,10 +483,10 @@ function HandComponent({
   }, [containerWidth, total, spacing, rotPerSlot, w, h, handHeight, layoutSV]);
 
   useEffect(() => {
-    playableMaskSV.value = visibleCards.map(
+    playableMaskSV.value = sortedCards.map(
       (c) => interactive && playableIds.has(c.id),
     );
-  }, [visibleCards, interactive, playableIds, playableMaskSV]);
+  }, [sortedCards, interactive, playableIds, playableMaskSV]);
 
   const reportLayerOrigin = useCallback(() => {
     touchLayerRef.current?.measureInWindow((x, y) => {
@@ -840,7 +845,7 @@ function HandComponent({
             style={[styles.touchLayer, { height: handHeight }]}
           >
             <View style={[styles.fanHost, { height: handHeight }]}>
-              {visibleCards.map((card, slotIndex) => (
+              {sortedCards.map((card, slotIndex) => (
                 <HandCard
                   key={card.id}
                   card={card}
@@ -856,7 +861,7 @@ function HandComponent({
                   dealt={animatedCardIdsRef.current.has(card.id)}
                   instantDeal={instantDeal}
                   overlayActive={dealOverlayMode != null || takeOverlayActive}
-                  revealed
+                  revealed={!(hiddenCardIds?.has(card.id) ?? false)}
                   activeSlot={activeSlot}
                   gestureMode={gestureMode}
                   dragX={dragX}

@@ -4,6 +4,7 @@ import {
   type PlayerId,
   canPass,
   canTake,
+  canThrowIn,
   canTransfer,
   legalAttacks,
   legalDefenses,
@@ -42,6 +43,84 @@ export function getSeatIndication(
   if (role === "defender") return "defend";
   if (role === "attacker") return "play";
   return null;
+}
+
+/**
+ * Persistent role tag shown under a seat name so every player can see who is
+ * attacking vs defending at a glance (independent of the turn clock). "taking"
+ * is intentionally omitted — the take speech bubble already covers it.
+ */
+export function seatRoleTag(
+  role: SeatRole,
+): { label: string; indication: SeatIndication } | null {
+  if (role === "attacker") return { label: "ATTACK", indication: "play" };
+  if (role === "defender") return { label: "DEFEND", indication: "defend" };
+  return null;
+}
+
+export type TurnTone =
+  | "you-attack"
+  | "you-defend"
+  | "you-throw"
+  | "waiting"
+  | "neutral";
+
+export interface TurnStatus {
+  text: string;
+  tone: TurnTone;
+}
+
+/**
+ * Human-centric description of the current game state for the status banner:
+ * what the local player should do, or who everyone is waiting on. Pure — reads
+ * only the game state and the display-name map.
+ */
+export function getTurnStatus(
+  state: GameState,
+  human: PlayerId,
+  names: Record<string, string>,
+): TurnStatus | null {
+  if (state.phase !== "playing") return null;
+
+  const nameOf = (id: PlayerId) => names[id] ?? "Opponent";
+  const isDefender = state.defenderId === human;
+  const undef = undefendedCount(state);
+
+  if (state.takeInProgress) {
+    if (isDefender) return { text: "Taking the cards", tone: "neutral" };
+    if (canThrowIn(state, human)) {
+      return { text: "Throw in more cards or wait", tone: "you-throw" };
+    }
+    return { text: `${nameOf(state.defenderId)} is taking the cards`, tone: "waiting" };
+  }
+
+  if (undef > 0) {
+    const cards = undef === 1 ? "card" : "cards";
+    if (isDefender) {
+      return { text: `Your turn — beat ${undef} ${cards}`, tone: "you-defend" };
+    }
+    return {
+      text: `Waiting for ${nameOf(state.defenderId)} to beat ${undef} ${cards}`,
+      tone: "waiting",
+    };
+  }
+
+  // Nothing unbeaten on the table.
+  if (state.table.length === 0) {
+    if (human === state.attackerId) {
+      return { text: "Your turn — attack", tone: "you-attack" };
+    }
+    return { text: `Waiting for ${nameOf(state.attackerId)} to attack`, tone: "waiting" };
+  }
+
+  // Everything beaten — throw-in window before the bout ends.
+  if (canThrowIn(state, human)) {
+    return { text: "Throw in a matching card or press DONE", tone: "you-throw" };
+  }
+  if (isDefender) {
+    return { text: "Defended — waiting for attackers", tone: "neutral" };
+  }
+  return { text: "Waiting for attackers to throw in or pass", tone: "waiting" };
 }
 
 export interface HumanView {

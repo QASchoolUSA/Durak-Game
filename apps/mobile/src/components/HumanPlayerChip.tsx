@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from "react-native";
 import type { SeatIndication, SeatRole } from "../game/selectors";
+import { seatRoleTag } from "../game/selectors";
 import type { TurnClockConfig } from "../game/turnClockEngine";
 import { PlayerAvatar, indicationColor } from "./playerSeatShared";
 import { TakeSpeechBubble } from "./TakeSpeechBubble";
@@ -22,6 +23,8 @@ export interface HumanPlayerChipProps {
   showTimerRing?: boolean;
   /** When false, ring stays full (clock paused e.g. reveal overlay). */
   timerRunning?: boolean;
+  /** Fade the chip when it isn't your turn. */
+  dimmed?: boolean;
   finished?: boolean;
   onPress?: () => void;
   showYouLabel?: boolean;
@@ -37,6 +40,7 @@ function HumanPlayerChipComponent({
   timerEnabled = true,
   showTimerRing = true,
   timerRunning = true,
+  dimmed = false,
   finished,
   onPress,
   showYouLabel = false,
@@ -44,6 +48,8 @@ function HumanPlayerChipComponent({
   const ui = useUiTheme();
   const isTaking = role === "taking";
   const ringColor = indication ? indicationColor(indication) : ui.accent;
+  const tag = !finished ? seatRoleTag(role) : null;
+  const tagColor = tag ? indicationColor(tag.indication) : ui.accent;
 
   const [layoutSize, setLayoutSize] = useState({ width: 0, height: 0 });
   const layoutReady = layoutSize.width > 0 && layoutSize.height > 0;
@@ -67,6 +73,7 @@ function HumanPlayerChipComponent({
             styles.panel,
             { backgroundColor: ui.panelBg },
             isTaking && !finished && styles.panelTaking,
+            dimmed && !finished && styles.dimmed,
             finished && styles.finished,
           ]}
         >
@@ -89,6 +96,13 @@ function HumanPlayerChipComponent({
                 <Text style={[styles.youLabel, { color: ui.accentMuted }]}>
                   (you)
                 </Text>
+              )}
+              {tag && (
+                <View style={[styles.tag, { backgroundColor: `${tagColor}22` }]}>
+                  <Text style={[styles.tagText, { color: tagColor }]}>
+                    {tag.label}
+                  </Text>
+                </View>
               )}
             </View>
           </Pressable>
@@ -129,6 +143,7 @@ const styles = StyleSheet.create({
     overflow: "visible",
   },
   finished: { opacity: 0.45 },
+  dimmed: { opacity: 0.5 },
   pressable: {
     flexDirection: "row",
     alignItems: "center",
@@ -152,6 +167,17 @@ const styles = StyleSheet.create({
   youLabel: {
     ...typography.caption,
     flexShrink: 0,
+  },
+  tag: {
+    flexShrink: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  tagText: {
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 1,
   },
 });
 

@@ -1,51 +1,63 @@
 import { useEffect, useRef } from "react";
+import { useAppActive } from "./useAppActive";
+import { trigger } from "../feedback/haptics";
 import {
-  tickTurnClock,
+  computeTurnRemaining,
   type TurnClockConfig,
 } from "../game/turnClockEngine";
 
-// Side-effects only (no re-render). 500ms keeps the JS thread mostly idle while
-// still catching the 4s / 1s warning thresholds and firing timeout auto-play
-// within tolerance. The visual ring is animated separately on the UI thread.
-const TICK_MS = 500;
-
 /**
- * Runs turn-clock side effects (haptic warnings, timeout auto-play) without
- * touching React state, so it never triggers a re-render. Visual countdown
- * progress is handled separately by SeatTurnTimerRing/useTurnProgressSV, which
- * animates on the UI thread for the seat that currently owns the clock.
+ * Runs turn-clock side effects (haptic warnings, timeout auto-play) using precise
+ * scheduled timeouts. This completely eliminates periodic JS polling (previously
+ * setInterval every 500ms), keeping the JS thread 100% idle between transitions.
  */
 export function useTurnTimeout(config: TurnClockConfig): void {
   const configRef = useRef(config);
   configRef.current = config;
 
-  const firedRef = useRef(false);
-  const prevRemainingRef = useRef(config.totalSeconds);
-  const onTimeoutRef = useRef(config.onTimeout);
-  onTimeoutRef.current = config.onTimeout;
+  const appActive = useAppActive();
 
   useEffect(() => {
-    firedRef.current = false;
-    prevRemainingRef.current = config.totalSeconds;
+    if (!config.enabled || config.totalSeconds <= 0 || !appActive) return;
 
-    if (!config.enabled || config.totalSeconds <= 0) return;
+    const remaining = computeTurnRemaining(config);
+    const remainingMs = remaining * 1000;
+    if (remainingMs <= 0) return;
 
-    const tick = () => {
-      tickTurnClock(configRef.current, {
-        firedRef,
-        prevRemainingRef,
-        onTimeoutRef,
-      });
+    let warningTimeoutId: ReturnType<typeof setTimeout> | undefined;
+    const warningDelay = remainingMs - 4000;
+    if (warningDelay > 0) {
+      warningTimeoutId = setTimeout(() => {
+        trigger("timerWarning");
+      }, warningDelay);
+    }
+
+    let criticalTimeoutId: ReturnType<typeof setTimeout> | undefined;
+    const criticalDelay = remainingMs - 1000;
+    if (criticalDelay > 0) {
+      criticalTimeoutId = setTimeout(() => {
+        trigger("timerCritical");
+      }, criticalDelay);
+    }
+
+    const expiredTimeoutId = setTimeout(() => {
+      if (configRef.current.playMode !== "online") {
+        trigger("timerExpired");
+        configRef.current.onTimeout();
+      }
+    }, remainingMs);
+
+    return () => {
+      if (warningTimeoutId) clearTimeout(warningTimeoutId);
+      if (criticalTimeoutId) clearTimeout(criticalTimeoutId);
+      clearTimeout(expiredTimeoutId);
     };
-
-    tick();
-    const intervalId = setInterval(tick, TICK_MS);
-    return () => clearInterval(intervalId);
   }, [
     config.enabled,
     config.totalSeconds,
     config.lastMoveAt,
     config.turnDeadlineAt,
     config.playMode,
+    appActive,
   ]);
 }

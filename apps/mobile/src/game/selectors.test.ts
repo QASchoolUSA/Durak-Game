@@ -6,8 +6,12 @@ import {
   getHumanView,
   getSeatIndication,
   getSeatRole,
+  getTurnStatus,
   playerMustAct,
+  seatRoleTag,
 } from "./selectors";
+
+const NAMES = { bot1: "Alex", you: "You", bot2: "Bo" };
 
 function c(rank: Card["rank"], suit: Card["suit"]): Card {
   return { rank, suit, id: cardId(rank, suit) };
@@ -282,5 +286,130 @@ describe("canReveal", () => {
       },
     });
     expect(canReveal(state, "you")).toBe(false);
+  });
+});
+
+describe("seatRoleTag", () => {
+  it("labels attacker and defender, omits taking/none", () => {
+    expect(seatRoleTag("attacker")).toEqual({ label: "ATTACK", indication: "play" });
+    expect(seatRoleTag("defender")).toEqual({ label: "DEFEND", indication: "defend" });
+    expect(seatRoleTag("taking")).toBeNull();
+    expect(seatRoleTag(null)).toBeNull();
+  });
+});
+
+describe("getTurnStatus", () => {
+  it("returns null when the game is not playing", () => {
+    const state = baseState({ phase: "gameOver" });
+    expect(getTurnStatus(state, "you", NAMES)).toBeNull();
+  });
+
+  it("prompts you to attack when you open with an empty table", () => {
+    const state = baseState({
+      attackerId: "you",
+      defenderId: "bot1",
+      hands: { bot1: [], you: [c(9, "hearts")], bot2: [] },
+      table: [],
+    });
+    expect(getTurnStatus(state, "you", NAMES)).toEqual({
+      text: "Your turn — attack",
+      tone: "you-attack",
+    });
+  });
+
+  it("names the attacker you are waiting on", () => {
+    const state = baseState({
+      attackerId: "bot1",
+      defenderId: "bot2",
+      hands: { bot1: [c(9, "hearts")], you: [], bot2: [] },
+      table: [],
+    });
+    expect(getTurnStatus(state, "you", NAMES)).toEqual({
+      text: "Waiting for Alex to attack",
+      tone: "waiting",
+    });
+  });
+
+  it("tells the defender how many cards to beat (singular/plural)", () => {
+    const one = baseState({
+      defenderId: "you",
+      table: [{ attack: c(9, "clubs") }],
+    });
+    expect(getTurnStatus(one, "you", NAMES)).toEqual({
+      text: "Your turn — beat 1 card",
+      tone: "you-defend",
+    });
+
+    const two = baseState({
+      defenderId: "you",
+      table: [{ attack: c(9, "clubs") }, { attack: c(9, "hearts") }],
+    });
+    expect(getTurnStatus(two, "you", NAMES)).toEqual({
+      text: "Your turn — beat 2 cards",
+      tone: "you-defend",
+    });
+  });
+
+  it("names the defender others are waiting on", () => {
+    const state = baseState({
+      attackerId: "you",
+      defenderId: "bot2",
+      hands: { bot1: [], you: [c(10, "clubs")], bot2: [c(11, "clubs")] },
+      table: [{ attack: c(9, "clubs") }],
+    });
+    expect(getTurnStatus(state, "you", NAMES)).toEqual({
+      text: "Waiting for Bo to beat 1 card",
+      tone: "waiting",
+    });
+  });
+
+  it("invites an eligible attacker to throw in once everything is beaten", () => {
+    const state = baseState({
+      attackerId: "you",
+      defenderId: "bot1",
+      hands: { bot1: [], you: [c(9, "hearts")], bot2: [] },
+      table: [{ attack: c(9, "clubs"), defense: c(10, "clubs") }],
+    });
+    expect(getTurnStatus(state, "you", NAMES)).toEqual({
+      text: "Throw in a matching card or press DONE",
+      tone: "you-throw",
+    });
+  });
+
+  it("tells the defender they have defended and are waiting", () => {
+    const state = baseState({
+      attackerId: "bot1",
+      defenderId: "you",
+      hands: { bot1: [c(7, "hearts")], you: [], bot2: [c(8, "hearts")] },
+      table: [{ attack: c(9, "clubs"), defense: c(10, "clubs") }],
+    });
+    expect(getTurnStatus(state, "you", NAMES)).toEqual({
+      text: "Defended — waiting for attackers",
+      tone: "neutral",
+    });
+  });
+
+  it("describes take-in-progress for both the taker and the others", () => {
+    const taker = baseState({
+      defenderId: "you",
+      takeInProgress: true,
+      table: [{ attack: c(9, "clubs") }],
+    });
+    expect(getTurnStatus(taker, "you", NAMES)).toEqual({
+      text: "Taking the cards",
+      tone: "neutral",
+    });
+
+    const other = baseState({
+      attackerId: "bot1",
+      defenderId: "bot2",
+      takeInProgress: true,
+      hands: { bot1: [], you: [], bot2: [] },
+      table: [{ attack: c(9, "clubs") }],
+    });
+    expect(getTurnStatus(other, "you", NAMES)).toEqual({
+      text: "Bo is taking the cards",
+      tone: "waiting",
+    });
   });
 });

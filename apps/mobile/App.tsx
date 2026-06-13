@@ -25,6 +25,7 @@ import { useProfileNameSync } from "./src/game/useProfileNameSync";
 import { useDeepLinking } from "./src/hooks/useDeepLinking";
 import { OnlineStatusBanner } from "./src/components/OnlineStatusBanner";
 import { IncomingInviteBanner } from "./src/components/IncomingInviteBanner";
+import { ResumeGameBanner } from "./src/components/ResumeGameBanner";
 import { GameResultCrossfade } from "./src/components/GameResultCrossfade";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { WelcomeScreen } from "./src/screens/WelcomeScreen";
@@ -125,6 +126,7 @@ function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
         <ProfileNameSync />
         {children}
         <IncomingInviteBanner />
+        <ResumeGameBanner />
       </AuthGateProvider>
     </ConvexAuthProvider>
   );
@@ -163,7 +165,7 @@ export default function App() {
   const showHome = screen === "home";
   // Show the welcome/auth landing on first run. With no Convex backend the auth
   // hooks can't run, so guests skip straight in.
-  const showWelcome = convexEnabled && !onboarded;
+  const showWelcome = convexEnabled && onboardedHydrated && !onboarded;
 
   const content = (
     <View style={styles.appShell}>

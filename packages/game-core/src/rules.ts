@@ -186,7 +186,11 @@ export function canTake(state: GameState, player: PlayerId): boolean {
     state.phase === "playing" &&
     player === state.defenderId &&
     !state.takeInProgress &&
-    state.table.length > 0
+    // Only takeable while at least one attack is still unbeaten. Once the
+    // defender has covered everything they are merely waiting for attackers to
+    // throw in or pass — they must not be takeable (and must not be auto-taken
+    // on a turn-clock timeout while attackers stall).
+    undefendedCount(state) > 0
   );
 }
 

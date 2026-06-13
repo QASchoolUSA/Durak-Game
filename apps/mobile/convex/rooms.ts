@@ -44,6 +44,7 @@ import {
   type RoomDoc,
 } from "./lib/roomHelpers";
 import { requireUserId } from "./lib/requireAuth";
+import { resumableRoomsFor } from "./lib/resumeHelpers";
 import { onlineRules } from "./lib/onlineRules";
 import { memberNames, sanitizeGameState } from "./lib/views";
 import {
@@ -61,6 +62,7 @@ const CLEANUP_BATCH_SIZE = 100;
 const RETURN_WINDOW_MS = 3000;
 const REVEAL_DISPLAY_MS = 4000;
 const REMATCH_FALLBACK_MS = 2 * 60 * 1000;
+const REJOIN_NUDGE_MS = 3 * 60 * 1000;
 
 const roomConfigValidator = v.object({
   numPlayers: v.number(),
@@ -1036,6 +1038,32 @@ export const getRoomByCode = query({
   },
 });
 
+/**
+ * Rooms the current user can resume — any lobby/playing room where they still
+ * hold a (non-bot) seat. Source of truth for the Home/Friends "Resume game"
+ * entry points, so rejoin works even after local session memory is gone.
+ *
+ * Scans by status; the active-room set is bounded by the stale-cleanup cron, so
+ * this stays small. If room volume ever grows, replace with a membership index.
+ */
+export const myActiveRooms = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireUserId(ctx);
+
+    const rooms: RoomDoc[] = [];
+    for (const status of ["playing", "lobby"] as const) {
+      const batch = await ctx.db
+        .query("rooms")
+        .withIndex("by_status", (q) => q.eq("status", status))
+        .collect();
+      rooms.push(...batch);
+    }
+
+    return resumableRoomsFor(rooms, userId);
+  },
+});
+
 export const autoReturnToLobby = internalMutation({
   args: {
     roomId: v.id("rooms"),
@@ -1118,6 +1146,29 @@ export const processHumanTimeout = internalMutation({
       next = applyMove(state, move);
     } catch {
       return;
+    }
+
+    // The active human let their turn lapse — likely away. Nudge them to rejoin,
+    // rate-limited per member so a slow-but-present player isn't spammed.
+    const now = Date.now();
+    const absentMember = room.members.find(
+      (m) => !m.isBot && m.playerId === human,
+    );
+    if (
+      absentMember &&
+      now - (absentMember.lastNudgeAt ?? 0) > REJOIN_NUDGE_MS
+    ) {
+      await ctx.db.patch(args.roomId, {
+        members: room.members.map((m) =>
+          m.userId === absentMember.userId ? { ...m, lastNudgeAt: now } : m,
+        ),
+      });
+      await ctx.scheduler.runAfter(0, internal.push.sendToUser, {
+        userId: absentMember.userId as Id<"users">,
+        title: "Your game is waiting",
+        body: "It's your turn — tap to rejoin.",
+        data: { type: "game_resume", roomId: args.roomId, code: room.code },
+      });
     }
 
     await applyGameUpdate(ctx, args.roomId, room, next);
