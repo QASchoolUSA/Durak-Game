@@ -8,6 +8,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import type { SeatIndication, SeatRole } from "../game/selectors";
+import { seatRoleTag } from "../game/selectors";
 import type { TurnClockConfig } from "../game/turnClockEngine";
 import { PlayerAvatar, indicationColor } from "./playerSeatShared";
 import { SeatReactionBurst } from "./SeatReactionBurst";
@@ -33,6 +34,8 @@ export interface PlayerSeatProps {
   clockConfig: TurnClockConfig;
   timerEnabled?: boolean;
   showTimerRing?: boolean;
+  /** Fade the seat when it isn't the one currently acting. */
+  dimmed?: boolean;
   finished?: boolean;
   skipEnterAnimation?: boolean;
   landingPulseToken?: number;
@@ -103,6 +106,7 @@ function PlayerSeatComponent({
   clockConfig,
   timerEnabled = true,
   showTimerRing = true,
+  dimmed = false,
   finished,
   skipEnterAnimation = false,
   landingPulseToken = 0,
@@ -114,6 +118,8 @@ function PlayerSeatComponent({
   const showTimer =
     !finished && indication != null && (onClock || role === "taking");
   const ringColor = indication ? indicationColor(indication) : ui.accent;
+  const tag = !finished ? seatRoleTag(role) : null;
+  const tagColor = tag ? indicationColor(tag.indication) : ui.accent;
 
   const [layoutSize, setLayoutSize] = useState({ width: 0, height: 0 });
   const layoutReady = layoutSize.width > 0 && layoutSize.height > 0;
@@ -138,6 +144,7 @@ function PlayerSeatComponent({
             styles.panel,
             { backgroundColor: ui.panelBg },
             isTaking && !finished && styles.panelTaking,
+            dimmed && !finished && styles.dimmed,
             finished && styles.finished,
           ]}
         >
@@ -165,6 +172,12 @@ function PlayerSeatComponent({
               <Text style={[styles.cardCount, { color: ui.textPrimary }]}>{cardCount}</Text>
             </View>
           </View>
+
+          {tag && (
+            <View style={[styles.roleBar, { backgroundColor: `${tagColor}22` }]}>
+              <Text style={[styles.roleText, { color: tagColor }]}>{tag.label}</Text>
+            </View>
+          )}
 
           {finished && (
             <View style={styles.roleBarFinished}>
@@ -209,6 +222,7 @@ const styles = StyleSheet.create({
     overflow: "visible",
   },
   finished: { opacity: 0.45 },
+  dimmed: { opacity: 0.5 },
 
   body: {
     gap: 6,
@@ -246,6 +260,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
   },
+  roleBar: {
+    paddingVertical: 3,
+    alignItems: "center",
+  },
+  roleText: { fontSize: 9, fontWeight: "800", letterSpacing: 1 },
   roleBarFinished: {
     paddingVertical: 4,
     alignItems: "center",

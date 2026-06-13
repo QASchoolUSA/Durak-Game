@@ -22,6 +22,7 @@ import type * as lib_handSort from "../lib/handSort.js";
 import type * as lib_onlineGame from "../lib/onlineGame.js";
 import type * as lib_onlineRules from "../lib/onlineRules.js";
 import type * as lib_requireAuth from "../lib/requireAuth.js";
+import type * as lib_resumeHelpers from "../lib/resumeHelpers.js";
 import type * as lib_revealHelpers from "../lib/revealHelpers.js";
 import type * as lib_roomHelpers from "../lib/roomHelpers.js";
 import type * as lib_social from "../lib/social.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   "lib/onlineGame": typeof lib_onlineGame;
   "lib/onlineRules": typeof lib_onlineRules;
   "lib/requireAuth": typeof lib_requireAuth;
+  "lib/resumeHelpers": typeof lib_resumeHelpers;
   "lib/revealHelpers": typeof lib_revealHelpers;
   "lib/roomHelpers": typeof lib_roomHelpers;
   "lib/social": typeof lib_social;

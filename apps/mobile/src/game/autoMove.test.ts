@@ -42,6 +42,22 @@ describe("timeoutMoveFor", () => {
     expect(timeoutMoveFor(state, "you")).toEqual({ type: "TAKE", player: "you" });
   });
 
+  it("does NOT auto-take a defender who has beaten every attack", () => {
+    // You beat the only attack; nothing is unbeaten. While attackers stall on
+    // pressing DONE, a turn-clock timeout must not force you to take cards you
+    // already covered. (Regression: canTake used to fire on table.length > 0.)
+    const state = baseState({
+      hands: {
+        bot1: [c(11, "hearts")],
+        you: [c(7, "hearts")],
+        bot2: [c(8, "clubs")],
+      },
+      table: [{ attack: c(9, "clubs"), defense: c(10, "clubs") }],
+    });
+
+    expect(timeoutMoveFor(state, "you")).toBeNull();
+  });
+
   it("attacker passes when done is legal", () => {
     const state = baseState({
       attackerId: "you",

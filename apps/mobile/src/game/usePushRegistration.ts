@@ -40,10 +40,11 @@ export function usePushRegistration(): void {
   useEffect(() => {
     configureNotificationHandler();
     const unsub = addNotificationResponseListener((data) => {
+      const displayName = useGameStore.getState().onlineDisplayName.trim() || "Player";
+
       if (data.type === "game_invite" && data.code && data.roomId) {
         const code = data.code as string;
         const roomId = data.roomId as string;
-        const displayName = useGameStore.getState().onlineDisplayName.trim() || "Player";
         (async () => {
           try {
             await joinRoom({ code, displayName });
@@ -52,6 +53,20 @@ export function usePushRegistration(): void {
             enterOnlineLobby({ roomId, displayName, code, isHost: false });
           } catch (err) {
             if (__DEV__) console.warn("[push] failed to join room via invite tap", err);
+          }
+        })();
+      } else if (data.type === "game_resume" && data.roomId) {
+        // Already a member — reattach directly (no joinRoom). getRoomView
+        // resolves the seat from the stable identity.
+        const roomId = data.roomId as string;
+        const code = (data.code as string | undefined) ?? "";
+        (async () => {
+          try {
+            await saveRoomSession({ roomId, displayName });
+            trigger("gameStart");
+            enterOnlineLobby({ roomId, displayName, code, isHost: false });
+          } catch (err) {
+            if (__DEV__) console.warn("[push] failed to resume game via tap", err);
           }
         })();
       }

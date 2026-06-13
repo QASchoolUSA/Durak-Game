@@ -12,6 +12,7 @@ import type { SharedValue } from "react-native-reanimated";
 import { type TablePair } from "@durak/game-core";
 import { Card } from "./Card";
 import { ChoiceDropSlot } from "./ChoiceDropSlot";
+import { UndefendedAttackHighlight } from "./UndefendedAttackHighlight";
 import { MeasuredDropSlot } from "./MeasuredDropSlot";
 import { useSharedIndex } from "../hooks/useSharedIndex";
 import { pairLayoutWidth, type DropZone, type DropZoneKind } from "../game/dropZones";
@@ -274,6 +275,10 @@ export interface TableAreaProps {
   exitKind?: TableExitKind;
   choiceTargets?: number[];
   transferTargets?: number[];
+  /** Table indices of unbeaten attacks to mark with the "needs beating" glow. */
+  undefendedTargets?: number[];
+  /** Brighten the undefended glow (local player must beat right now). */
+  highlightStrong?: boolean;
   hoverDefendIndex?: number | null;
   hoverTransferIndex?: number | null;
   hoverDefendIndexSV?: SharedValue<number>;
@@ -297,6 +302,8 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
       exitKind = "toDiscard",
       choiceTargets = [],
       transferTargets = [],
+      undefendedTargets = [],
+      highlightStrong = false,
       hoverDefendIndex = null,
       hoverTransferIndex = null,
       hoverDefendIndexSV,
@@ -317,6 +324,7 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
     const h = layout.cardH;
     const choiceSet = new Set(choiceTargets);
     const transferSet = new Set(transferTargets);
+    const undefendedSet = new Set(undefendedTargets);
     const measureZones = Boolean(onDropZoneLayout);
     const reportersRef = useRef(new Set<() => void>());
 
@@ -353,6 +361,10 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
 
     const renderPair = (pair: TablePair, i: number) => {
       const showChoice = choiceSet.has(i) && !pair.defense;
+      // Passive "needs beating" glow — shown for every unbeaten attack in any
+      // mode, but never on top of the perevodnoy BEAT/TRANSFER choice chrome.
+      const showUndefendedGlow =
+        undefendedSet.has(i) && !pair.defense && !showChoice;
       const transferEnabled = transferSet.has(i);
       const beatHover = resolvedDefendHover === i;
       const transferHover = transferEnabled && resolvedTransferHover === i;
@@ -432,6 +444,13 @@ const TableAreaComponent = forwardRef<TableAreaHandle, TableAreaProps>(
                 beatSlot
               ) : (
                 attackCard
+              )}
+              {showUndefendedGlow && (
+                <UndefendedAttackHighlight
+                  width={w}
+                  height={h}
+                  strong={highlightStrong}
+                />
               )}
             </View>
 

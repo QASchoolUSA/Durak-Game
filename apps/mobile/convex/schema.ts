@@ -38,6 +38,8 @@ const roomMember = v.object({
   isBot: v.boolean(),
   playerId: v.optional(v.string()),
   isReady: v.optional(v.boolean()),
+  /** Last time an absent-turn "rejoin" push was sent to this member (rate-limit). */
+  lastNudgeAt: v.optional(v.number()),
 });
 
 const recentReaction = v.object({
@@ -87,7 +89,8 @@ export default defineSchema({
   })
     .index("by_code", ["code"])
     .index("by_lastMoveAt", ["lastMoveAt"])
-    .index("by_lastTouchedAt", ["lastTouchedAt"]),
+    .index("by_lastTouchedAt", ["lastTouchedAt"])
+    .index("by_status", ["status"]),
   wallets: defineTable({
     userId: v.string(),
     goldBalance: v.number(),
