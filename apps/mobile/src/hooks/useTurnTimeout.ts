@@ -4,13 +4,16 @@ import {
   type TurnClockConfig,
 } from "../game/turnClockEngine";
 
-const TICK_MS = 250;
+// Side-effects only (no re-render). 500ms keeps the JS thread mostly idle while
+// still catching the 4s / 1s warning thresholds and firing timeout auto-play
+// within tolerance. The visual ring is animated separately on the UI thread.
+const TICK_MS = 500;
 
 /**
  * Runs turn-clock side effects (haptic warnings, timeout auto-play) without
  * touching React state, so it never triggers a re-render. Visual countdown
- * progress is handled separately by SeatTurnTimerRing/useTurnProgress, which
- * only ticks for the seat that currently owns the clock.
+ * progress is handled separately by SeatTurnTimerRing/useTurnProgressSV, which
+ * animates on the UI thread for the seat that currently owns the clock.
  */
 export function useTurnTimeout(config: TurnClockConfig): void {
   const configRef = useRef(config);

@@ -10,14 +10,14 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { useAppActive } from "../hooks/useAppActive";
 import { useSharedBool } from "../hooks/useSharedBool";
 import { colors, radius } from "../theme";
 
 export type ChoiceDropVariant = "beat" | "transfer";
 
-// Ring layers: inner (tight bright halo) + outer (wide soft bloom)
-const INNER = 6;
-const OUTER = 18;
+// Single shadowless glow halo around the slot (was two soft-shadow rings).
+const GLOW = 10;
 
 const SPRING_POP = { damping: 11, stiffness: 380, mass: 0.55 };
 const SPRING_SETTLE = { damping: 20, stiffness: 220, mass: 0.7 };
@@ -79,12 +79,12 @@ function ChoiceDropSlotComponent({
 }: ChoiceDropSlotProps) {
   const cfg = CFG[variant];
   const dragAvailable = useSharedBool(availableSV, available);
+  const appActive = useAppActive();
 
   // Shared animation values
   const slotOpacity = useSharedValue(1);
   const scale       = useSharedValue(1);
-  const innerOp     = useSharedValue(0);
-  const outerOp     = useSharedValue(0);
+  const glowOp      = useSharedValue(0);
   const labelOp     = useSharedValue(0);
   const labelY      = useSharedValue(8);
 
@@ -99,8 +99,13 @@ function ChoiceDropSlotComponent({
     );
   }, [disabled, dimmed, slotOpacity]);
 
-  // ── Ring + scale + label animations ───────────────────────────────────────
+  // ── Glow + scale + label animations ───────────────────────────────────────
+  // The glow halo is shadowless (animated opacity on a flat layer) so the pulse
+  // runs cheaply on the UI thread — no per-frame offscreen shadow rasterization.
+  // Infinite loops are gated on `appActive` so a backgrounded slot stops pulsing.
   useEffect(() => {
+    cancelAnimation(glowOp);
+
     if (isActive) {
       // Satisfying pop on enter
       scale.value = withSequence(
@@ -108,30 +113,20 @@ function ChoiceDropSlotComponent({
         withSpring(1.07, SPRING_SETTLE),
       );
 
-      // Inner ring: flash → pulse
-      cancelAnimation(innerOp);
-      innerOp.value = withSequence(
-        withTiming(1.0, { duration: 60 }),
-        withRepeat(
-          withSequence(
-            withTiming(1.0, { duration: 330 }),
-            withTiming(0.42, { duration: 330 }),
-          ),
-          -1,
-          false,
-        ),
-      );
-
-      // Outer bloom: slower, softer pulse
-      cancelAnimation(outerOp);
-      outerOp.value = withRepeat(
-        withSequence(
-          withTiming(0.60, { duration: 400 }),
-          withTiming(0.15, { duration: 400 }),
-        ),
-        -1,
-        false,
-      );
+      // Bright pulse (flash → repeat), only while the app is foregrounded.
+      glowOp.value = appActive
+        ? withSequence(
+            withTiming(1.0, { duration: 60 }),
+            withRepeat(
+              withSequence(
+                withTiming(1.0, { duration: 330 }),
+                withTiming(0.5, { duration: 330 }),
+              ),
+              -1,
+              false,
+            ),
+          )
+        : withTiming(0.9, { duration: 120 });
 
       // Label slides in brightly
       labelOp.value = withTiming(1.0, { duration: 140 });
@@ -141,25 +136,16 @@ function ChoiceDropSlotComponent({
       scale.value = withTiming(1.0, { duration: 200 });
 
       // Slow, calm breathing — "I'm here"
-      cancelAnimation(innerOp);
-      innerOp.value = withRepeat(
-        withSequence(
-          withTiming(0.32, { duration: 950 }),
-          withTiming(0.08, { duration: 950 }),
-        ),
-        -1,
-        false,
-      );
-
-      cancelAnimation(outerOp);
-      outerOp.value = withRepeat(
-        withSequence(
-          withTiming(0.18, { duration: 950 }),
-          withTiming(0.04, { duration: 950 }),
-        ),
-        -1,
-        false,
-      );
+      glowOp.value = appActive
+        ? withRepeat(
+            withSequence(
+              withTiming(0.5, { duration: 950 }),
+              withTiming(0.16, { duration: 950 }),
+            ),
+            -1,
+            false,
+          )
+        : withTiming(0.32, { duration: 220 });
 
       // Label fades in softly
       labelOp.value = withTiming(0.70, { duration: 260 });
@@ -168,20 +154,16 @@ function ChoiceDropSlotComponent({
     } else {
       scale.value = withTiming(1.0, { duration: 150 });
 
-      cancelAnimation(innerOp);
-      cancelAnimation(outerOp);
-      innerOp.value = withTiming(0, { duration: 220 });
-      outerOp.value = withTiming(0, { duration: 220 });
+      glowOp.value = withTiming(0, { duration: 220 });
       labelOp.value = withTiming(0, { duration: 160 });
       labelY.value  = withTiming(8, { duration: 160 });
     }
-  }, [isActive, isAvail]);
+  }, [isActive, isAvail, appActive]);
 
   // ── Animated styles ────────────────────────────────────────────────────────
   const aSlot  = useAnimatedStyle(() => ({ opacity: slotOpacity.value }));
   const aScale = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const aInner = useAnimatedStyle(() => ({ opacity: innerOp.value }));
-  const aOuter = useAnimatedStyle(() => ({ opacity: outerOp.value }));
+  const aGlow  = useAnimatedStyle(() => ({ opacity: glowOp.value }));
   const aLabelOpacity = useAnimatedStyle(() => ({ opacity: labelOp.value }));
   const aLabelShift = useAnimatedStyle(() => ({
     transform: [{ translateY: labelY.value }],
@@ -201,37 +183,18 @@ function ChoiceDropSlotComponent({
   return (
     <Animated.View style={[{ width, height }, aSlot]}>
 
-      {/* ── Outer bloom (wide, soft) ── */}
+      {/* ── Glow halo (single, shadowless) ── */}
       <Animated.View
         pointerEvents="none"
         style={[
-          styles.ring,
+          styles.glow,
           {
-            top: -OUTER, left: -OUTER, right: -OUTER, bottom: -OUTER,
-            borderRadius: radius.card + OUTER,
-            borderColor: cfg.glow,
-            backgroundColor: cfg.outerFill,
-            shadowColor: cfg.glow,
-            shadowRadius: 22,
-          },
-          aOuter,
-        ]}
-      />
-
-      {/* ── Inner halo (tight, bright) ── */}
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.ring,
-          {
-            top: -INNER, left: -INNER, right: -INNER, bottom: -INNER,
-            borderRadius: radius.card + INNER,
+            top: -GLOW, left: -GLOW, right: -GLOW, bottom: -GLOW,
+            borderRadius: radius.card + GLOW,
             borderColor: cfg.glow,
             backgroundColor: cfg.innerFill,
-            shadowColor: cfg.glow,
-            shadowRadius: 10,
           },
-          aInner,
+          aGlow,
         ]}
       />
 
@@ -287,17 +250,16 @@ const styles = StyleSheet.create({
   },
   frameActive: {
     borderWidth: 3,
-    shadowOpacity: 0.88,
-    shadowRadius: 14,
+    // Static (non-animated) shadow — kept modest so it stays cheap; the pulse is
+    // carried by the shadowless glow halo, not by animating this shadow.
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
     shadowOffset: { width: 0, height: 0 },
-    elevation: 16,
+    elevation: 10,
   },
-  ring: {
+  glow: {
     position: "absolute",
     borderWidth: 2,
-    shadowOpacity: 0.82,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 8,
   },
   beatContent: {
     ...StyleSheet.absoluteFill,
