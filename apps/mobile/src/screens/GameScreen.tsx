@@ -33,7 +33,7 @@ import {
   isTableCardAnchorId,
   type TakeSnapshot,
 } from "../game/takeSequence";
-import { AbilityDock } from "../components/AbilityDock";
+import { RevealPill, GraveyardPill, ReturnPill } from "../components/AbilityDock";
 import { GraveyardSheet } from "../components/GraveyardSheet";
 import { PendingRevealOverlay } from "../components/PendingRevealOverlay";
 import { RevealSheet } from "../components/RevealSheet";
@@ -140,6 +140,68 @@ function useStableHandCards(cards: CardModel[]): CardModel[] {
   return stableRef.current;
 }
 
+function ReturnActionButton({
+  returnExpiresAt,
+  playMode,
+  returnSnapshot,
+  returnLastCard,
+  submittingMove,
+}: {
+  returnExpiresAt: number;
+  playMode: string;
+  returnSnapshot: any;
+  returnLastCard: () => void;
+  submittingMove: boolean;
+}) {
+  const [remaining, setRemaining] = useState(0);
+
+  const windowActive =
+    playMode === "online"
+      ? returnExpiresAt > Date.now()
+      : !!returnSnapshot && returnExpiresAt > Date.now();
+
+  useEffect(() => {
+    if (!windowActive || !returnExpiresAt) {
+      setRemaining(0);
+      return;
+    }
+
+    const tick = () => {
+      setRemaining(Math.max(0, (returnExpiresAt - Date.now()) / 1000));
+    };
+
+    tick();
+    const iv = setInterval(tick, 150);
+    return () => clearInterval(iv);
+  }, [windowActive, returnExpiresAt]);
+
+  if (!windowActive || remaining <= 0) {
+    return null;
+  }
+
+  return (
+    <Pressable
+      style={[
+        styles.actionBtn,
+        styles.actionSide,
+        styles.returnBtn,
+        submittingMove && styles.actionDisabled,
+      ]}
+      disabled={submittingMove}
+      onPress={() => {
+        trigger("uiTap");
+        returnLastCard();
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={`Return card, ${Math.ceil(remaining)} seconds left`}
+    >
+      <Text style={styles.actionText}>
+        RETURN ({Math.ceil(remaining)})
+      </Text>
+    </Pressable>
+  );
+}
+
 export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   useRenderCount("GameScreen");
   const game = useGameStore((s) => s.game);
@@ -162,6 +224,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const submittingMove = useGameStore((s) => s.submittingMove);
   const returnSnapshot = useGameStore((s) => s.returnSnapshot);
   const returnExpiresAt = useGameStore((s) => s.returnExpiresAt);
+  const returnLastCard = useGameStore((s) => s.returnLastCard);
   const goHome = useGameStore((s) => s.goHome);
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
   const turnDeadlineAt = useGameStore((s) => s.turnDeadlineAt);
@@ -1233,35 +1296,47 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
 
         <View style={styles.bottom}>
           {!humanFinished && (
-            <View style={styles.actionDockRow}>
-              <Pressable
-                style={[
-                  styles.actionBtn,
-                  styles.actionSide,
-                  styles.takeBtn,
-                  (!view.canTake || submittingMove) && styles.actionDisabled,
-                ]}
-                disabled={!view.canTake || submittingMove || dealingInProgress || takeInProgress}
-                onPress={() => {
-                  trigger("uiTap");
-                  setTakeConfirmOpen(true);
-                }}
-              >
-                <Text style={styles.actionText}>TAKE</Text>
-              </Pressable>
+            <View style={[styles.actionDockRow, { height: 40 }]}>
+              <ReturnActionButton
+                returnExpiresAt={returnExpiresAt}
+                playMode={playMode}
+                returnSnapshot={returnSnapshot}
+                returnLastCard={returnLastCard}
+                submittingMove={submittingMove}
+              />
 
-              <Pressable
-                style={[
-                  styles.actionBtn,
-                  styles.actionSide,
-                  styles.doneBtn,
-                  (!view.canPass || submittingMove) && styles.actionDisabled,
-                ]}
-                disabled={!view.canPass || submittingMove || dealingInProgress || takeInProgress}
-                onPress={() => submitHuman({ type: "PASS", player: humanId })}
-              >
-                <Text style={[styles.actionText, styles.doneText]}>DONE</Text>
-              </Pressable>
+              {view.canTake && (
+                <Pressable
+                  style={[
+                    styles.actionBtn,
+                    styles.actionSide,
+                    styles.takeBtn,
+                    submittingMove && styles.actionDisabled,
+                  ]}
+                  disabled={submittingMove || dealingInProgress || takeInProgress}
+                  onPress={() => {
+                    trigger("uiTap");
+                    setTakeConfirmOpen(true);
+                  }}
+                >
+                  <Text style={styles.actionText}>TAKE</Text>
+                </Pressable>
+              )}
+
+              {view.canPass && (
+                <Pressable
+                  style={[
+                    styles.actionBtn,
+                    styles.actionSide,
+                    styles.doneBtn,
+                    submittingMove && styles.actionDisabled,
+                  ]}
+                  disabled={submittingMove || dealingInProgress || takeInProgress}
+                  onPress={() => submitHuman({ type: "PASS", player: humanId })}
+                >
+                  <Text style={[styles.actionText, styles.doneText]}>DONE</Text>
+                </Pressable>
+              )}
             </View>
           )}
 
@@ -1288,19 +1363,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             hoverTransferIndexSV={showBeatTransferChoice ? hoverTransferIndexSV : undefined}
           />
 
-          {showAbilityDock && (
-            <View style={styles.abilitiesRow}>
-              <AbilityDock
-                discardCount={game.discard.length}
-                canReveal={dockCanReveal}
-                canGraveyard={dockCanGraveyard}
-                showRevealGraveyard={abilitiesMode || goldAbilitiesEnabled}
-                chargeGold={goldAbilitiesEnabled}
-                onRevealPress={openReveal}
-                onGraveyardPress={handleGraveyardPress}
-              />
-            </View>
-          )}
+
 
           <View
             style={[
@@ -1311,10 +1374,19 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               },
             ]}
           >
+            {game.phase === "playing" && (abilitiesMode || goldAbilitiesEnabled) ? (
+              <RevealPill
+                canReveal={dockCanReveal}
+                onPress={openReveal}
+                chargeGold={goldAbilitiesEnabled}
+              />
+            ) : (
+              <View style={styles.pillPlaceholder} />
+            )}
+
             <HumanPlayerChip
               playerId={humanId}
               name={names[humanId] ?? onlineDisplayName ?? "Player"}
-              showYouLabel
               role={seatRoleForFinished(game, humanId)}
               indication={humanIndication}
               onClock={humanOnClock}
@@ -1332,6 +1404,17 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
                 reactionsRef.current?.open();
               }}
             />
+
+            {game.phase === "playing" && (abilitiesMode || goldAbilitiesEnabled) ? (
+              <GraveyardPill
+                discardCount={game.discard.length}
+                canOpen={dockCanGraveyard}
+                onPress={handleGraveyardPress}
+                chargeGold={goldAbilitiesEnabled}
+              />
+            ) : (
+              <View style={styles.pillPlaceholder} />
+            )}
           </View>
         </View>
 
@@ -1503,9 +1586,21 @@ const styles = StyleSheet.create({
   },
   bottom: { paddingBottom: 0, overflow: "visible", gap: 0 },
   humanSeatRow: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
+  },
+  pillPlaceholder: {
+    flex: 1,
+  },
+  returnRow: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.xs,
+    width: "100%",
   },
   actionDockRow: {
     flexDirection: "row",
@@ -1534,6 +1629,14 @@ const styles = StyleSheet.create({
   doneBtn: {
     backgroundColor: colors.gold,
     ...shadows.goldGlow,
+  },
+  returnBtn: {
+    backgroundColor: "#1E4D72",
+    shadowColor: "#1E4D72",
+    shadowOpacity: 0.65,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 10,
   },
   actionDisabled: { opacity: 0.28 },
   actionText: {

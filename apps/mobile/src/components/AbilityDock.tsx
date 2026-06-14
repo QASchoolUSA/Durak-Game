@@ -11,7 +11,7 @@ import { DOCK_ROW_HEIGHT, useDockPillStyles } from "./dockPill";
 import { spacing } from "../theme";
 import { CoinIcon } from "./CoinIcon";
 
-function ReturnPill() {
+export function ReturnPill() {
   const dockPillStyles = useDockPillStyles();
   const returnSnapshot = useGameStore((s) => s.returnSnapshot);
   const returnExpiresAt = useGameStore((s) => s.returnExpiresAt);
@@ -75,7 +75,7 @@ function CostBadge({ cost }: { cost: number }) {
   );
 }
 
-function RevealPill({
+export function RevealPill({
   canReveal,
   onPress,
   chargeGold,
@@ -113,7 +113,7 @@ function RevealPill({
   );
 }
 
-function GraveyardPill({
+export function GraveyardPill({
   discardCount,
   canOpen,
   onPress,

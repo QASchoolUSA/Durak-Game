@@ -23,11 +23,9 @@ export interface HumanPlayerChipProps {
   showTimerRing?: boolean;
   /** When false, ring stays full (clock paused e.g. reveal overlay). */
   timerRunning?: boolean;
-  /** Fade the chip when it isn't your turn. */
   dimmed?: boolean;
   finished?: boolean;
   onPress?: () => void;
-  showYouLabel?: boolean;
 }
 
 function HumanPlayerChipComponent({
@@ -43,7 +41,6 @@ function HumanPlayerChipComponent({
   dimmed = false,
   finished,
   onPress,
-  showYouLabel = false,
 }: HumanPlayerChipProps) {
   const ui = useUiTheme();
   const isTaking = role === "taking";
@@ -65,47 +62,43 @@ function HumanPlayerChipComponent({
 
   return (
     <View style={styles.frame}>
-      <View style={styles.shell} onLayout={onLayout}>
+      <View style={styles.shell}>
         <SeatReactionBurst playerId={playerId} />
         {isTaking && !finished && <TakeSpeechBubble />}
-        <View
-          style={[
-            styles.panel,
-            { backgroundColor: ui.panelBg },
-            isTaking && !finished && styles.panelTaking,
-            dimmed && !finished && styles.dimmed,
-            finished && styles.finished,
-          ]}
-        >
-          <Pressable
-            style={({ pressed }) => [styles.pressable, pressed && styles.pressablePressed]}
-            onPress={onPress}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Open reactions"
+        <View style={styles.wrapper}>
+          <View
+            onLayout={onLayout}
+            style={[
+              styles.panel,
+              { backgroundColor: ui.panelBg },
+              isTaking && !finished && styles.panelTaking,
+              dimmed && !finished && styles.dimmed,
+              finished && styles.finished,
+            ]}
           >
-            <PlayerAvatar name={name} size={28} />
-            <View style={styles.nameRow}>
+            <Pressable
+              style={({ pressed }) => [styles.pressable, pressed && styles.pressablePressed]}
+              onPress={onPress}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Open reactions"
+            >
+              <PlayerAvatar name={name} size={28} />
               <Text
                 style={[styles.name, { color: ui.textPrimary }]}
                 numberOfLines={1}
               >
                 {name}
               </Text>
-              {showYouLabel && (
-                <Text style={[styles.youLabel, { color: ui.accentMuted }]}>
-                  (you)
+            </Pressable>
+            {tag && (
+              <View style={[styles.roleBar, { backgroundColor: `${tagColor}22` }]}>
+                <Text style={[styles.roleText, { color: tagColor }]}>
+                  {tag.label}
                 </Text>
-              )}
-              {tag && (
-                <View style={[styles.tag, { backgroundColor: `${tagColor}22` }]}>
-                  <Text style={[styles.tagText, { color: tagColor }]}>
-                    {tag.label}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </Pressable>
+              </View>
+            )}
+          </View>
         </View>
         {onClock && timerEnabled && showTimerRing && (
           <SeatTurnTimerRing
@@ -133,11 +126,15 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     overflow: "visible",
   },
+  wrapper: {
+    height: 38,
+    alignSelf: "center",
+    overflow: "visible",
+  },
   panel: {
-    flexDirection: "row",
-    alignItems: "center",
     borderRadius: radius.panel,
     overflow: "hidden",
+    minWidth: 100,
   },
   panelTaking: {
     overflow: "visible",
@@ -147,34 +144,23 @@ const styles = StyleSheet.create({
   pressable: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     paddingHorizontal: 10,
     paddingVertical: 5,
     zIndex: 1,
   },
   pressablePressed: { opacity: 0.85 },
-  nameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    maxWidth: 140,
-  },
   name: {
     fontSize: 12,
     fontWeight: "700",
     flexShrink: 1,
   },
-  youLabel: {
-    ...typography.caption,
-    flexShrink: 0,
+  roleBar: {
+    paddingVertical: 3,
+    alignItems: "center",
   },
-  tag: {
-    flexShrink: 0,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  tagText: {
+  roleText: {
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1,
