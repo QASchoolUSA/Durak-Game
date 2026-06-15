@@ -5,8 +5,13 @@ import * as SplashScreen from "expo-splash-screen";
 
 import App from "./App";
 
+SplashScreen.setOptions({
+  fade: false,
+  duration: 0,
+});
+
 SplashScreen.preventAutoHideAsync().catch(() => {
-  // Splash API unavailable — App will hide when ready or fall through.
+  // Splash API unavailable — BootScreen hides when its first frame is ready.
 });
 
 registerRootComponent(App);

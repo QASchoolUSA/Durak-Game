@@ -40,7 +40,7 @@ const BASE_MENU_ITEMS: MenuItem[] = [
     ? [{ label: "FRIENDS", variant: "secondary" as const, icon: "♣", action: "friends" }]
     : []),
   { label: "SETTINGS",    variant: "secondary", icon: "⚙", action: "settings" },
-  { label: "HOW TO PLAY", variant: "ghost",     icon: "?", action: "rules"    },
+  { label: "HOW TO PLAY", variant: "secondary",     icon: "?", action: "rules"    },
 ];
 
 /** Reactive badge for pending friend requests + game invites. */
