@@ -119,16 +119,23 @@ function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
   return (
     <ConvexAuthProvider client={convex} storage={convexTokenStorage}>
       <AuthGateProvider>
-        <OnlineGameSync />
-        <GoldWalletSync />
-        <PushSync />
-        <DeepLinkSync />
-        <ProfileNameSync />
         {children}
         <IncomingInviteBanner />
         <ResumeGameBanner />
       </AuthGateProvider>
     </ConvexAuthProvider>
+  );
+}
+
+function OnlineSyncLayer() {
+  return (
+    <>
+      <OnlineGameSync />
+      <GoldWalletSync />
+      <PushSync />
+      <DeepLinkSync />
+      <ProfileNameSync />
+    </>
   );
 }
 
@@ -225,7 +232,12 @@ export default function App() {
                     <BootScreen onReady={() => setBootComplete(true)} />
                   </View>
                 )}
-                {bootComplete && content}
+                {bootComplete && (
+                  <>
+                    <OnlineSyncLayer />
+                    {content}
+                  </>
+                )}
               </ConvexOnlineLayer>
             </CardThemeProvider>
           </UiThemeProvider>

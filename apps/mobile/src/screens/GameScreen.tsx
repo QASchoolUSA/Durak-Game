@@ -440,11 +440,13 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     trigger("takeCards");
   }, []);
 
+  const deckLayoutReserve = lay.cardSizes.small.w + lay.s(spacing.lg) + 20;
+
   const tableLayout = useMemo(
     () =>
       computeTableLayout({
         pairCount: game?.table.length ?? 0,
-        slotWidth: tableSlotSize.width,
+        slotWidth: Math.max(0, tableSlotSize.width - deckLayoutReserve),
         slotHeight: tableSlotSize.height,
         hasTransferChoice: showBeatTransferChoice,
         baseCardW: lay.cardSizes.table.w,
@@ -454,13 +456,12 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       game?.table.length,
       tableSlotSize.width,
       tableSlotSize.height,
+      deckLayoutReserve,
       showBeatTransferChoice,
       lay.cardSizes.table.w,
       lay.cardSizes.table.h,
     ],
   );
-
-  const denseTable = (game?.table.length ?? 0) >= 4;
 
   const handleTableSlotLayout = useCallback(
     (e: { nativeEvent: { layout: { width: number; height: number } } }) => {
@@ -1201,11 +1202,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         <View
           style={[
             styles.opponents,
-            denseTable && styles.opponentsDense,
             {
               paddingHorizontal: 0,
-              paddingTop: denseTable ? 6 : lay.s(spacing.lg),
-              paddingBottom: denseTable ? lay.s(spacing.xs) : lay.s(spacing.sm),
+              paddingTop: lay.s(spacing.lg),
+              paddingBottom: lay.s(spacing.sm),
               gap: lay.s(spacing.sm),
             },
           ]}
@@ -1246,20 +1246,14 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
           })}
         </View>
 
-        {!dealingInProgress && !takeInProgress && (
-          <TurnStatusBanner status={turnStatus} />
-        )}
+        <View style={styles.playArea}>
+          <View style={styles.turnBannerSlot} pointerEvents="none">
+            {!dealingInProgress && !takeInProgress && (
+              <TurnStatusBanner status={turnStatus} />
+            )}
+          </View>
 
-        <View style={styles.middle}>
-          {/* Felt surface — visual grounding for the play area */}
-          <View
-            style={[
-              styles.tableSlot,
-              denseTable && styles.tableSlotDense,
-              { paddingLeft: lay.s(spacing.sm) },
-            ]}
-            onLayout={handleTableSlotLayout}
-          >
+          <View style={styles.tableSlot} onLayout={handleTableSlotLayout}>
             <TableArea
               ref={tableAreaRef}
               table={game.table}
@@ -1282,12 +1276,13 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               onDropZoneRemoved={showBeatTransferChoice ? onDropZoneRemoved : undefined}
             />
           </View>
-          <View style={[styles.deckSlot, { paddingRight: 0 }]}>
+
+          <View style={styles.deckSlot} pointerEvents="box-none">
             <DeckPile
               deckCount={displayedDeckCount}
               trumpCard={game.trumpCard}
               trumpSuit={game.trumpSuit}
-              skipEnterAnimation={dealKind === "initial"}
+              skipEnterAnimation
               onDeckAnchorLayout={handleAnchorLayout}
               onDeckAnchorRemoved={handleAnchorRemoved}
             />
@@ -1560,29 +1555,34 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     overflow: "visible",
   },
-  opponentsDense: {
-    paddingTop: 2,
-    paddingBottom: spacing.xs,
-  },
-  middle: {
+  playArea: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+    position: "relative",
     minHeight: 0,
+  },
+  turnBannerSlot: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 6,
+    alignItems: "center",
   },
   tableSlot: {
     flex: 1,
     justifyContent: "center",
-    paddingLeft: spacing.sm,
+    alignItems: "center",
+    paddingHorizontal: spacing.sm,
     minHeight: 0,
   },
-  tableSlotDense: {
-    justifyContent: "flex-end",
-  },
   deckSlot: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    right: -spacing.md,
     justifyContent: "center",
     alignItems: "center",
-    paddingRight: spacing.md,
+    zIndex: 4,
   },
   bottom: { paddingBottom: 0, overflow: "visible", gap: 0 },
   humanSeatRow: {

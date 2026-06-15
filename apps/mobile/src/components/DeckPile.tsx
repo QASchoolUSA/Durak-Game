@@ -1,6 +1,5 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
 import {
   type Card as CardModel,
   type Suit,
@@ -26,11 +25,13 @@ export interface DeckPileProps {
 
 const DECK_ANCHOR_ID = "deck";
 
+/** Room for trump badge (top-left) and count ring (bottom-right). */
+const FRAME_PAD = { top: 10, left: 10, bottom: 10, right: 10 };
+
 function DeckPileComponent({
   deckCount,
   trumpCard,
   trumpSuit,
-  skipEnterAnimation = false,
   onDeckAnchorLayout,
   onDeckAnchorRemoved,
 }: DeckPileProps) {
@@ -42,15 +43,33 @@ function DeckPileComponent({
   const rank = RANK_LABELS[trumpCard.rank];
   const symbol = SUIT_SYMBOLS[trumpSuit];
 
+  const frame = useMemo(
+    () => ({
+      width: w + 6 + FRAME_PAD.left + FRAME_PAD.right,
+      height: h + 6 + FRAME_PAD.top + FRAME_PAD.bottom,
+    }),
+    [w, h],
+  );
+
   return (
-    <Animated.View entering={skipEnterAnimation ? undefined : FadeIn.duration(400)} style={styles.column}>
+    <View style={[styles.column, frame]}>
       <MeasuredAnchor
         anchorId={DECK_ANCHOR_ID}
         onAnchorLayout={onDeckAnchorLayout}
         onAnchorRemoved={onDeckAnchorRemoved}
-        style={styles.anchorWrap}
+        style={{ ...styles.anchorWrap, width: frame.width, height: frame.height }}
       >
-        <View style={[styles.stack, { width: w + 6, height: h + 6 }]}>
+        <View
+          style={[
+            styles.stack,
+            {
+              width: w + 6,
+              height: h + 6,
+              top: FRAME_PAD.top,
+              left: FRAME_PAD.left,
+            },
+          ]}
+        >
           {deckCount > 0 ? (
             <>
               <Card faceDown compact width={w} height={h} style={{ position: "absolute", top: 5, left: 5 }} />
@@ -85,51 +104,47 @@ function DeckPileComponent({
             </Text>
           </View>
 
-          {deckCount > 0 && (
-            <View
-              style={[
-                styles.trumpBadge,
-                {
-                  backgroundColor: theme.face,
-                  borderColor: ui.accent,
-                  shadowColor: ui.accent,
-                },
-              ]}
-            >
-              <Text style={[styles.trumpRank, { color: suitColor }]}>{rank}</Text>
-              <Text style={[styles.trumpSuit, { color: suitColor }]}>{symbol}</Text>
-            </View>
-          )}
+          <View
+            style={[
+              styles.trumpBadge,
+              {
+                backgroundColor: theme.face,
+                borderColor: ui.accent,
+                shadowColor: ui.accent,
+              },
+            ]}
+          >
+            <Text style={[styles.trumpRank, { color: suitColor }]}>{rank}</Text>
+            <Text style={[styles.trumpSuit, { color: suitColor }]}>{symbol}</Text>
+          </View>
 
-          {deckCount > 0 && (
-            <View
-              style={[
-                styles.countRing,
-                {
-                  backgroundColor: ui.badgeBg,
-                  shadowColor: ui.accent,
-                },
-              ]}
-            >
-              <Text style={[styles.countText, { color: ui.badgeText }]}>{deckCount}</Text>
-            </View>
-          )}
+          <View
+            style={[
+              styles.countRing,
+              {
+                backgroundColor: ui.badgeBg,
+                shadowColor: ui.accent,
+              },
+            ]}
+          >
+            <Text style={[styles.countText, { color: ui.badgeText }]}>{deckCount}</Text>
+          </View>
         </View>
       </MeasuredAnchor>
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   column: {
     alignItems: "center",
-    gap: 6,
+    justifyContent: "center",
   },
   anchorWrap: {
-    alignItems: "center",
+    position: "relative",
   },
   stack: {
-    position: "relative",
+    position: "absolute",
   },
   emptyDeck: {
     borderRadius: radius.card,

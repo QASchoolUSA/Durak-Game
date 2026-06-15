@@ -18,6 +18,9 @@ type AuthGateContextValue = {
 
 const AuthGateContext = createContext<AuthGateContextValue | null>(null);
 
+const MAX_AUTO_SIGN_IN_ATTEMPTS = 4;
+const AUTO_SIGN_IN_DELAYS_MS = [0, 2_000, 5_000, 10_000];
+
 /**
  * Single launch bootstrap for Convex Auth (anonymous).
  * Only this provider auto-signs-in; consumers use useOnlineAuth().
@@ -26,24 +29,58 @@ export function AuthGateProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signIn } = useAuthActions();
   const [signingIn, setSigningIn] = useState(false);
-  const signInFlightRef = useRef<Promise<unknown> | null>(null);
+  const signInFlightRef = useRef<Promise<boolean> | null>(null);
   const storageCheckedRef = useRef(false);
+  /** True once this session has ever been authenticated (incl. restored token). */
+  const hadAuthenticatedSessionRef = useRef(false);
+  const autoSignInAttemptsRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const runSignIn = useCallback(() => {
+  const clearRetryTimer = useCallback(() => {
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+  }, []);
+
+  const runSignIn = useCallback((): Promise<boolean> => {
     if (signInFlightRef.current) return signInFlightRef.current;
+
     setSigningIn(true);
     const flight = signIn("anonymous")
+      .then(() => true)
       .catch((err) => {
         console.warn("[auth] anonymous sign-in failed", err);
-        throw err;
+        return false;
       })
       .finally(() => {
         setSigningIn(false);
         signInFlightRef.current = null;
       });
+
     signInFlightRef.current = flight;
     return flight;
   }, [signIn]);
+
+  const scheduleAutoSignIn = useCallback(() => {
+    if (hadAuthenticatedSessionRef.current) return;
+    if (signInFlightRef.current) return;
+    if (autoSignInAttemptsRef.current >= MAX_AUTO_SIGN_IN_ATTEMPTS) return;
+
+    const attempt = autoSignInAttemptsRef.current;
+    autoSignInAttemptsRef.current += 1;
+    const delay = AUTO_SIGN_IN_DELAYS_MS[attempt] ?? 10_000;
+
+    clearRetryTimer();
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      void runSignIn().then((ok) => {
+        if (!ok && !hadAuthenticatedSessionRef.current) {
+          scheduleAutoSignIn();
+        }
+      });
+    }, delay);
+  }, [clearRetryTimer, runSignIn]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -57,14 +94,35 @@ export function AuthGateProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    if (isAuthenticated) return;
-    void runSignIn();
-  }, [isLoading, isAuthenticated, runSignIn]);
+    if (isAuthenticated) {
+      hadAuthenticatedSessionRef.current = true;
+      autoSignInAttemptsRef.current = 0;
+      clearRetryTimer();
+      return;
+    }
+
+    // WebSocket reconnect can briefly clear auth; don't hammer signIn if we
+    // already had a valid session this launch.
+    if (hadAuthenticatedSessionRef.current) return;
+    if (signInFlightRef.current || retryTimerRef.current) return;
+
+    scheduleAutoSignIn();
+  }, [
+    isLoading,
+    isAuthenticated,
+    clearRetryTimer,
+    scheduleAutoSignIn,
+  ]);
+
+  useEffect(() => () => clearRetryTimer(), [clearRetryTimer]);
 
   const ensureAuthenticated = useCallback(async () => {
     if (isAuthenticated) return;
-    await runSignIn();
-  }, [isAuthenticated, runSignIn]);
+    const ok = await runSignIn();
+    if (!ok && !hadAuthenticatedSessionRef.current) {
+      scheduleAutoSignIn();
+    }
+  }, [isAuthenticated, runSignIn, scheduleAutoSignIn]);
 
   const authReady = !isLoading && isAuthenticated;
   const authLoading = isLoading || signingIn;
