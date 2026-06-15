@@ -52,23 +52,9 @@ const PLAYER_OPTIONS = [
   { count: 6, hint: "vs 5 AI" },
 ];
 
-const VARIANTS: {
-  id: GameVariant; icon: string; label: string; tag: string; desc: string;
-}[] = [
-  {
-    id: "podkidnoy",
-    icon: "♠",
-    label: "Podkidnoy",
-    tag: "CLASSIC",
-    desc: "Cover the attacks or take all the cards.",
-  },
-  {
-    id: "perevodnoy",
-    icon: "↻",
-    label: "Perevodnoy",
-    tag: "TRANSFER",
-    desc: "Hold the same rank? Pass the attack on.",
-  },
+const VARIANTS: { id: GameVariant; icon: string; label: string }[] = [
+  { id: "podkidnoy", icon: "♠", label: "Podkidnoy" },
+  { id: "perevodnoy", icon: "↻", label: "Perevodnoy" },
 ];
 
 const THROW_OPTIONS: { id: ThrowInScope; label: string; desc: string }[] = [
@@ -412,14 +398,12 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
               {/* Game Mode */}
               <View style={styles.section}>
                 <SectionLabel label="GAME MODE" />
-                <View style={styles.modePair}>
+                <View style={styles.toggleRow}>
                   {VARIANTS.map((v) => (
-                    <ModeCard
+                    <ToggleBtn
                       key={v.id}
                       icon={v.icon}
                       label={v.label}
-                      tag={v.tag}
-                      desc={v.desc}
                       active={variant === v.id}
                       onPress={() => {
                         trigger("selection");
@@ -669,125 +653,8 @@ function BuyInStrip({
   );
 }
 
-function ModeCard({ icon, label, tag, desc, active, onPress }: {
-  icon: string; label: string; tag: string; desc: string;
-  active: boolean; onPress: () => void;
-}) {
-  const ui = useUiTheme();
-  const scale = useSharedValue(1);
-  const aStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <Pressable
-      style={styles.modeCardOuter}
-      onPressIn={() => { scale.value = withSpring(0.96, { damping: 14, stiffness: 380 }); }}
-      onPressOut={() => { scale.value = withSpring(1.00, { damping: 14, stiffness: 300 }); }}
-      onPress={onPress}
-    >
-      <Animated.View
-        style={[
-          styles.modeCard,
-          {
-            borderColor: ui.panelBorderSoft,
-            backgroundColor: ui.panelBg,
-          },
-          active && {
-            borderColor: ui.accent,
-            backgroundColor: ui.accentSoft,
-            shadowColor: ui.accent,
-            shadowOpacity: 0.70,
-            shadowRadius: 20,
-            shadowOffset: { width: 0, height: 0 },
-            elevation: 12,
-          },
-          aStyle,
-        ]}
-      >
-        <View
-          style={[
-            styles.modeIconBadge,
-            active && {
-              backgroundColor: ui.accentSoft,
-              borderColor: ui.panelBorder,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.modeIcon,
-              { color: ui.textMuted },
-              active && { color: ui.accent },
-            ]}
-          >
-            {icon}
-          </Text>
-        </View>
-
-        <View style={styles.modeBody}>
-          <View style={styles.modeNameRow}>
-            <Text
-              style={[
-                styles.modeName,
-                { color: ui.textPrimary },
-                active && { color: ui.accent },
-              ]}
-            >
-              {label}
-            </Text>
-            <View
-              style={[
-                styles.modeTagPill,
-                active && {
-                  backgroundColor: ui.accentSoft,
-                  borderColor: ui.panelBorder,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.modeTagText,
-                  { color: ui.textFaint },
-                  active && { color: ui.accent },
-                ]}
-              >
-                {tag}
-              </Text>
-            </View>
-          </View>
-          <Text
-            style={[
-              styles.modeDesc,
-              { color: ui.textMuted },
-              active && { color: ui.textPrimary },
-            ]}
-            numberOfLines={2}
-          >
-            {desc}
-          </Text>
-        </View>
-
-        <View
-          style={[
-            styles.modeRadio,
-            active && {
-              borderColor: ui.accent,
-              backgroundColor: ui.accent,
-            },
-          ]}
-        >
-          {active && (
-            <Text style={[styles.modeCheckText, { color: ui.badgeText }]}>✓</Text>
-          )}
-        </View>
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-function ToggleBtn({ label, desc, active, disabled, onPress }: {
-  label: string; desc: string; active: boolean; disabled?: boolean; onPress: () => void;
+function ToggleBtn({ icon, label, desc, active, disabled, onPress }: {
+  icon?: string; label: string; desc?: string; active: boolean; disabled?: boolean; onPress: () => void;
 }) {
   const ui = useUiTheme();
   return (
@@ -811,6 +678,17 @@ function ToggleBtn({ label, desc, active, disabled, onPress }: {
       onPress={onPress}
       disabled={disabled}
     >
+      {icon ? (
+        <Text
+          style={[
+            styles.toggleIcon,
+            { color: ui.textMuted },
+            active && { color: ui.accent },
+          ]}
+        >
+          {icon}
+        </Text>
+      ) : null}
       <Text
         style={[
           styles.toggleLabel,
@@ -820,16 +698,18 @@ function ToggleBtn({ label, desc, active, disabled, onPress }: {
       >
         {label}
       </Text>
-      <Text
-        style={[
-          styles.toggleDesc,
-          { color: ui.textMuted },
-          active && { color: ui.textPrimary },
-        ]}
-        numberOfLines={2}
-      >
-        {desc}
-      </Text>
+      {desc ? (
+        <Text
+          style={[
+            styles.toggleDesc,
+            { color: ui.textMuted },
+            active && { color: ui.textPrimary },
+          ]}
+          numberOfLines={2}
+        >
+          {desc}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -939,64 +819,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: 0.2,
   },
-  modePair: { gap: spacing.sm },
-  modeCardOuter: { width: "100%" },
-  modeCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: radius.panel,
-    borderWidth: 1.5,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    gap: spacing.md,
-    minHeight: 66,
-  },
-  modeIconBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.sm + 4,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-  },
-  modeIcon: { fontSize: 22, lineHeight: 26 },
-  modeBody: { flex: 1, gap: 3 },
-  modeNameRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  modeName: {
-    ...typography.heading,
-    fontWeight: "800",
-  },
-  modeTagPill: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: radius.pill,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-  },
-  modeTagText: { ...typography.micro, letterSpacing: 1.0 },
-  modeDesc: {
-    ...typography.caption,
-    fontWeight: "500",
-    lineHeight: 16,
-    letterSpacing: 0.1,
-  },
-  modeRadio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.20)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modeCheckText: {
-    fontSize: 12,
-    fontWeight: "900",
-    lineHeight: 14,
-  },
   toggleRow: { flexDirection: "row", gap: spacing.sm },
   toggleBtn: {
     flex: 1,
@@ -1010,6 +832,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   toggleLabel: { ...typography.heading, fontWeight: "800", textAlign: "center" },
+  toggleIcon: { fontSize: 22, lineHeight: 26 },
   toggleDesc: { ...typography.caption, fontWeight: "500", textAlign: "center", lineHeight: 16, letterSpacing: 0.1 },
   nameInput: {
     borderWidth: 1,
