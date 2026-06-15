@@ -28,7 +28,7 @@ import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { AppearancePicker } from "./AppearancePicker";
-import { AppIconPicker } from "./AppIconPicker";
+import { AppIconPicker, isAppIconSupported } from "./AppIconPicker";
 import { AccountSection } from "./AccountSection";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { MenuButton } from "./MenuButton";
@@ -473,17 +473,21 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               <AppearancePicker />
             </View>
 
-            <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textPrimary }]}>
-              APP ICON
-            </Text>
-            <View
-              style={[
-                styles.cardDesignPanel,
-                { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
-              ]}
-            >
-              <AppIconPicker />
-            </View>
+            {isAppIconSupported && (
+              <>
+                <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textPrimary }]}>
+                  APP ICON
+                </Text>
+                <View
+                  style={[
+                    styles.cardDesignPanel,
+                    { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
+                  ]}
+                >
+                  <AppIconPicker />
+                </View>
+              </>
+            )}
 
             {__DEV__ && (
               <>
@@ -509,9 +513,6 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
               </>
             )}
 
-            <Text style={[styles.version, { color: ui.textFaint }]}>
-              Durak · v1.0 · Classic Russian Card Game
-            </Text>
           </ScrollView>
         </Animated.View>
       </GestureHandlerRootView>

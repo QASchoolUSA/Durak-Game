@@ -162,9 +162,6 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
             )}
           </Animated.View>
 
-          <Text style={[styles.version, { color: ui.textFaint }]}>
-            v1.0 · Durak Card Game
-          </Text>
         </View>
       </SafeAreaView>
 

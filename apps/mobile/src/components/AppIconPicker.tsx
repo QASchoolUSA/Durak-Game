@@ -8,7 +8,25 @@ import {
   View,
   Image,
 } from "react-native";
-import { setAppIcon, getAppIcon } from "@howincodes/expo-dynamic-app-icon";
+import Constants, { ExecutionEnvironment } from "expo-constants";
+
+const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+export const isAppIconSupported = Platform.OS === "ios" && !isExpoGo;
+
+let setAppIcon: ((name: string | null) => Promise<any>) | null = null;
+let getAppIcon: (() => Promise<string | null>) | null = null;
+
+if (isAppIconSupported) {
+  try {
+    const module = require("@howincodes/expo-dynamic-app-icon");
+    setAppIcon = module.setAppIcon;
+    getAppIcon = module.getAppIcon;
+  } catch (error) {
+    console.warn("Failed to load expo-dynamic-app-icon:", error);
+  }
+}
 import { useUiTheme } from "../theme/UiThemeContext";
 import { colors, radius, spacing, typography } from "../theme";
 
@@ -41,7 +59,7 @@ export function AppIconPicker() {
 
   useEffect(() => {
     async function loadActiveIcon() {
-      if (Platform.OS !== "ios") return;
+      if (!isAppIconSupported || !getAppIcon) return;
       try {
         const active = await getAppIcon();
         if (active === "glass") {
@@ -62,7 +80,7 @@ export function AppIconPicker() {
     if (id === selectedIcon) return;
     setSelectedIcon(id);
 
-    if (Platform.OS !== "ios") return;
+    if (!isAppIconSupported || !setAppIcon) return;
     try {
       if (id === "default") {
         await setAppIcon(null);

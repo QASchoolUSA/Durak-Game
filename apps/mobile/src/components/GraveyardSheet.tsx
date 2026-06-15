@@ -295,7 +295,7 @@ export function GraveyardSheet({ visible, onClose, cards, trumpSuit }: Graveyard
               </View>
               <View style={styles.header}>
                 <Text style={[styles.title, { color: ui.accent }]}>GRAVEYARD</Text>
-                <Text style={[styles.headerSub, { color: ui.textFaint }]}>
+                <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
                   {cards.length === 0
                     ? "No cards out of play yet"
                     : `${cards.length} card${cards.length === 1 ? "" : "s"} out of play`}

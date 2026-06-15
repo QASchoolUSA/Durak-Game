@@ -420,7 +420,7 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents, onRevealCa
                   </Pressable>
                 )}
                 <Text style={[styles.title, { color: ui.accent }]}>{headerTitle}</Text>
-                <Text style={[styles.headerSub, { color: ui.textFaint }]}>{headerSub}</Text>
+                <Text style={[styles.headerSub, { color: ui.textPrimary }]}>{headerSub}</Text>
               </View>
             </View>
 

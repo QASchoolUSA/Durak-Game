@@ -101,7 +101,6 @@ export function RevealPill({
       }
       accessibilityState={{ disabled: !canReveal }}
     >
-      <Text style={dockPillStyles.icon}>👁</Text>
       <Text
         style={[dockPillStyles.label, styles.label, !canReveal && dockPillStyles.labelDisabled]}
         numberOfLines={1}
@@ -135,7 +134,6 @@ export function GraveyardPill({
       accessibilityLabel={`Graveyard, ${discardCount} cards out of play`}
       accessibilityState={{ disabled: !canOpen }}
     >
-      <Text style={dockPillStyles.icon}>☠</Text>
       <Text
         style={[dockPillStyles.label, styles.label, !canOpen && dockPillStyles.labelDisabled]}
         numberOfLines={1}

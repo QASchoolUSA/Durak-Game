@@ -734,13 +734,14 @@ const styles = StyleSheet.create({
   myHandle: {
     ...typography.caption,
     paddingHorizontal: spacing.lg,
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
   tabs: {
     flexDirection: "row",
     gap: spacing.xs,
     paddingHorizontal: spacing.lg,
+    marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
   tab: {
@@ -753,7 +754,7 @@ const styles = StyleSheet.create({
   tabText: { ...typography.caption, fontWeight: "800", letterSpacing: 0.5 },
   searchWrap: {
     paddingHorizontal: spacing.lg,
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
   inputRow: {
