@@ -57,6 +57,7 @@
       filter:drop-shadow(0 14px 26px rgba(0,0,0,.42)) drop-shadow(0 3px 6px rgba(0,0,0,.25));
       transition:transform .35s cubic-bezier(.22,1,.36,1)}
     .pcard svg{display:block; width:98px; height:140px}
+    .pcard text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; letter-spacing:-.5px}
     .c1{transform:translateX(-50%) rotate(-22deg) translateX(-94px)}
     .c2{transform:translateX(-50%) rotate(-11deg) translateX(-47px)}
     .c3{transform:translateX(-50%) rotate(0deg); bottom:16px; z-index:2}
@@ -131,85 +132,60 @@
         <symbol id="s-spade" viewBox="0 0 24 24"><path d="M12 2.8S21.6 9.4 21.6 14.8c0 2.7-2 4.6-4.5 4.6-1.5 0-2.9-.8-3.6-2 .1 1.8 1 3.4 2.5 4.6H8c1.5-1.2 2.4-2.8 2.5-4.6-.7 1.2-2.1 2-3.6 2-2.5 0-4.5-1.9-4.5-4.6C2.4 9.4 12 2.8 12 2.8Z"/></symbol>
         <symbol id="s-diamond" viewBox="0 0 24 24"><path d="M12 2.2C12.9 7.3 16.7 11.1 21.8 12 16.7 12.9 12.9 16.7 12 21.8 11.1 16.7 7.3 12.9 2.2 12 7.3 11.1 11.1 7.3 12 2.2Z"/></symbol>
         <symbol id="s-club" viewBox="0 0 24 24"><circle cx="12" cy="7.4" r="4.5"/><circle cx="6.6" cy="14.4" r="4.5"/><circle cx="17.4" cy="14.4" r="4.5"/><path d="M10.2 12.8C10.6 16.8 9.6 20.1 7.8 22.2H16.2C14.4 20.1 13.4 16.8 13.8 12.8Z"/></symbol>
-        <linearGradient id="cardface" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F6F2E9"/>
+        <linearGradient id="cardface" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FAF7F0"/>
         </linearGradient>
       </defs>
     </svg>
 
     <div class="fan">
-      <!-- 10 of hearts — authentic 4-4-2 pip layout -->
+      <!-- 10 of hearts -->
       <div class="pcard c1"><svg viewBox="0 0 98 140" role="img" aria-label="Ten of hearts">
-        <rect x="1" y="1" width="96" height="138" rx="10" fill="url(#cardface)" stroke="#E2DBCB"/>
-        <rect x="4.5" y="4.5" width="89" height="131" rx="7" fill="none" stroke="#9A7B36" stroke-opacity=".4" stroke-width=".8"/>
-        <g fill="#C0392B">
-          <g transform="translate(10,7.5)"><text x="3" y="13" font-size="15" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">10</text><use href="#s-heart" x="-.5" y="15" width="7" height="7"/></g>
-          <g transform="translate(88,132.5) rotate(180)"><text x="3" y="13" font-size="15" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">10</text><use href="#s-heart" x="-.5" y="15" width="7" height="7"/></g>
-          <use href="#s-heart" x="27" y="32" width="13" height="13"/>
-          <use href="#s-heart" x="27" y="52" width="13" height="13"/>
-          <use href="#s-heart" x="27" y="72" width="13" height="13" transform="rotate(180 33.5 78.5)"/>
-          <use href="#s-heart" x="27" y="92" width="13" height="13" transform="rotate(180 33.5 98.5)"/>
-          <use href="#s-heart" x="58" y="32" width="13" height="13"/>
-          <use href="#s-heart" x="58" y="52" width="13" height="13"/>
-          <use href="#s-heart" x="58" y="72" width="13" height="13" transform="rotate(180 64.5 78.5)"/>
-          <use href="#s-heart" x="58" y="92" width="13" height="13" transform="rotate(180 64.5 98.5)"/>
-          <use href="#s-heart" x="42.5" y="42" width="13" height="13"/>
-          <use href="#s-heart" x="42.5" y="82" width="13" height="13" transform="rotate(180 49 88.5)"/>
+        <rect x=".5" y=".5" width="97" height="139" rx="9" fill="url(#cardface)" stroke="#DDD6C5"/>
+        <g fill="#C62828">
+          <g class="ci"><text x="8" y="27" font-size="24" font-weight="800">10</text><use href="#s-heart" x="8" y="30" width="13" height="13"/></g>
+          <g class="ci" transform="rotate(180 49 70)"><text x="8" y="27" font-size="24" font-weight="800">10</text><use href="#s-heart" x="8" y="30" width="13" height="13"/></g>
+          <use href="#s-heart" x="28" y="47" width="42" height="46" opacity=".9"/>
         </g>
       </svg></div>
 
-      <!-- Jack of diamonds — double-headed court -->
-      <div class="pcard c2"><svg viewBox="0 0 98 140" role="img" aria-label="Jack of diamonds">
-        <rect x="1" y="1" width="96" height="138" rx="10" fill="url(#cardface)" stroke="#E2DBCB"/>
-        <rect x="4.5" y="4.5" width="89" height="131" rx="7" fill="none" stroke="#9A7B36" stroke-opacity=".4" stroke-width=".8"/>
-        <rect x="30" y="35" width="38" height="70" rx="5" fill="#9A7B36" fill-opacity=".05" stroke="#9A7B36" stroke-opacity=".4" stroke-width=".8"/>
-        <line x1="34" y1="70" x2="64" y2="70" stroke="#9A7B36" stroke-opacity=".3" stroke-width=".7"/>
-        <g fill="#C0392B">
-          <g transform="translate(10,7.5)"><text x="2.5" y="13" font-size="15" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">J</text><use href="#s-diamond" x="-.5" y="15" width="7" height="7"/></g>
-          <g transform="translate(88,132.5) rotate(180)"><text x="2.5" y="13" font-size="15" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">J</text><use href="#s-diamond" x="-.5" y="15" width="7" height="7"/></g>
-          <g><text x="49" y="56" font-size="21" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">J</text><use href="#s-diamond" x="44" y="58" width="10" height="10"/></g>
-          <g transform="rotate(180 49 70)"><text x="49" y="56" font-size="21" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">J</text><use href="#s-diamond" x="44" y="58" width="10" height="10"/></g>
+      <!-- Jack of spades -->
+      <div class="pcard c2"><svg viewBox="0 0 98 140" role="img" aria-label="Jack of spades">
+        <rect x=".5" y=".5" width="97" height="139" rx="9" fill="url(#cardface)" stroke="#DDD6C5"/>
+        <g fill="#1A2E24">
+          <g class="ci"><text x="8" y="27" font-size="24" font-weight="800">J</text><use href="#s-spade" x="8" y="30" width="13" height="13"/></g>
+          <g class="ci" transform="rotate(180 49 70)"><text x="8" y="27" font-size="24" font-weight="800">J</text><use href="#s-spade" x="8" y="30" width="13" height="13"/></g>
+          <use href="#s-spade" x="28" y="47" width="42" height="46" opacity=".9"/>
         </g>
       </svg></div>
 
-      <!-- Queen of clubs — double-headed court -->
-      <div class="pcard c3"><svg viewBox="0 0 98 140" role="img" aria-label="Queen of clubs">
-        <rect x="1" y="1" width="96" height="138" rx="10" fill="url(#cardface)" stroke="#E2DBCB"/>
-        <rect x="4.5" y="4.5" width="89" height="131" rx="7" fill="none" stroke="#9A7B36" stroke-opacity=".4" stroke-width=".8"/>
-        <rect x="30" y="35" width="38" height="70" rx="5" fill="#9A7B36" fill-opacity=".05" stroke="#9A7B36" stroke-opacity=".4" stroke-width=".8"/>
-        <line x1="34" y1="70" x2="64" y2="70" stroke="#9A7B36" stroke-opacity=".3" stroke-width=".7"/>
-        <g fill="#23262E">
-          <g transform="translate(10,7.5)"><text x="2.5" y="13" font-size="15" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">Q</text><use href="#s-club" x="-.5" y="15" width="7" height="7"/></g>
-          <g transform="translate(88,132.5) rotate(180)"><text x="2.5" y="13" font-size="15" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">Q</text><use href="#s-club" x="-.5" y="15" width="7" height="7"/></g>
-          <g><text x="49" y="56" font-size="21" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">Q</text><use href="#s-club" x="44" y="58" width="10" height="10"/></g>
-          <g transform="rotate(180 49 70)"><text x="49" y="56" font-size="21" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">Q</text><use href="#s-club" x="44" y="58" width="10" height="10"/></g>
+      <!-- Queen of hearts -->
+      <div class="pcard c3"><svg viewBox="0 0 98 140" role="img" aria-label="Queen of hearts">
+        <rect x=".5" y=".5" width="97" height="139" rx="9" fill="url(#cardface)" stroke="#DDD6C5"/>
+        <g fill="#C62828">
+          <g class="ci"><text x="8" y="27" font-size="24" font-weight="800">Q</text><use href="#s-heart" x="8" y="30" width="13" height="13"/></g>
+          <g class="ci" transform="rotate(180 49 70)"><text x="8" y="27" font-size="24" font-weight="800">Q</text><use href="#s-heart" x="8" y="30" width="13" height="13"/></g>
+          <use href="#s-heart" x="28" y="47" width="42" height="46" opacity=".9"/>
         </g>
       </svg></div>
 
-      <!-- King of hearts — double-headed court -->
-      <div class="pcard c4"><svg viewBox="0 0 98 140" role="img" aria-label="King of hearts">
-        <rect x="1" y="1" width="96" height="138" rx="10" fill="url(#cardface)" stroke="#E2DBCB"/>
-        <rect x="4.5" y="4.5" width="89" height="131" rx="7" fill="none" stroke="#9A7B36" stroke-opacity=".4" stroke-width=".8"/>
-        <rect x="30" y="35" width="38" height="70" rx="5" fill="#9A7B36" fill-opacity=".05" stroke="#9A7B36" stroke-opacity=".4" stroke-width=".8"/>
-        <line x1="34" y1="70" x2="64" y2="70" stroke="#9A7B36" stroke-opacity=".3" stroke-width=".7"/>
-        <g fill="#C0392B">
-          <g transform="translate(10,7.5)"><text x="2.5" y="13" font-size="15" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">K</text><use href="#s-heart" x="-.5" y="15" width="7" height="7"/></g>
-          <g transform="translate(88,132.5) rotate(180)"><text x="2.5" y="13" font-size="15" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">K</text><use href="#s-heart" x="-.5" y="15" width="7" height="7"/></g>
-          <g><text x="49" y="56" font-size="21" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">K</text><use href="#s-heart" x="44" y="58" width="10" height="10"/></g>
-          <g transform="rotate(180 49 70)"><text x="49" y="56" font-size="21" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">K</text><use href="#s-heart" x="44" y="58" width="10" height="10"/></g>
+      <!-- King of clubs -->
+      <div class="pcard c4"><svg viewBox="0 0 98 140" role="img" aria-label="King of clubs">
+        <rect x=".5" y=".5" width="97" height="139" rx="9" fill="url(#cardface)" stroke="#DDD6C5"/>
+        <g fill="#1A2E24">
+          <g class="ci"><text x="8" y="27" font-size="24" font-weight="800">K</text><use href="#s-club" x="8" y="30" width="13" height="13"/></g>
+          <g class="ci" transform="rotate(180 49 70)"><text x="8" y="27" font-size="24" font-weight="800">K</text><use href="#s-club" x="8" y="30" width="13" height="13"/></g>
+          <use href="#s-club" x="28" y="47" width="42" height="46" opacity=".9"/>
         </g>
       </svg></div>
 
-      <!-- Ace of spades — signature center -->
-      <div class="pcard c5"><svg viewBox="0 0 98 140" role="img" aria-label="Ace of spades">
-        <rect x="1" y="1" width="96" height="138" rx="10" fill="url(#cardface)" stroke="#E2DBCB"/>
-        <rect x="4.5" y="4.5" width="89" height="131" rx="7" fill="none" stroke="#9A7B36" stroke-opacity=".4" stroke-width=".8"/>
-        <circle cx="49" cy="73" r="30" fill="none" stroke="#9A7B36" stroke-opacity=".3" stroke-width=".9"/>
-        <circle cx="49" cy="73" r="26" fill="none" stroke="#9A7B36" stroke-opacity=".15" stroke-width=".7"/>
-        <g fill="#23262E">
-          <g transform="translate(10,7.5)"><text x="2.5" y="13" font-size="15" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">A</text><use href="#s-spade" x="-.5" y="15" width="7" height="7"/></g>
-          <g transform="translate(88,132.5) rotate(180)"><text x="2.5" y="13" font-size="15" font-weight="700" text-anchor="middle" font-family="Georgia,'Times New Roman',serif">A</text><use href="#s-spade" x="-.5" y="15" width="7" height="7"/></g>
-          <use href="#s-spade" x="29" y="50" width="40" height="46"/>
+      <!-- Ace of diamonds -->
+      <div class="pcard c5"><svg viewBox="0 0 98 140" role="img" aria-label="Ace of diamonds">
+        <rect x=".5" y=".5" width="97" height="139" rx="9" fill="url(#cardface)" stroke="#DDD6C5"/>
+        <g fill="#C62828">
+          <g class="ci"><text x="8" y="27" font-size="24" font-weight="800">A</text><use href="#s-diamond" x="8" y="30" width="13" height="13"/></g>
+          <g class="ci" transform="rotate(180 49 70)"><text x="8" y="27" font-size="24" font-weight="800">A</text><use href="#s-diamond" x="8" y="30" width="13" height="13"/></g>
+          <use href="#s-diamond" x="28" y="47" width="42" height="46" opacity=".9"/>
         </g>
       </svg></div>
     </div>
