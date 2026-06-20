@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Durak — The Classic Card Game, Beautifully Reimagined</title>
+  <meta name="description" content="Play Durak, the legendary Russian card game. Smooth animations, smart AI, and online multiplayer with friends anywhere. Free on iPhone and the web." />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta property="og:title" content="Durak — The Classic Card Game, Beautifully Reimagined" />
+  <meta property="og:description" content="Smooth animations, smart AI, and online multiplayer with friends. Free on iPhone and the web." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://durak.cards/" />
+  <style>
+    :root{
+      --felt-top:#14724F; --felt-mid:#0F5A3C; --felt-bottom:#092E1F; --felt-edge:#061A12;
+      --gold:#E7C067; --gold-bright:#F5D27A; --gold-dim:#9A7B36;
+      --text:#F5F3EC; --muted:#A8BAB2; --faint:#6B8078;
+      --panel:rgba(9,46,31,.72); --panel-line:rgba(231,192,103,.22);
+      --red:#D7263D; --black:#20232A; --face:#FAF7F0;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0; color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      line-height:1.6; -webkit-font-smoothing:antialiased;
+      background:radial-gradient(130% 90% at 50% -10%,var(--felt-top) 0%,var(--felt-mid) 36%,var(--felt-bottom) 76%,var(--felt-edge) 100%);
+      background-attachment:fixed; overflow-x:hidden;
+    }
+    a{color:var(--gold-bright); text-decoration:none}
+    .wrap{max-width:980px; margin:0 auto; padding:0 22px}
+    /* NAV */
+    nav.top{display:flex; align-items:center; justify-content:space-between; max-width:980px; margin:0 auto; padding:20px 22px}
+    .logo{font-weight:800; letter-spacing:.04em; font-size:20px; color:var(--gold-bright)}
+    .logo span{color:var(--text)}
+    nav.top a.link{color:var(--muted); margin-left:20px; font-size:15px}
+    nav.top a.link:hover{color:var(--text)}
+    /* HERO */
+    .hero{text-align:center; padding:54px 22px 30px}
+    .eyebrow{display:inline-block; font-size:12px; letter-spacing:.2em; text-transform:uppercase;
+      color:var(--gold); border:1px solid var(--panel-line); border-radius:999px; padding:6px 16px; margin-bottom:24px}
+    h1{font-size:clamp(36px,8vw,66px); line-height:1.05; margin:0 0 18px; letter-spacing:-1px;
+      background:linear-gradient(180deg,#fff 0%,var(--gold-bright) 60%,var(--gold-dim) 100%); -webkit-background-clip:text; background-clip:text; color:transparent}
+    .lead{color:var(--muted); font-size:clamp(17px,2.4vw,21px); max-width:620px; margin:0 auto 30px}
+    .cta{display:flex; gap:14px; justify-content:center; flex-wrap:wrap}
+    .btn{display:inline-flex; align-items:center; gap:8px; font-weight:700; padding:15px 30px; border-radius:14px; font-size:16px; transition:transform .15s, filter .15s}
+    .btn:hover{transform:translateY(-2px)}
+    .btn-primary{background:linear-gradient(180deg,var(--gold-bright),var(--gold)); color:#3a2c06}
+    .btn-primary:hover{filter:brightness(1.05)}
+    .btn-ghost{background:rgba(20,80,55,.45); color:var(--text); border:1px solid var(--panel-line)}
+    .soon{font-size:12px; color:var(--faint); margin-top:14px}
+    /* CARD FAN */
+    .fan{position:relative; height:220px; margin:36px auto 0; width:320px}
+    .pcard{position:absolute; bottom:0; left:50%; width:96px; height:138px; border-radius:12px;
+      background:linear-gradient(160deg,#fff,var(--face)); border:1px solid #DDD6C5;
+      box-shadow:0 16px 30px rgba(0,0,0,.4); transform-origin:bottom center;
+      font-weight:800; font-size:22px; padding:8px 10px}
+    .pcard .tl{position:absolute; top:7px; left:9px; line-height:1}
+    .pcard .br{position:absolute; bottom:7px; right:9px; line-height:1; transform:rotate(180deg)}
+    .pcard .pip{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:42px}
+    .red{color:var(--red)} .blk{color:var(--black)}
+    .c1{transform:translateX(-50%) rotate(-22deg) translateX(-92px)}
+    .c2{transform:translateX(-50%) rotate(-11deg) translateX(-46px)}
+    .c3{transform:translateX(-50%) rotate(0deg); bottom:14px}
+    .c4{transform:translateX(-50%) rotate(11deg) translateX(46px)}
+    .c5{transform:translateX(-50%) rotate(22deg) translateX(92px)}
+    @media(max-width:420px){.fan{transform:scale(.82)}}
+    /* SECTIONS */
+    section.block{padding:56px 0 16px}
+    .kicker{text-align:center; color:var(--gold); font-size:13px; letter-spacing:.16em; text-transform:uppercase; margin-bottom:8px}
+    h2.title{text-align:center; font-size:clamp(26px,4vw,38px); margin:0 0 10px; color:var(--text)}
+    .blurb{text-align:center; color:var(--muted); max-width:600px; margin:0 auto 34px}
+    .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+    @media(max-width:760px){.grid{grid-template-columns:1fr}}
+    .feature{background:var(--panel); border:1px solid var(--panel-line); border-radius:18px; padding:24px; backdrop-filter:blur(6px)}
+    .feature .ico{width:46px; height:46px; border-radius:12px; display:grid; place-items:center; font-size:24px;
+      background:rgba(231,192,103,.14); border:1px solid var(--panel-line); margin-bottom:14px}
+    .feature h3{margin:0 0 6px; font-size:18px; color:var(--gold-bright)}
+    .feature p{margin:0; color:var(--muted); font-size:15px}
+    /* STEPS */
+    .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; counter-reset:n}
+    @media(max-width:760px){.steps{grid-template-columns:1fr}}
+    .step{background:var(--panel); border:1px solid var(--panel-line); border-radius:18px; padding:24px; position:relative}
+    .step::before{counter-increment:n; content:counter(n); display:grid; place-items:center;
+      width:38px; height:38px; border-radius:50%; background:linear-gradient(180deg,var(--gold-bright),var(--gold));
+      color:#3a2c06; font-weight:800; margin-bottom:14px}
+    .step h3{margin:0 0 6px; font-size:17px}
+    .step p{margin:0; color:var(--muted); font-size:15px}
+    /* MODES */
+    .modes{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+    @media(max-width:680px){.modes{grid-template-columns:1fr}}
+    .mode{background:var(--panel); border:1px solid var(--panel-line); border-radius:18px; padding:26px}
+    .mode h3{margin:0 0 8px; color:var(--gold-bright); font-size:20px}
+    .mode p{margin:0; color:var(--muted)}
+    /* CTA BAND */
+    .band{background:linear-gradient(180deg,rgba(20,114,79,.5),rgba(9,46,31,.5)); border:1px solid var(--panel-line);
+      border-radius:24px; padding:46px 26px; text-align:center; margin:56px 0 0}
+    .band h2{font-size:clamp(26px,4vw,36px); margin:0 0 12px}
+    .band p{color:var(--muted); max-width:540px; margin:0 auto 24px}
+    footer{text-align:center; color:var(--faint); font-size:14px; padding:46px 22px 60px}
+    footer a{color:var(--muted)}
+    .fnav{display:flex; gap:18px; justify-content:center; flex-wrap:wrap; margin-bottom:14px}
+  </style>
+</head>
+<body>
+  <nav class="top">
+    <div class="logo">DURAK<span>.cards</span></div>
+    <div>
+      <a class="link" href="#features">Features</a>
+      <a class="link" href="#how">How it works</a>
+      <a class="link" href="/support.html">Support</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <span class="eyebrow">♠ ♥ ♦ ♣ &nbsp;The Classic Card Game</span>
+    <h1>Durak,<br/>beautifully reimagined.</h1>
+    <p class="lead">The legendary card game of Eastern Europe — now with silky animations, genuinely smart AI, and online multiplayer you can start with friends in seconds.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#how">▶ &nbsp;Start Playing</a>
+      <a class="btn btn-ghost" href="/">Play on the web</a>
+    </div>
+    <div class="soon">Free · No forced ads · No account required</div>
+
+    <div class="fan" aria-hidden="true">
+      <div class="pcard c1"><span class="tl blk">A♠</span><span class="pip blk">♠</span><span class="br blk">A♠</span></div>
+      <div class="pcard c2"><span class="tl red">K♥</span><span class="pip red">♥</span><span class="br red">K♥</span></div>
+      <div class="pcard c3"><span class="tl red">A♦</span><span class="pip red">♦</span><span class="br red">A♦</span></div>
+      <div class="pcard c4"><span class="tl blk">Q♣</span><span class="pip blk">♣</span><span class="br blk">Q♣</span></div>
+      <div class="pcard c5"><span class="tl red">10♥</span><span class="pip red">♥</span><span class="br red">10♥</span></div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- FEATURES -->
+    <section class="block" id="features">
+      <div class="kicker">Why you'll love it</div>
+      <h2 class="title">Everything a Durak game should be</h2>
+      <p class="blurb">Crafted by people who actually play. Every card, animation, and rule is designed to feel like the real table.</p>
+      <div class="grid">
+        <div class="feature"><div class="ico">🌐</div><h3>Online with friends</h3><p>Create a room, share a 6-digit code, and play together from anywhere in the world. No same-Wi-Fi required.</p></div>
+        <div class="feature"><div class="ico">🤖</div><h3>Smart AI opponents</h3><p>Practice solo against opponents that bluff, defend, and trump like real players — with adjustable difficulty.</p></div>
+        <div class="feature"><div class="ico">🎴</div><h3>Buttery animations</h3><p>Hand-drawn cards, fluid dealing, and natural drag-to-play gestures make every move satisfying.</p></div>
+        <div class="feature"><div class="ico">📜</div><h3>Authentic rules</h3><p>Both Podkidnoy (throw-in) and Perevodnoy (transfer) variants, with 24- or 36-card decks. Your table, your rules.</p></div>
+        <div class="feature"><div class="ico">🎨</div><h3>Make it yours</h3><p>Multiple felt themes and card-back designs to match your style — switch any time in settings.</p></div>
+        <div class="feature"><div class="ico">⚡</div><h3>Pick up &amp; play</h3><p>No sign-up, no clutter. Open the app and you're dealt in within seconds.</p></div>
+      </div>
+    </section>
+
+    <!-- HOW -->
+    <section class="block" id="how">
+      <div class="kicker">Get started</div>
+      <h2 class="title">Playing with friends takes seconds</h2>
+      <p class="blurb">No friend list, no add-requests, no logins. Just a code.</p>
+      <div class="steps">
+        <div class="step"><h3>Create a room</h3><p>Tap <b>Play → With friends → Create Room</b> to get your private 6-digit code.</p></div>
+        <div class="step"><h3>Share the code</h3><p>Send the code to friends however you like. They tap <b>Join</b> and enter it.</p></div>
+        <div class="step"><h3>Deal &amp; play</h3><p>Start the match — any open seats are filled with AI so you never wait around.</p></div>
+      </div>
+    </section>
+
+    <!-- MODES -->
+    <section class="block">
+      <div class="kicker">Two ways to play</div>
+      <h2 class="title">Solo or together</h2>
+      <div class="modes" style="margin-top:8px">
+        <div class="mode"><h3>🕹️ Solo vs AI</h3><p>Sharpen your strategy against intelligent bots that adapt to your play. Perfect for learning the ropes or a quick game on the go.</p></div>
+        <div class="mode"><h3>👥 Online multiplayer</h3><p>Gather 2–4 friends in a private room and settle who's the <em>durak</em>. Cross-network play means distance is never an issue.</p></div>
+      </div>
+    </section>
+
+    <!-- WHAT IS DURAK -->
+    <section class="block">
+      <div class="kicker">New to the game?</div>
+      <h2 class="title">What is Durak?</h2>
+      <p class="blurb" style="max-width:680px">Durak — Russian for “fool” — is the most-played card game across Eastern Europe. Attack your opponents, defend with higher cards or trumps, and shed your hand. The last player still holding cards loses and becomes the <b style="color:var(--gold-bright)">durak</b>. Easy to learn in a minute, endlessly fun to master.</p>
+      <p style="text-align:center"><a class="btn btn-ghost" href="/support.html#contact">Read the full rules →</a></p>
+    </section>
+
+    <!-- CTA BAND -->
+    <section class="band">
+      <h2>Ready to deal?</h2>
+      <p>Jump into a game right now — solo against AI or online with friends. It's free, fast, and ad-light.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="/">▶ &nbsp;Play Durak Now</a>
+        <a class="btn btn-ghost" href="/support.html">Get Support</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="fnav">
+      <a href="/">Play</a>
+      <a href="/support.html">Support</a>
+      <a href="/privacy.html">Privacy Policy</a>
+      <a href="mailto:support@durak.cards">Contact</a>
+    </div>
+    <p>© <span id="yr"></span> Durak Card Game · <a href="https://durak.cards">durak.cards</a></p>
+    <p style="font-size:13px">Durak is a traditional card game in the public domain. This app is an independent implementation and is not affiliated with any other publisher.</p>
+  </footer>
+  <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+</body>
+</html>

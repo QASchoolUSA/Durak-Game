@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support — Durak Card Game</title>
+  <meta name="description" content="Help and support for the Durak card game: how to play, online multiplayer with friends, troubleshooting, and how to contact us." />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta property="og:title" content="Durak — Support" />
+  <meta property="og:description" content="Get help with Durak: gameplay, online play with friends, and troubleshooting." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://durak.cards/support.html" />
+  <style>
+    :root{
+      --felt-top:#14724F; --felt-mid:#0F5A3C; --felt-bottom:#092E1F; --felt-edge:#061A12;
+      --gold:#E7C067; --gold-bright:#F5D27A; --gold-dim:#9A7B36;
+      --text:#F5F3EC; --muted:#A8BAB2; --faint:#6B8078;
+      --panel:rgba(9,46,31,.72); --panel-line:rgba(231,192,103,.22);
+      --red:#D7263D;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0; color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      line-height:1.65; -webkit-font-smoothing:antialiased;
+      background:radial-gradient(120% 90% at 50% -10%,var(--felt-top) 0%,var(--felt-mid) 38%,var(--felt-bottom) 78%,var(--felt-edge) 100%);
+      background-attachment:fixed; min-height:100vh;
+    }
+    a{color:var(--gold-bright); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:820px; margin:0 auto; padding:0 22px}
+    header.hero{padding:64px 22px 36px; text-align:center}
+    .badge{display:inline-block; font-size:12px; letter-spacing:.18em; text-transform:uppercase;
+      color:var(--gold); border:1px solid var(--panel-line); border-radius:999px; padding:6px 16px; margin-bottom:22px}
+    h1{font-size:clamp(30px,6vw,46px); margin:0 0 10px; letter-spacing:-.5px;
+      background:linear-gradient(180deg,var(--gold-bright),var(--gold-dim)); -webkit-background-clip:text; background-clip:text; color:transparent}
+    .sub{color:var(--muted); font-size:17px; max-width:560px; margin:0 auto}
+    .card{background:var(--panel); border:1px solid var(--panel-line); border-radius:18px;
+      padding:26px 26px; margin:18px 0; backdrop-filter:blur(6px)}
+    .card h2{margin:0 0 6px; font-size:22px; color:var(--gold-bright)}
+    .card h3{margin:22px 0 4px; font-size:16px; color:var(--text)}
+    .contact-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:8px}
+    @media(max-width:560px){.contact-grid{grid-template-columns:1fr}}
+    .contact-tile{background:rgba(20,80,55,.4); border:1px solid var(--panel-line); border-radius:14px; padding:18px 18px}
+    .contact-tile .label{font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:var(--faint)}
+    .contact-tile .val{font-size:18px; font-weight:600; margin-top:4px}
+    .btn{display:inline-block; background:linear-gradient(180deg,var(--gold-bright),var(--gold));
+      color:#3a2c06; font-weight:700; padding:13px 26px; border-radius:12px; margin-top:6px}
+    .btn:hover{text-decoration:none; filter:brightness(1.05)}
+    details{border-top:1px solid var(--panel-line); padding:14px 0}
+    details:first-of-type{border-top:none}
+    summary{cursor:pointer; font-weight:600; font-size:16px; list-style:none; display:flex; justify-content:space-between; align-items:center; gap:12px}
+    summary::-webkit-details-marker{display:none}
+    summary::after{content:"+"; color:var(--gold); font-size:22px; line-height:1; transition:transform .2s}
+    details[open] summary::after{transform:rotate(45deg)}
+    details p,details ul{color:var(--muted); margin:10px 0 2px}
+    details ul{padding-left:20px}
+    details li{margin:4px 0}
+    ol.steps{counter-reset:s; list-style:none; padding:0; margin:6px 0 0}
+    ol.steps li{counter-increment:s; position:relative; padding:8px 0 8px 44px; color:var(--muted)}
+    ol.steps li::before{content:counter(s); position:absolute; left:0; top:6px; width:28px; height:28px;
+      background:rgba(231,192,103,.14); border:1px solid var(--panel-line); border-radius:50%;
+      color:var(--gold-bright); font-weight:700; display:grid; place-items:center; font-size:14px}
+    ol.steps b{color:var(--text)}
+    footer{text-align:center; color:var(--faint); font-size:14px; padding:40px 22px 60px}
+    footer a{color:var(--muted)}
+    .nav{display:flex; gap:18px; justify-content:center; flex-wrap:wrap; margin-bottom:14px}
+    hr{border:none; border-top:1px solid var(--panel-line); margin:22px 0}
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <span class="badge">♠ ♥ Durak · Support ♦ ♣</span>
+    <h1>How can we help?</h1>
+    <p class="sub">Everything you need to play Durak, invite friends, and get unstuck. Can't find an answer? We're one email away.</p>
+  </header>
+
+  <main class="wrap">
+    <!-- CONTACT -->
+    <section class="card" id="contact">
+      <h2>Contact us</h2>
+      <p style="color:var(--muted); margin:4px 0 4px">We read every message and typically reply within <b style="color:var(--text)">1–2 business days</b>.</p>
+      <div class="contact-grid">
+        <div class="contact-tile">
+          <div class="label">Email support</div>
+          <div class="val"><a href="mailto:support@durak.cards?subject=Durak%20Support">support@durak.cards</a></div>
+        </div>
+        <div class="contact-tile">
+          <div class="label">Response time</div>
+          <div class="val">1–2 business days</div>
+        </div>
+      </div>
+      <p style="margin-top:16px"><a class="btn" href="mailto:support@durak.cards?subject=Durak%20Support%20Request">Email Support</a></p>
+      <p style="color:var(--faint); font-size:13px; margin-top:14px">To help us resolve issues faster, include your device model, iOS version, and a short description of what happened (a screenshot helps a lot).</p>
+    </section>
+
+    <!-- GETTING STARTED -->
+    <section class="card">
+      <h2>Getting started</h2>
+      <details open>
+        <summary>What is Durak?</summary>
+        <p>Durak (Russian for “fool”) is one of the most popular card games in Eastern Europe. Players attack each other with cards and defend with higher cards of the same suit — or with trumps. The goal is simple: <b style="color:var(--text)">don't be the last player left holding cards</b>. That last player is the <em>durak</em>.</p>
+      </details>
+      <details>
+        <summary>How do I start a game?</summary>
+        <ol class="steps">
+          <li>Open the app and tap <b>PLAY</b>.</li>
+          <li>Choose <b>Solo</b> to play against AI opponents, or <b>With friends</b> to play online.</li>
+          <li>Pick your settings (number of players, deck size, rules) and start the match.</li>
+        </ol>
+      </details>
+      <details>
+        <summary>Do I need an account?</summary>
+        <p>No. You can play solo against AI instantly. For online play with friends, you just pick a display name — no email, password, or sign-up required.</p>
+      </details>
+      <details>
+        <summary>Does it cost anything?</summary>
+        <p>Durak is free to play. There are no forced ads interrupting your game and no pay-to-win mechanics.</p>
+      </details>
+    </section>
+
+    <!-- ONLINE PLAY -->
+    <section class="card">
+      <h2>Playing online with friends</h2>
+      <details>
+        <summary>How do I invite a friend?</summary>
+        <ol class="steps">
+          <li>Tap <b>PLAY → With friends → Create Room</b>.</li>
+          <li>Share the <b>6-digit room code</b> with your friend (text, chat, anywhere).</li>
+          <li>Your friend taps <b>Join Game</b>, enters the code and a display name.</li>
+          <li>When everyone's in, tap <b>Start Game</b>. Empty seats are filled with AI.</li>
+        </ol>
+      </details>
+      <details>
+        <summary>Do we need to be on the same Wi-Fi?</summary>
+        <p>No. Online matches run in the cloud, so you and your friends can play from anywhere in the world on Wi-Fi or cellular data.</p>
+      </details>
+      <details>
+        <summary>My friend can't join with the room code</summary>
+        <ul>
+          <li>Double-check the code was typed correctly (it's case-insensitive but must be exact).</li>
+          <li>Room codes expire when the host leaves — have the host create a fresh room.</li>
+          <li>Make sure both players have an active internet connection.</li>
+          <li>Confirm you're both on the latest version of the app from the App Store.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>What happens if someone disconnects?</summary>
+        <p>The game waits briefly for players to reconnect. If a player can't return, their seat may be taken over by AI so the match can continue.</p>
+      </details>
+    </section>
+
+    <!-- RULES -->
+    <section class="card">
+      <h2>How to play (the rules)</h2>
+      <details>
+        <summary>The basics in 30 seconds</summary>
+        <ul>
+          <li>Each player gets <b>6 cards</b>. One card is flipped to set the <b>trump suit</b>; the rest form the draw deck.</li>
+          <li>The <b>attacker</b> plays a card. The <b>defender</b> must beat it with a higher card of the same suit, or any trump.</li>
+          <li>Other players may <b>throw in</b> more cards of ranks already on the table.</li>
+          <li>If the defender beats everything, the cards are discarded. If they can't, they <b>pick up</b> all the cards.</li>
+          <li>Everyone refills to 6 cards from the deck. Play continues until the deck is empty and one player is left with cards — the <b>durak</b>.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>What are the rule variants?</summary>
+        <ul>
+          <li><b>Podkidnoy (Throw-in):</b> the classic version — attackers throw in matching ranks.</li>
+          <li><b>Perevodnoy (Pass / Transfer):</b> you can pass the attack to the next player by adding a card of the same rank instead of defending.</li>
+        </ul>
+        <p>You can choose the variant and deck size (24 / 36 cards) before starting a game.</p>
+      </details>
+      <details>
+        <summary>How does the trump suit work?</summary>
+        <p>Any trump card beats any card of the three normal suits. A higher trump beats a lower trump. The trump suit is shown on screen throughout the match.</p>
+      </details>
+    </section>
+
+    <!-- TROUBLESHOOTING -->
+    <section class="card">
+      <h2>Troubleshooting</h2>
+      <details>
+        <summary>The app is slow, frozen, or crashing</summary>
+        <ol class="steps">
+          <li>Fully close the app (swipe it away in the app switcher) and reopen it.</li>
+          <li>Make sure iOS and the app are both updated to the latest version.</li>
+          <li>Restart your device if the problem persists.</li>
+          <li>Still stuck? <a href="mailto:support@durak.cards?subject=Durak%20Crash%20Report">Email us</a> with your device model and iOS version.</li>
+        </ol>
+      </details>
+      <details>
+        <summary>No sound or wrong volume</summary>
+        <ul>
+          <li>Check that your device isn't in silent mode and the volume is up.</li>
+          <li>Open the in-app Settings to toggle sound effects on or off.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>Online games won't connect</summary>
+        <ul>
+          <li>Confirm you have a working internet connection (try loading a webpage).</li>
+          <li>Switch between Wi-Fi and cellular to rule out a network issue.</li>
+          <li>Disable any VPN or content blocker that might interfere with the connection.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>How do I change themes or card designs?</summary>
+        <p>Open <b>Settings</b> in the app. You can switch between multiple table appearances and card back designs to customize how the game looks.</p>
+      </details>
+    </section>
+
+    <!-- ACCOUNT & DATA -->
+    <section class="card">
+      <h2>Privacy &amp; your data</h2>
+      <details>
+        <summary>What data does Durak collect?</summary>
+        <p>Durak is built to be privacy-friendly. We don't require accounts and we don't collect personal information like your name, email, or contacts. Online play uses a display name you choose and temporary game state needed to run the match. See the full <a href="/privacy.html">Privacy Policy</a> for details.</p>
+      </details>
+      <details>
+        <summary>How do I request data deletion?</summary>
+        <p>Because we don't tie game data to a personal identity, there's typically nothing personal to delete. If you have a specific request, email <a href="mailto:support@durak.cards?subject=Data%20Request">support@durak.cards</a> and we'll help.</p>
+      </details>
+    </section>
+
+    <hr />
+    <div class="nav">
+      <a href="/">Play on the web</a>
+      <a href="/marketing.html">About the game</a>
+      <a href="/privacy.html">Privacy Policy</a>
+      <a href="mailto:support@durak.cards">Contact</a>
+    </div>
+  </main>
+
+  <footer>
+    <p>© <span id="yr"></span> Durak Card Game · <a href="https://durak.cards">durak.cards</a></p>
+    <p style="font-size:13px">Durak is a traditional card game in the public domain. This app is an independent implementation.</p>
+  </footer>
+  <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+</body>
+</html>
