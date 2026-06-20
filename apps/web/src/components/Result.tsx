@@ -1,5 +1,6 @@
 import React from "react";
 import { useGameStore } from "../store/gameStore";
+import { Confetti } from "./Confetti";
 
 export const Result: React.FC = () => {
   const game = useGameStore((s) => s.game);
@@ -54,6 +55,7 @@ export const Result: React.FC = () => {
 
   return (
     <div className="home-container">
+      <Confetti active={isWinner} />
       <div className="hero-panel result-panel" style={{ maxWidth: "440px" }}>
         <div className={`result-header ${resultClass}`}>{resultTitle}</div>
         

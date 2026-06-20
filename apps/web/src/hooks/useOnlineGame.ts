@@ -7,6 +7,7 @@ import {
   registerOnlineMoveSubmit,
   registerOnlineReturn,
   registerUpdateDisplayName,
+  registerSendReaction,
 } from "../store/onlineBridge";
 import { onlineSession } from "../store/onlineSession";
 
@@ -60,6 +61,7 @@ export function useOnlineGame() {
   const useReturnAbility = useMutation(api.rooms.useReturnAbility);
   const touchRoom = useMutation(api.rooms.touchRoom);
   const updateDisplayName = useMutation(api.rooms.updateDisplayName);
+  const sendReaction = useMutation(api.rooms.sendReaction);
   
   const evictedRef = useRef(false);
   const reconnectAttemptedRef = useRef(false);
@@ -152,6 +154,29 @@ export function useOnlineGame() {
     isAuthenticated,
     updateDisplayName,
     setOnlineStatusMessage,
+  ]);
+
+  useEffect(() => {
+    if (playMode !== "online" || !onlineRoomId || !isAuthenticated) {
+      registerSendReaction(null);
+      return;
+    }
+
+    registerSendReaction((emoji) => {
+      void sendReaction({
+        roomId: onlineRoomId as Id<"rooms">,
+        emoji,
+      }).catch(() => {
+        /* reactions are best-effort; ignore failures */
+      });
+    });
+
+    return () => registerSendReaction(null);
+  }, [
+    playMode,
+    onlineRoomId,
+    isAuthenticated,
+    sendReaction,
   ]);
 
   useEffect(() => {

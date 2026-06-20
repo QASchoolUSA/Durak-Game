@@ -22,8 +22,14 @@ import {
 } from "@durak/game-core";
 import { storage, MAX_DISPLAY_NAME_LENGTH } from "./storage";
 import { type AppearanceId } from "../theme/appearanceThemes";
+import { trigger as fireFeedback, type FeedbackEvent } from "../feedback/feedback";
 
-import { submitOnlineMove, submitOnlineReturn, submitUpdateDisplayName } from "./onlineBridge";
+import {
+  submitOnlineMove,
+  submitOnlineReturn,
+  submitUpdateDisplayName,
+  submitOnlineReaction,
+} from "./onlineBridge";
 
 export type Screen = "welcome" | "home" | "lobby" | "game" | "result";
 export type Difficulty = "easy" | "medium" | "hard";
@@ -57,17 +63,15 @@ function isHumanCardMove(move: Move, humanId: PlayerId): boolean {
   );
 }
 
-function playAudioSound(name: string) {
-  // Simple HTML5 audio fallback or console log stub
-  console.log(`[Sound] Playing: ${name}`);
+// Sound + haptics are produced together by the feedback engine. triggerHaptics
+// fires both; playAudioSound is kept as a no-op so existing paired call sites
+// don't double-play the clip.
+function triggerHaptics(name: string) {
+  fireFeedback(name as FeedbackEvent);
 }
 
-function triggerHaptics(name: string) {
-  // Web Vibration API fallback or stub
-  if (typeof navigator !== "undefined" && navigator.vibrate) {
-    if (name === "error") navigator.vibrate(100);
-    else if (name === "cardPlay") navigator.vibrate(20);
-  }
+function playAudioSound(_name: string) {
+  /* handled by triggerHaptics -> feedback.trigger */
 }
 
 export function timeoutMoveFor(state: GameState, player: PlayerId): Move | null {
@@ -159,6 +163,7 @@ interface GameStore {
   }) => void;
   syncOnlineState: (view: any) => void;
   triggerLocalReaction: (emoji: string) => void;
+  react: (emoji: string) => void;
   tryConsumeReactionAt: (at: number) => boolean;
   setSubmittingMove: (submitting: boolean) => void;
   clearPendingReveal: () => void;
@@ -230,6 +235,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     cancelAi();
     cancelResultTimer();
     settleSoloEconomy(next);
+    const humanWon = (next.finishedOrder[0] ?? null) === get().humanId;
+    triggerHaptics(next.loserId === null ? "confirm" : humanWon ? "success" : "failure");
     set({
       game: next,
       lastMoveAt: Date.now(),
@@ -364,6 +371,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         throwInScope: config.throwInScope,
         playStyle: config.playStyle,
         difficulty: config.difficulty,
+        turnTimerSeconds: storage.getTurnTimerSeconds(),
         cardDesign,
       });
     },
@@ -429,6 +437,15 @@ export const useGameStore = create<GameStore>((set, get) => {
           at,
         },
       });
+    },
+
+    react: (emoji) => {
+      const clean = emoji.slice(0, 8);
+      if (get().playMode === "online") {
+        submitOnlineReaction(clean);
+      }
+      // Optimistic local burst (and the only burst in solo).
+      get().triggerLocalReaction(clean);
     },
 
     tryConsumeReactionAt: (at) => {
@@ -620,6 +637,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     applyTurnTimerMidGame: (seconds) => {
       set({ turnTimerSeconds: seconds });
+      storage.setTurnTimerSeconds(seconds);
       const { screen, game, playMode } = get();
       if (screen === "game" && playMode === "solo" && game?.phase === "playing") {
         set({ lastMoveAt: Date.now() });
@@ -663,6 +681,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         playStyle,
         difficulty: get().difficulty,
       });
+      triggerHaptics("gameStart");
       scheduleAi();
     },
 
