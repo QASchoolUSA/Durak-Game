@@ -3,10 +3,12 @@ import type { Move } from "@durak/game-core";
 type SubmitFn = (move: Move) => void;
 type VoidFn = () => void;
 type UpdateDisplayNameFn = (displayName: string) => void;
+type ReactionFn = (emoji: string) => void;
 
 let submitMoveFn: SubmitFn | null = null;
 let returnFn: VoidFn | null = null;
 let updateDisplayNameFn: UpdateDisplayNameFn | null = null;
+let reactionFn: ReactionFn | null = null;
 
 export function registerOnlineMoveSubmit(fn: SubmitFn | null): void {
   submitMoveFn = fn;
@@ -30,4 +32,12 @@ export function registerUpdateDisplayName(fn: UpdateDisplayNameFn | null): void 
 
 export function submitUpdateDisplayName(displayName: string): void {
   updateDisplayNameFn?.(displayName);
+}
+
+export function registerSendReaction(fn: ReactionFn | null): void {
+  reactionFn = fn;
+}
+
+export function submitOnlineReaction(emoji: string): void {
+  reactionFn?.(emoji);
 }

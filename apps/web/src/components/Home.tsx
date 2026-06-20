@@ -1,18 +1,15 @@
 import React, { useState } from "react";
-import { useMutation, useConvexAuth } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useMutation } from "convex/react";
 import { api } from "../../../mobile/convex/_generated/api";
+import { useOnlineAuth } from "../auth/AuthGateProvider";
 import { useGameStore } from "../store/gameStore";
 import { SettingsModal } from "./SettingsModal";
 import { RulesModal } from "./RulesModal";
 import { Card } from "./Card";
 
 export const Home: React.FC = () => {
-  const { signOut } = useAuthActions();
-  const { isAuthenticated } = useConvexAuth();
+  const { ensureAuthenticated } = useOnlineAuth();
 
-  const creditBalance = useGameStore((s) => s.creditBalance);
-  const goldBalance = useGameStore((s) => s.goldBalance);
   const onlineDisplayName = useGameStore((s) => s.onlineDisplayName);
   const setOnlineDisplayName = useGameStore((s) => s.setOnlineDisplayName);
 
@@ -39,13 +36,10 @@ export const Home: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const handleCreateRoom = async () => {
-    if (!isAuthenticated) {
-      setError("Please sign in to play multiplayer.");
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
+      await ensureAuthenticated();
       setPlayMode("online");
       const result = await createRoomMutation({
         displayName: onlineDisplayName,
@@ -81,6 +75,7 @@ export const Home: React.FC = () => {
     setBusy(true);
     setError(null);
     try {
+      await ensureAuthenticated();
       setPlayMode("online");
       const result = await joinRoomMutation({
         code: joinCode.trim().toUpperCase(),
@@ -102,21 +97,6 @@ export const Home: React.FC = () => {
 
   return (
     <div className="home-container">
-      {/* Economy Bar / Header details */}
-      <div style={{ position: "absolute", top: "20px", right: "24px", display: "flex", gap: "12px", zIndex: 10 }}>
-        <div className="stat-pill">
-          💰 <span style={{ marginLeft: "4px" }}>{creditBalance}</span>
-        </div>
-        <div className="stat-pill gold">
-          🪙 <span style={{ marginLeft: "4px" }}>{goldBalance}</span>
-        </div>
-        {isAuthenticated && (
-          <button className="btn btn-secondary btn-sm" onClick={() => signOut()}>
-            Sign Out
-          </button>
-        )}
-      </div>
-
       <div className="hero-panel" style={{ maxWidth: "520px" }}>
         <div className="card-fan">
           <div className="deco-card"><Card faceDown style={{ width: "100%", height: "100%", boxShadow: "none" }} /></div>
@@ -147,12 +127,8 @@ export const Home: React.FC = () => {
             <button
               className="btn btn-secondary btn-lg"
               onClick={() => {
-                if (!isAuthenticated) {
-                  setError("Please register or sign in to play multiplayer.");
-                } else {
-                  setRoomAction("create");
-                  setError(null);
-                }
+                setRoomAction("create");
+                setError(null);
               }}
             >
               Create Online Game
@@ -160,12 +136,8 @@ export const Home: React.FC = () => {
             <button
               className="btn btn-secondary btn-lg"
               onClick={() => {
-                if (!isAuthenticated) {
-                  setError("Please register or sign in to play multiplayer.");
-                } else {
-                  setRoomAction("join");
-                  setError(null);
-                }
+                setRoomAction("join");
+                setError(null);
               }}
             >
               Join Online Game

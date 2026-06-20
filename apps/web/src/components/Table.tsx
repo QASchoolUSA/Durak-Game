@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useGameStore } from "../store/gameStore";
 import { Card } from "./Card";
 import { SettingsModal } from "./SettingsModal";
 import { RulesModal } from "./RulesModal";
+import { TurnTimerRing } from "./TurnTimerRing";
+import { ReactionsBar, ReactionBurst } from "./Reactions";
+import { trigger as fireFeedback } from "../feedback/feedback";
 import {
   legalAttacks,
   legalDefenses,
@@ -12,6 +15,12 @@ import {
   handOf,
 } from "@durak/game-core";
 
+interface ActiveClock {
+  id: string;
+  left: number;
+  total: number;
+}
+
 export const Table: React.FC = () => {
   const game = useGameStore((s) => s.game);
   const humanId = useGameStore((s) => s.humanId);
@@ -20,6 +29,9 @@ export const Table: React.FC = () => {
   const submitHuman = useGameStore((s) => s.submitHuman);
   const goHome = useGameStore((s) => s.goHome);
   const difficulty = useGameStore((s) => s.difficulty);
+  const returnExpiresAt = useGameStore((s) => s.returnExpiresAt);
+  const returnLastCard = useGameStore((s) => s.returnLastCard);
+  const submittingMove = useGameStore((s) => s.submittingMove);
 
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -29,24 +41,84 @@ export const Table: React.FC = () => {
   const [isDraggingOverField, setIsDraggingOverField] = useState(false);
   const [draggingOverPairIdx, setDraggingOverPairIdx] = useState<number | null>(null);
 
-  // Time tracking for turn timer clock
+  // Unified turn clock: online uses the server deadline; solo derives one for the
+  // human and auto-plays a safe move on expiry. Drives the countdown ring.
   const turnClockPlayerId = useGameStore((s) => s.turnClockPlayerId);
-  const turnDeadlineAt = useGameStore((s) => s.turnDeadlineAt);
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [clock, setClock] = useState<ActiveClock | null>(null);
+  const autoPlayedForRef = useRef<number>(0);
+  const lastWarnRef = useRef<{ id: string; sec: number }>({ id: "", sec: -1 });
 
   useEffect(() => {
-    if (!turnDeadlineAt) {
-      setTimeLeft(null);
+    const tick = () => {
+      const st = useGameStore.getState();
+      const g = st.game;
+      if (!g || g.phase !== "playing") {
+        setClock(null);
+        return;
+      }
+      const total = st.turnTimerSeconds;
+      let id: string | null = null;
+      let deadline: number | null = null;
+
+      if (st.playMode === "online") {
+        id = st.turnClockPlayerId;
+        deadline = st.turnDeadlineAt;
+      } else {
+        const human = st.humanId;
+        const mustAct =
+          canTake(g, human) ||
+          canPass(g, human) ||
+          legalAttacks(g, human).length > 0 ||
+          legalTransfers(g, 0).length > 0 ||
+          (g.defenderId === human &&
+            g.table.some((p, i) => !p.defense && legalDefenses(g, i).length > 0));
+        if (mustAct) {
+          id = human;
+          deadline = st.lastMoveAt + total * 1000;
+        }
+      }
+
+      if (!id || !deadline) {
+        setClock(null);
+        return;
+      }
+
+      const left = Math.max(0, (deadline - Date.now()) / 1000);
+      setClock({ id, left, total });
+
+      // Warning cues at <=3s remaining (once per second, for the local player).
+      if (id === st.humanId) {
+        const sec = Math.ceil(left);
+        if (left > 0 && sec <= 3 && (lastWarnRef.current.id !== id || lastWarnRef.current.sec !== sec)) {
+          lastWarnRef.current = { id, sec };
+          fireFeedback(sec <= 1 ? "timerCritical" : "timerWarning");
+        }
+      }
+
+      // Solo: force a move when the human runs out of time (guard against repeats).
+      if (left <= 0 && st.playMode === "solo" && id === st.humanId && autoPlayedForRef.current !== deadline) {
+        autoPlayedForRef.current = deadline;
+        st.autoPlayHuman();
+      }
+    };
+
+    tick();
+    const interval = setInterval(tick, 200);
+    return () => clearInterval(interval);
+  }, []);
+
+  // "Return" undo window — countdown after the human plays a card (solo + online).
+  const [returnLeft, setReturnLeft] = useState(0);
+  useEffect(() => {
+    if (!returnExpiresAt) {
+      setReturnLeft(0);
       return;
     }
-    const updateTime = () => {
-      const remaining = Math.max(0, Math.round((turnDeadlineAt - Date.now()) / 1000));
-      setTimeLeft(remaining);
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, [turnDeadlineAt]);
+    const update = () => setReturnLeft(Math.max(0, returnExpiresAt - Date.now()));
+    update();
+    const t = setInterval(update, 100);
+    return () => clearInterval(t);
+  }, [returnExpiresAt]);
 
   if (!game) return null;
 
@@ -242,13 +314,14 @@ export const Table: React.FC = () => {
 
   return (
     <div className="game-area">
+      <ReactionBurst />
       {/* Opponents Row at top */}
       <div className="opponents-row">
         {rotatedOpponents.map((oppId) => {
           const oppHand = handOf(game, oppId);
           const isAttacker = game.attackerId === oppId;
           const isDefender = game.defenderId === oppId;
-          const isActive = turnClockPlayerId === oppId;
+          const isActive = (clock?.id ?? turnClockPlayerId) === oppId;
 
           return (
             <div key={oppId} className={`opponent-seat ${isActive ? "active" : ""}`}>
@@ -262,10 +335,8 @@ export const Table: React.FC = () => {
                   🎴 {oppHand.length} cards
                 </span>
               </div>
-              {isActive && timeLeft !== null && (
-                <div style={{ fontSize: "12px", color: "var(--gold)", fontWeight: "900" }}>
-                  ⏳ {timeLeft}s
-                </div>
+              {clock && clock.id === oppId && (
+                <TurnTimerRing secondsLeft={clock.left} totalSeconds={clock.total} size={38} />
               )}
             </div>
           );
@@ -363,6 +434,18 @@ export const Table: React.FC = () => {
       {/* Bottom Area: Controls & Player Hand */}
       <div className="player-hand-container">
         <div className="table-controls">
+          {clock && clock.id === humanId && (
+            <TurnTimerRing secondsLeft={clock.left} totalSeconds={clock.total} size={40} />
+          )}
+          {returnLeft > 0 && (
+            <button
+              className="btn btn-secondary btn-sm return-pill"
+              onClick={() => returnLastCard()}
+              disabled={submittingMove}
+            >
+              ↩ Return ({Math.ceil(returnLeft / 1000)})
+            </button>
+          )}
           {canPass(game, humanId) && (
             <button className="btn btn-primary btn-md" onClick={handlePass}>
               PASS
@@ -379,6 +462,7 @@ export const Table: React.FC = () => {
           <button className="btn btn-secondary btn-sm" onClick={() => setRulesOpen(true)}>
             Rules
           </button>
+          {playMode === "online" && <ReactionsBar />}
           <button className="btn btn-secondary btn-sm" onClick={goHome}>
             LEAVE
           </button>

@@ -1,7 +1,10 @@
 import { useEffect } from "react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { useConvexAuth } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { AuthGateProvider } from "./auth/AuthGateProvider";
 import { convex, convexEnabled } from "./convexClient";
+import { EconomyBar } from "./components/EconomyBar";
 import { useGameStore } from "./store/gameStore";
 import { useOnlineGame } from "./hooks/useOnlineGame";
 import { Welcome } from "./components/Welcome";
@@ -11,6 +14,7 @@ import { Table } from "./components/Table";
 import { Result } from "./components/Result";
 import { getAppearance } from "./theme/appearanceThemes";
 import { getUiTheme } from "./theme/uiThemes";
+import { prewarmSounds, unlockAudio } from "./feedback/feedback";
 
 function OnlineGameSync() {
   useOnlineGame();
@@ -26,6 +30,22 @@ function GameRouter() {
   useEffect(() => {
     initializeStore();
   }, [initializeStore]);
+
+  // Browsers gate audio behind a user gesture — unlock + prewarm on first input.
+  useEffect(() => {
+    const onFirstGesture = () => {
+      void unlockAudio();
+      prewarmSounds();
+      window.removeEventListener("pointerdown", onFirstGesture);
+      window.removeEventListener("keydown", onFirstGesture);
+    };
+    window.addEventListener("pointerdown", onFirstGesture);
+    window.addEventListener("keydown", onFirstGesture);
+    return () => {
+      window.removeEventListener("pointerdown", onFirstGesture);
+      window.removeEventListener("keydown", onFirstGesture);
+    };
+  }, []);
 
   // Route to auth landing if not onboarded and Convex is enabled
   const showWelcome = convexEnabled && !onboarded;
@@ -51,7 +71,11 @@ function AppContent() {
   const playMode = useGameStore((s) => s.playMode);
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
   const cardDesign = useGameStore((s) => s.cardDesign);
+  const creditBalance = useGameStore((s) => s.creditBalance);
+  const goldBalance = useGameStore((s) => s.goldBalance);
+  const onboarded = useGameStore((s) => s.onboarded);
   const { isAuthenticated } = useConvexAuth();
+  const { signOut } = useAuthActions();
 
   const preset = getAppearance(cardDesign);
   const uiTheme = getUiTheme(cardDesign);
@@ -82,10 +106,20 @@ function AppContent() {
           ♠️ ♥️ DURAK ♣️ ♦️
         </div>
         
-        <div style={{ fontSize: "14px", color: "var(--text-muted)", fontWeight: "500" }}>
-          {playMode === "online" && onlineRoomId
-            ? `Multiplayer Room: ${onlineRoomId.slice(0, 8)}...`
-            : "Offline vs Bots Mode"}
+        <div className="header-right">
+          {playMode === "online" && onlineRoomId && (
+            <div className="header-room-label">
+              {`Room: ${onlineRoomId.slice(0, 8)}…`}
+            </div>
+          )}
+          {convexEnabled && onboarded && (
+            <EconomyBar
+              credits={creditBalance}
+              gold={goldBalance}
+              showSignOut={isAuthenticated}
+              onSignOut={() => void signOut()}
+            />
+          )}
         </div>
       </header>
 
@@ -105,7 +139,9 @@ export default function App() {
 
   return (
     <ConvexAuthProvider client={convex}>
-      <AppContent />
+      <AuthGateProvider>
+        <AppContent />
+      </AuthGateProvider>
     </ConvexAuthProvider>
   );
 }

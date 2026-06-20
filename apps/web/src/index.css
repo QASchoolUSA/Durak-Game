@@ -144,6 +144,150 @@ body, html {
   gap: 12px;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-room-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.economy-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.economy-bar .stat-pill span {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Win confetti overlay */
+.confetti-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* Return (undo) pill — subtle pulse to draw the eye during its short window */
+.return-pill {
+  border-color: var(--gold-dim) !important;
+  color: var(--gold-bright) !important;
+  animation: returnPulse 1s ease-in-out infinite;
+}
+
+@keyframes returnPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(231, 192, 103, 0.0); }
+  50% { box-shadow: 0 0 10px 1px rgba(231, 192, 103, 0.35); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .return-pill { animation: none; }
+}
+
+/* Card entrance animations */
+.battle-pair .attacker-card,
+.battle-pair .defender-card {
+  animation: cardDrop 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes cardDrop {
+  from { opacity: 0; transform: translateY(-14px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+
+.hand-cards-list .card-item {
+  animation: cardDeal 0.28s ease-out both;
+}
+
+@keyframes cardDeal {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .battle-pair .attacker-card,
+  .battle-pair .defender-card,
+  .hand-cards-list .card-item {
+    animation: none;
+  }
+}
+
+/* Reactions */
+.reactions-bar {
+  position: relative;
+  display: inline-flex;
+}
+
+.reactions-tray {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  background: var(--panel, rgba(9, 46, 31, 0.95));
+  border: 1px solid var(--panel-border, rgba(231, 192, 103, 0.25));
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  z-index: 30;
+}
+
+.reaction-emoji-btn {
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  line-height: 1;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.reaction-emoji-btn:hover {
+  transform: scale(1.25);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.reaction-burst-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  overflow: hidden;
+}
+
+.reaction-burst {
+  position: absolute;
+  left: 50%;
+  font-size: 40px;
+  animation: reactionRise 1.9s ease-out forwards;
+}
+
+.reaction-burst.you {
+  bottom: 22%;
+}
+
+.reaction-burst.them {
+  top: 18%;
+}
+
+@keyframes reactionRise {
+  0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.5); }
+  15% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.1); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-90px) scale(1); }
+}
+
 /* Button UI */
 .btn {
   font-family: var(--font-family);

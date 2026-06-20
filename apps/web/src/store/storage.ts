@@ -16,7 +16,14 @@ const KEYS = {
   gold: "@durak/goldBalance",
   gameConfig: "@durak/gameConfig",
   cardDesign: "@durak/cardDesign",
+  soundEnabled: "@durak/soundEnabled",
+  hapticsEnabled: "@durak/hapticsEnabled",
+  turnTimerSeconds: "@durak/turnTimerSeconds",
 };
+
+/** Turn-timer durations offered in Settings (seconds). Mirrors mobile TURN_SECONDS_OPTIONS. */
+export const TURN_SECONDS_OPTIONS = [8, 10, 12, 15, 20, 30] as const;
+export const DEFAULT_TURN_SECONDS = 12;
 
 export const MAX_DISPLAY_NAME_LENGTH = 12;
 
@@ -135,6 +142,56 @@ export const storage = {
   setGameConfig(config: GameConfig) {
     try {
       localStorage.setItem(KEYS.gameConfig, JSON.stringify(config));
+    } catch (e) {
+      console.warn("Storage failed", e);
+    }
+  },
+
+  getSoundEnabled(): boolean {
+    try {
+      return localStorage.getItem(KEYS.soundEnabled) !== "false"; // default on
+    } catch {
+      return true;
+    }
+  },
+
+  setSoundEnabled(val: boolean) {
+    try {
+      localStorage.setItem(KEYS.soundEnabled, val ? "true" : "false");
+    } catch (e) {
+      console.warn("Storage failed", e);
+    }
+  },
+
+  getHapticsEnabled(): boolean {
+    try {
+      return localStorage.getItem(KEYS.hapticsEnabled) !== "false"; // default on
+    } catch {
+      return true;
+    }
+  },
+
+  setHapticsEnabled(val: boolean) {
+    try {
+      localStorage.setItem(KEYS.hapticsEnabled, val ? "true" : "false");
+    } catch (e) {
+      console.warn("Storage failed", e);
+    }
+  },
+
+  getTurnTimerSeconds(): number {
+    try {
+      const val = localStorage.getItem(KEYS.turnTimerSeconds);
+      const n = val ? parseInt(val, 10) : DEFAULT_TURN_SECONDS;
+      return (TURN_SECONDS_OPTIONS as readonly number[]).includes(n) ? n : DEFAULT_TURN_SECONDS;
+    } catch {
+      return DEFAULT_TURN_SECONDS;
+    }
+  },
+
+  setTurnTimerSeconds(val: number) {
+    try {
+      localStorage.setItem(KEYS.turnTimerSeconds, String(val));
     } catch (e) {
       console.warn("Storage failed", e);
     }
