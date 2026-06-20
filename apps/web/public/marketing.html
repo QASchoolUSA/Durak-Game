@@ -51,15 +51,39 @@
     .btn-ghost{background:rgba(20,80,55,.45); color:var(--text); border:1px solid var(--panel-line)}
     .soon{font-size:12px; color:var(--faint); margin-top:14px}
     /* CARD FAN */
-    .fan{position:relative; height:220px; margin:36px auto 0; width:320px}
-    .pcard{position:absolute; bottom:0; left:50%; width:96px; height:138px; border-radius:12px;
-      background:linear-gradient(160deg,#fff,var(--face)); border:1px solid #DDD6C5;
-      box-shadow:0 16px 30px rgba(0,0,0,.4); transform-origin:bottom center;
-      font-weight:800; font-size:22px; padding:8px 10px}
-    .pcard .tl{position:absolute; top:7px; left:9px; line-height:1}
-    .pcard .br{position:absolute; bottom:7px; right:9px; line-height:1; transform:rotate(180deg)}
-    .pcard .pip{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:42px}
-    .red{color:var(--red)} .blk{color:var(--black)}
+    .fan{position:relative; height:230px; margin:40px auto 0; width:340px}
+    .pcard{position:absolute; bottom:0; left:50%; width:96px; height:138px; border-radius:10px;
+      background:#fdfcf8; box-shadow:0 18px 34px rgba(0,0,0,.42);
+      transform-origin:bottom center; font-family:Georgia,"Times New Roman",serif}
+    /* thin inset frame, like a real printed card */
+    .pcard::before{content:""; position:absolute; inset:5px; border-radius:6px;
+      border:1px solid rgba(0,0,0,.08)}
+    .pcard.red{color:var(--red)} .pcard.blk{color:#1a1c20}
+    /* corner index: rank stacked directly over its suit pip */
+    .idx{position:absolute; display:flex; flex-direction:column; align-items:center; line-height:.9; width:16px}
+    .idx .r{font-size:17px; font-weight:700; letter-spacing:-.5px}
+    .idx .s{font-size:12px; margin-top:1px}
+    .idx-tl{top:7px; left:7px}
+    .idx-br{bottom:7px; right:7px; transform:rotate(180deg)}
+    /* center artwork area, clear of the corner indices */
+    .center{position:absolute; inset:14px; display:flex; align-items:center; justify-content:center}
+    /* Ace — one large centered pip */
+    .ace{font-size:50px; line-height:1}
+    /* number card — positioned pip cluster */
+    .pips{position:relative; width:100%; height:100%}
+    .pips .p{position:absolute; transform:translate(-50%,-50%); font-size:16px; line-height:1}
+    .pips .p.flip{transform:translate(-50%,-50%) rotate(180deg)}
+    /* face card — double-headed court panel */
+    .court{width:48px; height:82px; border:1px solid currentColor; border-radius:4px;
+      position:relative; overflow:hidden; opacity:.92;
+      background:linear-gradient(180deg,rgba(0,0,0,.04),rgba(0,0,0,0) 45%,rgba(0,0,0,.04))}
+    .court .ch{position:absolute; left:0; right:0; height:50%; display:flex;
+      flex-direction:column; align-items:center; justify-content:center; gap:2px}
+    .court .ch .cl{font-size:23px; font-weight:700; line-height:1}
+    .court .ch .cs{font-size:15px; line-height:1}
+    .court .ch.top{top:0} .court .ch.bot{bottom:0; transform:rotate(180deg)}
+    .court::after{content:""; position:absolute; top:50%; left:5px; right:5px;
+      height:1px; background:currentColor; opacity:.35}
     .c1{transform:translateX(-50%) rotate(-22deg) translateX(-92px)}
     .c2{transform:translateX(-50%) rotate(-11deg) translateX(-46px)}
     .c3{transform:translateX(-50%) rotate(0deg); bottom:14px}
@@ -125,11 +149,56 @@
     <div class="soon">Free · No forced ads · No account required</div>
 
     <div class="fan" aria-hidden="true">
-      <div class="pcard c1"><span class="tl blk">A♠</span><span class="pip blk">♠</span><span class="br blk">A♠</span></div>
-      <div class="pcard c2"><span class="tl red">K♥</span><span class="pip red">♥</span><span class="br red">K♥</span></div>
-      <div class="pcard c3"><span class="tl red">A♦</span><span class="pip red">♦</span><span class="br red">A♦</span></div>
-      <div class="pcard c4"><span class="tl blk">Q♣</span><span class="pip blk">♣</span><span class="br blk">Q♣</span></div>
-      <div class="pcard c5"><span class="tl red">10♥</span><span class="pip red">♥</span><span class="br red">10♥</span></div>
+      <!-- 10 of hearts: real 4-4-2 pip layout -->
+      <div class="pcard red c1">
+        <div class="idx idx-tl"><span class="r">10</span><span class="s">♥</span></div>
+        <div class="idx idx-br"><span class="r">10</span><span class="s">♥</span></div>
+        <div class="center"><div class="pips">
+          <span class="p" style="left:28%;top:8%">♥</span>
+          <span class="p" style="left:28%;top:36%">♥</span>
+          <span class="p flip" style="left:28%;top:64%">♥</span>
+          <span class="p flip" style="left:28%;top:92%">♥</span>
+          <span class="p" style="left:50%;top:22%">♥</span>
+          <span class="p flip" style="left:50%;top:78%">♥</span>
+          <span class="p" style="left:72%;top:8%">♥</span>
+          <span class="p" style="left:72%;top:36%">♥</span>
+          <span class="p flip" style="left:72%;top:64%">♥</span>
+          <span class="p flip" style="left:72%;top:92%">♥</span>
+        </div></div>
+      </div>
+      <!-- Jack of diamonds: court panel -->
+      <div class="pcard red c2">
+        <div class="idx idx-tl"><span class="r">J</span><span class="s">♦</span></div>
+        <div class="idx idx-br"><span class="r">J</span><span class="s">♦</span></div>
+        <div class="center"><div class="court">
+          <div class="ch top"><span class="cl">J</span><span class="cs">♦</span></div>
+          <div class="ch bot"><span class="cl">J</span><span class="cs">♦</span></div>
+        </div></div>
+      </div>
+      <!-- Queen of clubs: court panel -->
+      <div class="pcard blk c3">
+        <div class="idx idx-tl"><span class="r">Q</span><span class="s">♣</span></div>
+        <div class="idx idx-br"><span class="r">Q</span><span class="s">♣</span></div>
+        <div class="center"><div class="court">
+          <div class="ch top"><span class="cl">Q</span><span class="cs">♣</span></div>
+          <div class="ch bot"><span class="cl">Q</span><span class="cs">♣</span></div>
+        </div></div>
+      </div>
+      <!-- King of hearts: court panel -->
+      <div class="pcard red c4">
+        <div class="idx idx-tl"><span class="r">K</span><span class="s">♥</span></div>
+        <div class="idx idx-br"><span class="r">K</span><span class="s">♥</span></div>
+        <div class="center"><div class="court">
+          <div class="ch top"><span class="cl">K</span><span class="cs">♥</span></div>
+          <div class="ch bot"><span class="cl">K</span><span class="cs">♥</span></div>
+        </div></div>
+      </div>
+      <!-- Ace of spades: single large center pip -->
+      <div class="pcard blk c5">
+        <div class="idx idx-tl"><span class="r">A</span><span class="s">♠</span></div>
+        <div class="idx idx-br"><span class="r">A</span><span class="s">♠</span></div>
+        <div class="center"><span class="ace">♠</span></div>
+      </div>
     </div>
   </header>
 
