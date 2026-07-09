@@ -1,32 +1,26 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth, useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
 import { MenuButton } from "./MenuButton";
 import { AuthSheet } from "./AuthSheet";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { useGameStore } from "../game/store";
+import { useAccountKind } from "../game/useAccountKind";
 import { trigger } from "../feedback/haptics";
 import { radius, spacing, typography } from "../theme";
 
 /** ACCOUNT section for the settings sheet. Rendered only when Convex is enabled. */
 export function AccountSection() {
   const ui = useUiTheme();
-  const { isAuthenticated } = useConvexAuth();
   const { signOut } = useAuthActions();
-  const status = useQuery(
-    api.account.getAccountStatus,
-    isAuthenticated ? {} : "skip",
-  );
+  const { isGuest, email, markRegistered, markGuest } = useAccountKind();
   const setOnboarded = useGameStore((s) => s.setOnboarded);
   const [authOpen, setAuthOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  const isGuest = status?.isAnonymous ?? true;
-
   const handleSignOut = async () => {
     setSigningOut(true);
+    markGuest();
     try {
       await signOut();
       // Drop back to the welcome/landing screen.
@@ -58,7 +52,7 @@ export function AccountSection() {
         ) : (
           <>
             <Text style={[styles.hint, { color: ui.textMuted }]}>
-              Signed in{status?.email ? ` as ${status.email}` : ""}.
+              Signed in{email ? ` as ${email}` : ""}.
             </Text>
             <MenuButton
               label={signingOut ? "SIGNING OUT…" : "SIGN OUT"}
@@ -69,7 +63,11 @@ export function AccountSection() {
           </>
         )}
       </View>
-      <AuthSheet visible={authOpen} onClose={() => setAuthOpen(false)} />
+      <AuthSheet
+        visible={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onAuthenticated={markRegistered}
+      />
     </>
   );
 }

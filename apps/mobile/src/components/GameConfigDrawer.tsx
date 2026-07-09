@@ -27,6 +27,7 @@ import { DifficultyPicker } from "./DifficultyPicker";
 import { MenuButton } from "./MenuButton";
 import { colors, radius, spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
+import { sheetHorizontalFrame } from "../theme/gameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
@@ -307,7 +308,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
 
         {/* Sheet — swipe-down-to-dismiss wraps the whole card */}
         <GestureDetector gesture={swipeDown}>
-          <Animated.View style={[styles.sheet, { height: drawerH }, aSheet]}>
+          <Animated.View style={[styles.sheet, { height: drawerH, ...sheetHorizontalFrame(lay) }, aSheet]}>
 
             {/* Gradient background */}
             <LinearGradient

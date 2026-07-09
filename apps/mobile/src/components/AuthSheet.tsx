@@ -32,6 +32,9 @@ import { useUiTheme } from "../theme/UiThemeContext";
 import { useGameStore } from "../game/store";
 import { trigger } from "../feedback/haptics";
 import { colors, radius, spacing, typography } from "../theme";
+import { waitForRegisteredAccount } from "../game/waitForRegisteredAccount";
+import { useGameLayout } from "../theme/useGameLayout";
+import { sheetHorizontalFrame } from "../theme/gameLayout";
 
 const SPRING_IN  = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
@@ -82,9 +85,10 @@ export function AuthSheet({
   ];
   const { height: screenH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const lay = useGameLayout();
   const drawerH = Math.min(
     Math.round(screenH * 0.72),
-    screenH - insets.top - spacing.md,
+    screenH - insets.top - lay.s(spacing.md),
   );
 
   const { signIn } = useAuthActions();
@@ -373,6 +377,10 @@ export function AuthSheet({
         await new Promise((r) => setTimeout(r, 400));
       }
     }
+    await waitForRegisteredAccount(() =>
+      convex.query(api.account.getAccountStatus, {}),
+    );
+
     setOnboarded(true);
     trigger("confirm");
     onAuthenticated?.();
@@ -482,7 +490,7 @@ export function AuthSheet({
           <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
 
-        <Animated.View style={[styles.sheet, { height: drawerH }, aSheet]}>
+        <Animated.View style={[styles.sheet, { height: drawerH, ...sheetHorizontalFrame(lay) }, aSheet]}>
 
           <LinearGradient
             colors={sheetGradient}

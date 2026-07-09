@@ -7,7 +7,7 @@ import {
   canAffordGold,
 } from "../game/goldEconomy";
 import { trigger } from "../feedback/haptics";
-import { DOCK_ROW_HEIGHT, useDockPillStyles } from "./dockPill";
+import { useDockPillStyles, useDockRowHeight } from "./dockPill";
 import { spacing } from "../theme";
 import { CoinIcon } from "./CoinIcon";
 
@@ -171,9 +171,11 @@ function AbilityDockComponent({
   showRevealGraveyard = true,
   chargeGold = false,
 }: AbilityDockProps) {
+  const dockRowHeight = useDockRowHeight();
+
   return (
     <View
-      style={styles.row}
+      style={[styles.row, { height: dockRowHeight }]}
       accessibilityRole="toolbar"
       accessibilityLabel="Game abilities"
     >
@@ -207,7 +209,6 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     width: "100%",
     gap: spacing.xs,
-    height: DOCK_ROW_HEIGHT,
   },
   pill: {
     flex: 1,

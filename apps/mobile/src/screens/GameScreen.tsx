@@ -1186,15 +1186,17 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
                   borderColor: ui.panelBorderSoft,
                   flexDirection: "row",
                   width: "auto",
-                  paddingHorizontal: 16,
-                  gap: spacing.sm,
+                  height: lay.s(32),
+                  paddingHorizontal: lay.s(16),
+                  borderRadius: lay.s(16),
+                  gap: lay.s(spacing.sm),
                 },
               ]}
               onPress={handleMenu}
               hitSlop={10}
             >
-              <Text style={[styles.headerBtnText, { color: ui.textPrimary }]}>☰</Text>
-              <Text style={[styles.headerBtnText, { color: ui.textPrimary, fontSize: 13, fontWeight: "700" }]}>Menu</Text>
+              <Text style={[styles.headerBtnText, { color: ui.textPrimary, fontSize: lay.s(13) }]}>☰</Text>
+              <Text style={[styles.headerBtnText, { color: ui.textPrimary, fontSize: lay.s(13), fontWeight: "700" }]}>Menu</Text>
             </Pressable>
           </View>
         </View>
@@ -1291,7 +1293,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
 
         <View style={styles.bottom}>
           {!humanFinished && (
-            <View style={[styles.actionDockRow, { height: 40 }]}>
+            <View style={[styles.actionDockRow, { height: lay.s(40) }]}>
               <ReturnActionButton
                 returnExpiresAt={returnExpiresAt}
                 playMode={playMode}
@@ -1536,14 +1538,11 @@ const styles = StyleSheet.create({
   },
   headerActions: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: spacing.xs },
   headerBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
   },
-  headerBtnText: { fontSize: 13, fontWeight: "700" },
+  headerBtnText: { fontWeight: "700" },
   opponents: {
     flexDirection: "row",
     flexWrap: "wrap",

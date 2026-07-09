@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { colors, radius } from "../theme";
 import { useUiTheme } from "../theme/UiThemeContext";
+import { useGameLayout } from "../theme/useGameLayout";
 import { CoinIcon } from "./CoinIcon";
 import { EconomyChip } from "./EconomyChip";
 import { formatEconomyAmount } from "./economyFormat";
@@ -22,24 +23,31 @@ export function EconomyBar({
   variant = "home",
 }: EconomyBarProps) {
   const ui = useUiTheme();
+  const lay = useGameLayout();
   const dividerColor = ui.panelBorderSoft;
+  const iconSize = lay.s(16);
+
+  const barStyle = useMemo(
+    () => ({
+      backgroundColor: ui.panelBg,
+      borderColor: ui.panelBorderSoft,
+      borderRadius: radius.pill,
+      paddingHorizontal: lay.s(3),
+      paddingVertical: lay.s(2),
+    }),
+    [ui.panelBg, ui.panelBorderSoft, lay.s],
+  );
 
   const a11yLabel = `Credits ${creditBalance.toLocaleString("en-US")}, gold ${goldBalance.toLocaleString("en-US")}`;
 
   return (
     <View
-      style={[
-        styles.bar,
-        {
-          backgroundColor: ui.panelBg,
-          borderColor: ui.panelBorderSoft,
-        },
-      ]}
+      style={[styles.bar, barStyle]}
       accessibilityRole="summary"
       accessibilityLabel={a11yLabel}
     >
       <EconomyChip
-        icon={<CoinIcon variant="credit" size={16} />}
+        icon={<CoinIcon variant="credit" size={iconSize} />}
         value={formatEconomyAmount(creditBalance)}
         valueColor={colors.success}
         accessibilityLabel={`Credits ${creditBalance.toLocaleString("en-US")}`}
@@ -50,7 +58,7 @@ export function EconomyBar({
       />
       <SegmentDivider color={dividerColor} />
       <EconomyChip
-        icon={<CoinIcon variant="gold" size={16} />}
+        icon={<CoinIcon variant="gold" size={iconSize} />}
         value={formatEconomyAmount(goldBalance)}
         valueColor={colors.gold}
         accessibilityLabel={`Gold ${goldBalance.toLocaleString("en-US")}`}
@@ -69,10 +77,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-start",
     flexShrink: 1,
-    borderRadius: radius.pill,
     borderWidth: 1,
-    paddingHorizontal: 3,
-    paddingVertical: 2,
     maxWidth: "100%",
   },
   divider: {

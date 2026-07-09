@@ -25,6 +25,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { colors, radius, spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
+import { sheetHorizontalFrame } from "../theme/gameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { AppearancePicker } from "./AppearancePicker";
@@ -290,7 +291,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
           <Pressable style={StyleSheet.absoluteFill} onPress={requestClose} />
         </Animated.View>
 
-        <Animated.View style={[styles.sheet, { height: drawerH }, aSheet]}>
+        <Animated.View style={[styles.sheet, { height: drawerH, ...sheetHorizontalFrame(lay) }, aSheet]}>
           <LinearGradient
             colors={sheetGradient}
             style={StyleSheet.absoluteFill}

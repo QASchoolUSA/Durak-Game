@@ -24,6 +24,7 @@ import { Card } from "./Card";
 import { sortHandForDisplay } from "../game/handSort";
 import { CARD_ASPECT, colors, radius, spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
+import { gridColumnsForSizeClass, sheetHorizontalFrame } from "../theme/gameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 
@@ -186,7 +187,7 @@ export function GraveyardSheet({ visible, onClose, cards, trumpSuit }: Graveyard
     Math.round(screenH * 0.72),
     screenH - insets.top - lay.s(spacing.md),
   );
-  const columns = lay.isTablet ? 5 : 4;
+  const columns = gridColumnsForSizeClass(lay.sizeClass);
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(visible);
@@ -279,7 +280,7 @@ export function GraveyardSheet({ visible, onClose, cards, trumpSuit }: Graveyard
           <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
 
-        <Animated.View style={[styles.sheet, { height: drawerH }, aSheet]}>
+        <Animated.View style={[styles.sheet, { height: drawerH, ...sheetHorizontalFrame(lay) }, aSheet]}>
           <LinearGradient
             colors={sheetGradient}
             style={StyleSheet.absoluteFill}

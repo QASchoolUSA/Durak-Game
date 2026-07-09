@@ -17,6 +17,7 @@ import Animated, {
 import { useAppActive } from "../hooks/useAppActive";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
+import { useGameLayout } from "../theme/useGameLayout";
 
 export interface BackgroundProps {
   children: React.ReactNode;
@@ -215,15 +216,82 @@ function HomeDecorShapes({
   line: string;
 }) {
   const { width, height } = useWindowDimensions();
+  const { s } = useGameLayout();
+  const cornerSize = s(120);
+  const cornerOffset = s(-40);
+  const cornerRadius = s(80);
+  const diamondLg = s(28);
+  const diamondSm = s(16);
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <View style={[styles.cornerArc, styles.cornerArcTL, { borderColor: ringFaint }]} />
-      <View style={[styles.cornerArc, styles.cornerArcBR, { borderColor: ringFaint }]} />
+      <View
+        style={[
+          styles.cornerArc,
+          styles.cornerArcTL,
+          {
+            borderColor: ringFaint,
+            width: cornerSize,
+            height: cornerSize,
+            top: cornerOffset,
+            left: cornerOffset,
+            borderTopLeftRadius: cornerRadius,
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.cornerArc,
+          styles.cornerArcBR,
+          {
+            borderColor: ringFaint,
+            width: cornerSize,
+            height: cornerSize,
+            bottom: cornerOffset,
+            right: cornerOffset,
+            borderBottomRightRadius: cornerRadius,
+          },
+        ]}
+      />
 
-      <View style={[styles.diamond, { top: height * 0.14, right: width * 0.08, borderColor: diamond }]} />
-      <View style={[styles.diamond, styles.diamondSm, { bottom: height * 0.22, left: width * 0.06, borderColor: diamond }]} />
-      <View style={[styles.diamond, styles.diamondSm, { top: height * 0.72, right: width * 0.14, borderColor: diamond }]} />
+      <View
+        style={[
+          styles.diamond,
+          {
+            top: height * 0.14,
+            right: width * 0.08,
+            borderColor: diamond,
+            width: diamondLg,
+            height: diamondLg,
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.diamond,
+          styles.diamondSm,
+          {
+            bottom: height * 0.22,
+            left: width * 0.06,
+            borderColor: diamond,
+            width: diamondSm,
+            height: diamondSm,
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.diamond,
+          styles.diamondSm,
+          {
+            top: height * 0.72,
+            right: width * 0.14,
+            borderColor: diamond,
+            width: diamondSm,
+            height: diamondSm,
+          },
+        ]}
+      />
 
       <View style={[styles.accentLine, { top: "18%", width: width * 0.28, left: width * 0.04, backgroundColor: line }]} />
       <View style={[styles.accentLine, { top: "76%", width: width * 0.22, right: width * 0.06, backgroundColor: line }]} />
@@ -346,35 +414,23 @@ const styles = StyleSheet.create({
   },
   cornerArc: {
     position: "absolute",
-    width: 120,
-    height: 120,
     backgroundColor: "transparent",
   },
   cornerArcTL: {
-    top: -40,
-    left: -40,
     borderTopWidth: 1.5,
     borderLeftWidth: 1.5,
-    borderTopLeftRadius: 80,
   },
   cornerArcBR: {
-    bottom: -40,
-    right: -40,
     borderBottomWidth: 1.5,
     borderRightWidth: 1.5,
-    borderBottomRightRadius: 80,
   },
   diamond: {
     position: "absolute",
-    width: 28,
-    height: 28,
     borderWidth: 1,
     backgroundColor: "transparent",
     transform: [{ rotate: "45deg" }],
   },
   diamondSm: {
-    width: 16,
-    height: 16,
     opacity: 0.7,
   },
   accentLine: {

@@ -32,6 +32,7 @@ import { useOnlineAuth } from "../game/useAuthBootstrap";
 import { useGameStore } from "../game/store";
 import { colors, radius, spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
+import { sheetHorizontalFrame } from "../theme/gameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 
@@ -362,7 +363,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
           <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
 
-        <Animated.View style={[styles.sheet, { height: drawerH }, aSheet]}>
+        <Animated.View style={[styles.sheet, { height: drawerH, ...sheetHorizontalFrame(lay) }, aSheet]}>
           <LinearGradient
             colors={sheetGradient}
             style={StyleSheet.absoluteFill}

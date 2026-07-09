@@ -28,6 +28,7 @@ export function HeroPanel({
 }) {
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
+  const { s } = useGameLayout();
   const panelGrad = tableTheme.backgroundGradient ?? [
     ui.panelBg,
     ui.feltEdge,
@@ -37,11 +38,25 @@ export function HeroPanel({
   return (
     <View style={[styles.heroPanelWrap, { maxWidth, width: "100%" }]}>
       <View
-        style={[styles.heroRingOuter, { borderColor: ui.panelBorderSoft }]}
+        style={[
+          styles.heroRingOuter,
+          {
+            borderColor: ui.panelBorderSoft,
+            top: s(-12),
+            maxWidth: s(340),
+          },
+        ]}
         pointerEvents="none"
       />
       <View
-        style={[styles.heroRingInner, { borderColor: ui.panelBorderSoft }]}
+        style={[
+          styles.heroRingInner,
+          {
+            borderColor: ui.panelBorderSoft,
+            top: s(8),
+            maxWidth: s(280),
+          },
+        ]}
         pointerEvents="none"
       />
 
@@ -80,14 +95,19 @@ export function StaticTitle() {
         DURAK
       </Text>
       <View style={styles.titleOrnament}>
-        <View style={[styles.ornamentLine, { width: 44, backgroundColor: ui.accent }]} />
+        <View style={[styles.ornamentLine, { width: s(44), backgroundColor: ui.accent }]} />
         <View
           style={[
             styles.ornamentDiamond,
-            { backgroundColor: ui.accent, borderColor: ui.accentMuted },
+            {
+              backgroundColor: ui.accent,
+              borderColor: ui.accentMuted,
+              width: s(7),
+              height: s(7),
+            },
           ]}
         />
-        <View style={[styles.ornamentLine, { width: 44, backgroundColor: ui.accent }]} />
+        <View style={[styles.ornamentLine, { width: s(44), backgroundColor: ui.accent }]} />
       </View>
     </View>
   );
@@ -181,7 +201,7 @@ export function GlowTitle() {
   }, [glow, ornament, wave]);
 
   const lineStyle = useAnimatedStyle(() => ({
-    width: interpolate(ornament.value, [0, 1], [32, 56]),
+    width: interpolate(ornament.value, [0, 1], [s(32), s(56)]),
     opacity: interpolate(ornament.value, [0, 1], [0.45, 1]),
   }));
 
@@ -218,6 +238,8 @@ export function GlowTitle() {
             {
               backgroundColor: ui.accent,
               borderColor: ui.accentMuted,
+              width: s(7),
+              height: s(7),
             },
             diamondStyle,
           ]}
@@ -238,20 +260,16 @@ const styles = StyleSheet.create({
   },
   heroRingOuter: {
     position:        "absolute",
-    top:             -12,
     width:           "88%",
     aspectRatio:     1,
-    maxWidth:        340,
     borderRadius:    999,
     borderWidth:     1,
     backgroundColor: "transparent",
   },
   heroRingInner: {
     position:        "absolute",
-    top:             8,
     width:           "72%",
     aspectRatio:     1,
-    maxWidth:        280,
     borderRadius:    999,
     borderWidth:     1,
     backgroundColor: "transparent",
@@ -316,8 +334,6 @@ const styles = StyleSheet.create({
     borderRadius:    1,
   },
   ornamentDiamond: {
-    width:           7,
-    height:          7,
     borderWidth:     1,
     transform:       [{ rotate: "45deg" }],
   },

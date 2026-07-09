@@ -20,6 +20,7 @@ import Animated, {
 import { LinearGradient } from "expo-linear-gradient";
 import { spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
+import { sheetHorizontalFrame } from "../theme/gameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 
@@ -160,7 +161,7 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
           <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
         </Animated.View>
 
-        <Animated.View style={[styles.sheet, { height: drawerH }, aSheet]}>
+        <Animated.View style={[styles.sheet, { height: drawerH, ...sheetHorizontalFrame(lay) }, aSheet]}>
           <LinearGradient
             colors={sheetGradient}
             style={StyleSheet.absoluteFill}

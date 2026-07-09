@@ -30,6 +30,7 @@ import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { CARD_ASPECT, radius, spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
+import { gridColumnsForSizeClass, sheetHorizontalFrame } from "../theme/gameLayout";
 
 const SPRING_IN = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
@@ -176,7 +177,7 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents, onRevealCa
     Math.round(screenH * DRAWER_HEIGHT_RATIO),
     screenH - insets.top - lay.s(spacing.md),
   );
-  const columns = lay.isTablet ? 5 : 4;
+  const columns = gridColumnsForSizeClass(lay.sizeClass);
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(visible);
@@ -400,7 +401,7 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents, onRevealCa
         </Animated.View>
 
         <GestureDetector gesture={swipeDown}>
-          <Animated.View style={[styles.sheet, { height: drawerH }, aSheet]}>
+          <Animated.View style={[styles.sheet, { height: drawerH, ...sheetHorizontalFrame(lay) }, aSheet]}>
             <LinearGradient
               colors={sheetGradient}
               style={StyleSheet.absoluteFill}

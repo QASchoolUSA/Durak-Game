@@ -33,6 +33,7 @@ import { FriendRow } from "./FriendRow";
 import { HandleSetupSheet } from "./HandleSetupSheet";
 import { radius, spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
+import { sheetHorizontalFrame } from "../theme/gameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { useInviteActions } from "../game/useInviteActions";
@@ -306,7 +307,7 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
 
         {/* Sheet — swipe-down-to-dismiss wraps the whole card */}
         <GestureDetector gesture={sheetPan}>
-          <Animated.View style={[styles.sheet, { height: drawerH }, aSheet]}>
+          <Animated.View style={[styles.sheet, { height: drawerH, ...sheetHorizontalFrame(lay) }, aSheet]}>
 
             {/* Gradient background */}
             <LinearGradient

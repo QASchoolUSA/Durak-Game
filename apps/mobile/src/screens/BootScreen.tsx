@@ -10,7 +10,8 @@ import { useBootReadiness } from "../hooks/useBootReadiness";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
-import { colors, radius, spacing, typography } from "../theme";
+import { colors, radius, spacing } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 
 const APP_STORE_URL = Platform.select({
   ios: "https://apps.apple.com/app/id6745174792",
@@ -25,6 +26,7 @@ export interface BootScreenProps {
 export function BootScreen({ onReady }: BootScreenProps) {
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
+  const lay = useGameLayout();
   const { ready, loading, failed, outdated, retryHealth } = useBootReadiness();
 
   const splashHiddenRef = useRef(false);
@@ -77,7 +79,10 @@ export function BootScreen({ onReady }: BootScreenProps) {
       onLayout={hideSplash}
     >
       <SafeAreaView style={styles.safe} edges={["top", "left", "right", "bottom"]}>
-        <View style={styles.content} pointerEvents="box-none">
+        <View
+          style={[styles.content, { paddingHorizontal: lay.s(spacing.lg), maxWidth: lay.maxContent }]}
+          pointerEvents="box-none"
+        >
           {loading && (
             <Animated.View entering={FadeIn.duration(220)} style={styles.center}>
               <BootSpinner />
@@ -92,17 +97,23 @@ export function BootScreen({ onReady }: BootScreenProps) {
                 {
                   backgroundColor: ui.panelBg,
                   borderColor: ui.panelBorderSoft,
+                  maxWidth: lay.s(320),
+                  paddingHorizontal: lay.s(spacing.lg),
+                  paddingVertical: lay.s(spacing.lg),
+                  gap: lay.s(spacing.sm),
                 },
               ]}
             >
-              <Text style={styles.errorIcon}>⚠</Text>
-              <Text style={[styles.errorTitle, { color: colors.danger }]}>
+              <Text style={[styles.errorIcon, { fontSize: lay.s(32), marginBottom: lay.s(spacing.xs) }]}>
+                ⚠
+              </Text>
+              <Text style={[styles.errorTitle, { color: colors.danger, ...lay.typography.heading }]}>
                 Could not connect
               </Text>
-              <Text style={[styles.errorBody, { color: ui.textMuted }]}>
+              <Text style={[styles.errorBody, { color: ui.textMuted, ...lay.typography.body, lineHeight: lay.s(20), marginBottom: lay.s(spacing.sm) }]}>
                 Check your connection and try again.
               </Text>
-              <View style={styles.actions}>
+              <View style={[styles.actions, { gap: lay.s(spacing.sm) }]}>
                 <MenuButton
                   label="RETRY"
                   variant="primary"
@@ -129,17 +140,23 @@ export function BootScreen({ onReady }: BootScreenProps) {
                 {
                   backgroundColor: ui.panelBg,
                   borderColor: ui.panelBorderSoft,
+                  maxWidth: lay.s(320),
+                  paddingHorizontal: lay.s(spacing.lg),
+                  paddingVertical: lay.s(spacing.lg),
+                  gap: lay.s(spacing.sm),
                 },
               ]}
             >
-              <Text style={styles.errorIcon}>🔄</Text>
-              <Text style={[styles.errorTitle, { color: ui.accent }]}>
+              <Text style={[styles.errorIcon, { fontSize: lay.s(32), marginBottom: lay.s(spacing.xs) }]}>
+                🔄
+              </Text>
+              <Text style={[styles.errorTitle, { color: ui.accent, ...lay.typography.heading }]}>
                 Update required
               </Text>
-              <Text style={[styles.errorBody, { color: ui.textMuted }]}>
+              <Text style={[styles.errorBody, { color: ui.textMuted, ...lay.typography.body, lineHeight: lay.s(20), marginBottom: lay.s(spacing.sm) }]}>
                 A new version of Durak is available.
               </Text>
-              <View style={styles.actions}>
+              <View style={[styles.actions, { gap: lay.s(spacing.sm) }]}>
                 <MenuButton
                   label="UPDATE GAME"
                   variant="primary"
@@ -168,7 +185,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: spacing.lg,
+    alignSelf: "center",
+    width: "100%",
     backgroundColor: "transparent",
   },
   center: {
@@ -177,31 +195,19 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "100%",
-    maxWidth: 320,
     alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
     borderRadius: radius.panel,
     borderWidth: 1,
   },
-  errorIcon: {
-    fontSize: 32,
-    marginBottom: spacing.xs,
-  },
+  errorIcon: {},
   errorTitle: {
-    ...typography.heading,
     fontWeight: "800",
     textAlign: "center",
   },
   errorBody: {
-    ...typography.body,
     textAlign: "center",
-    lineHeight: 20,
-    marginBottom: spacing.sm,
   },
   actions: {
     width: "100%",
-    gap: spacing.sm,
   },
 });

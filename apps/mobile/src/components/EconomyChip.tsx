@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View, type TextStyle, type ViewStyle } from "react-native";
-import { radius } from "../theme";
+import { useGameLayout } from "../theme/useGameLayout";
 
 export type EconomyChipSize = "sm" | "md";
 
@@ -27,13 +27,14 @@ export function EconomyChip({
   accessibilityLabel,
   size = "sm",
 }: EconomyChipProps) {
-  const iconSize = ICON_SIZE[size];
-  const fontSize = VALUE_SIZE[size];
-  const pad = PADDING[size];
+  const { s } = useGameLayout();
+  const iconSize = s(ICON_SIZE[size]);
+  const fontSize = s(VALUE_SIZE[size]);
+  const pad = s(PADDING[size]);
 
   return (
     <View
-      style={[styles.segment, { paddingHorizontal: pad, paddingVertical: pad - 1 }]}
+      style={[styles.segment, { paddingHorizontal: pad, paddingVertical: pad - 1, gap: s(4) }]}
       accessibilityRole="text"
       accessibilityLabel={accessibilityLabel}
     >
@@ -49,7 +50,9 @@ export function EconomyChip({
         ]}
       >
         {typeof icon === "string" ? (
-          <Text style={[styles.iconText, { fontSize: size === "sm" ? 10 : 11 }]}>{icon}</Text>
+          <Text style={[styles.iconText, { fontSize: s(size === "sm" ? 10 : 11) }]}>
+            {icon}
+          </Text>
         ) : (
           icon
         )}
@@ -72,7 +75,6 @@ const styles = StyleSheet.create({
   segment: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
   },
   iconWell: {
     alignItems: "center",

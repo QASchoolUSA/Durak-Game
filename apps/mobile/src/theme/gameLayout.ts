@@ -37,8 +37,16 @@ export const MIN_CARD_W = {
 } as const;
 
 export const SCALE_MIN = 0.88;
-export const SCALE_MAX = 1.08;
+export const SCALE_MAX_PHONE = 1.08;
+export const SCALE_MAX_TABLET = 1.25;
+export const SCALE_MAX_LARGE = 1.4;
+
+/** @deprecated Use sizeClass === "tablet" | "large" */
+export const SCALE_MAX = SCALE_MAX_PHONE;
 export const TABLET_BREAKPOINT = 768;
+export const LARGE_BREAKPOINT = 1024;
+
+export type SizeClass = "compact" | "regular" | "tablet" | "large";
 
 export interface SafeAreaInsets {
   top: number;
@@ -66,6 +74,7 @@ export interface GameLayoutResult {
   height: number;
   usableWidth: number;
   usableHeight: number;
+  sizeClass: SizeClass;
   isCompact: boolean;
   isTablet: boolean;
   hPad: number;
@@ -94,16 +103,66 @@ function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
 
+export function resolveSizeClass(width: number): SizeClass {
+  if (width <= 375) return "compact";
+  if (width < TABLET_BREAKPOINT) return "regular";
+  if (width < LARGE_BREAKPOINT) return "tablet";
+  return "large";
+}
+
+function scaleMaxForSizeClass(sizeClass: SizeClass): number {
+  switch (sizeClass) {
+    case "tablet":
+      return SCALE_MAX_TABLET;
+    case "large":
+      return SCALE_MAX_LARGE;
+    default:
+      return SCALE_MAX_PHONE;
+  }
+}
+
+function hPadForSizeClass(sizeClass: SizeClass): number {
+  switch (sizeClass) {
+    case "tablet":
+      return 32;
+    case "large":
+      return 40;
+    default:
+      return 20;
+  }
+}
+
+function maxContentForSizeClass(
+  sizeClass: SizeClass,
+  usableWidth: number,
+  width: number,
+): number {
+  switch (sizeClass) {
+    case "tablet":
+      return Math.min(Math.round(usableWidth * 0.72), 720);
+    case "large":
+      return Math.min(Math.round(usableWidth * 0.78), 820);
+    default:
+      return Math.min(width - 32, 420);
+  }
+}
+
 function scaledCardSize(baseW: number, minW: number, scale: number): CardDimensions {
   const w = snap(Math.max(minW, baseW * scale));
   const h = snap(Math.round(w * CARD_ASPECT));
   return { w, h };
 }
 
-function scaledTypography(scale: number, isCompact: boolean) {
+function scaledTypography(
+  scale: number,
+  isCompact: boolean,
+  sizeClass: SizeClass,
+) {
   const s = (n: number) => snap(n * scale);
-  const heroMax = isCompact ? 48 : 58;
-  const displayMax = isCompact ? 28 : 34;
+  const heroMax =
+    sizeClass === "large" ? 72 : sizeClass === "tablet" ? 64 : isCompact ? 48 : 58;
+  const displayMax =
+    sizeClass === "large" ? 42 : sizeClass === "tablet" ? 38 : isCompact ? 28 : 34;
   return {
     hero: {
       fontSize: clamp(s(BASE_TYPOGRAPHY.hero), 40, heroMax),
@@ -144,21 +203,47 @@ function scaledTypography(scale: number, isCompact: boolean) {
   };
 }
 
+export function gridColumnsForSizeClass(sizeClass: SizeClass): number {
+  switch (sizeClass) {
+    case "large":
+      return 6;
+    case "tablet":
+      return 5;
+    default:
+      return 4;
+  }
+}
+
+/** Center bottom sheets on tablet using proportional content width. */
+export function sheetHorizontalFrame(
+  lay: Pick<GameLayoutResult, "isTablet" | "usableWidth" | "maxContent" | "insets">,
+): { left: number; right: number } {
+  if (!lay.isTablet) {
+    return { left: 0, right: 0 };
+  }
+  const gutter = Math.max(0, (lay.usableWidth - lay.maxContent) / 2);
+  return {
+    left: lay.insets.left + gutter,
+    right: lay.insets.right + gutter,
+  };
+}
+
 export function computeGameLayout(input: GameLayoutInput): GameLayoutResult {
   const { width, height, insets } = input;
   const usableWidth = width - insets.left - insets.right;
   const usableHeight = height - insets.top - insets.bottom;
-  const isTablet = width >= TABLET_BREAKPOINT;
-  const hPad = isTablet ? 40 : 20;
-  const maxContent = isTablet ? 520 : Math.min(width - 32, 420);
+  const sizeClass = resolveSizeClass(width);
+  const isTablet = sizeClass === "tablet" || sizeClass === "large";
+  const hPad = hPadForSizeClass(sizeClass);
+  const maxContent = maxContentForSizeClass(sizeClass, usableWidth, width);
   const effectiveWidth = isTablet
     ? Math.min(usableWidth, maxContent + 2 * hPad)
     : usableWidth;
 
   const rawScale = Math.min(effectiveWidth / REF_WIDTH, usableHeight / REF_HEIGHT);
-  const scale = clamp(rawScale, SCALE_MIN, SCALE_MAX);
+  const scale = clamp(rawScale, SCALE_MIN, scaleMaxForSizeClass(sizeClass));
   const s = (n: number) => snap(n * scale);
-  const isCompact = width <= 375 || usableHeight < 700;
+  const isCompact = sizeClass === "compact" || usableHeight < 700;
 
   return {
     scale,
@@ -168,6 +253,7 @@ export function computeGameLayout(input: GameLayoutInput): GameLayoutResult {
     height,
     usableWidth,
     usableHeight,
+    sizeClass,
     isCompact,
     isTablet,
     hPad,
@@ -178,7 +264,7 @@ export function computeGameLayout(input: GameLayoutInput): GameLayoutResult {
       small: scaledCardSize(BASE_CARD_SIZES.small, MIN_CARD_W.small, scale),
       fan: scaledCardSize(BASE_CARD_SIZES.fan, MIN_CARD_W.fan, scale),
     },
-    typography: scaledTypography(scale, isCompact),
+    typography: scaledTypography(scale, isCompact, sizeClass),
   };
 }
 
