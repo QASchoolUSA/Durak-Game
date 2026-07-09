@@ -73,6 +73,10 @@
               "light": "./assets/ios-icon-glass-light.png",
               "dark": "./assets/ios-icon-glass-dark.png",
               "tinted": "./assets/ios-icon-glass-tinted.png"
+            },
+            "android": {
+              "foregroundImage": "./assets/android-icon-foreground.png",
+              "backgroundColor": "#0A0A0A"
             }
           },
           "tinted": {
@@ -80,6 +84,10 @@
               "light": "./assets/ios-icon-tinted-light.png",
               "dark": "./assets/ios-icon-tinted-dark.png",
               "tinted": "./assets/ios-icon-tinted-tinted.png"
+            },
+            "android": {
+              "foregroundImage": "./assets/android-icon-foreground.png",
+              "backgroundColor": "#0A0A0A"
             }
           }
         }
