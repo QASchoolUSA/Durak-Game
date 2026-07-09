@@ -15,9 +15,13 @@
         "dark": "./assets/ios-icon-dark.png",
         "tinted": "./assets/ios-icon-tinted.png"
       },
+      "entitlements": {
+        "aps-environment": "production"
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "CADisableMinimumFrameDurationOnPhone": true
+        "CADisableMinimumFrameDurationOnPhone": true,
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
