@@ -112,6 +112,24 @@ describe("computeTurnRemaining", () => {
     expect(remaining).toBeCloseTo(4, 0);
     vi.useRealTimers();
   });
+
+  it("clamps to 0 when solo deadline already passed (background resume)", () => {
+    const now = Date.now();
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+
+    const remaining = computeTurnRemaining({
+      enabled: true,
+      totalSeconds: 12,
+      lastMoveAt: now - 20_000,
+      turnDeadlineAt: null,
+      playMode: "solo",
+      onTimeout: () => {},
+    });
+
+    expect(remaining).toBe(0);
+    vi.useRealTimers();
+  });
 });
 
 describe("seatOnClockOnline", () => {

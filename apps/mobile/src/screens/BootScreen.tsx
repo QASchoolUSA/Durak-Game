@@ -1,10 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { Linking, Platform, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Platform, StyleSheet, Text, View } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BootSpinner } from "../components/BootSpinner";
 import { MenuButton } from "../components/MenuButton";
 import { useBootReadiness } from "../hooks/useBootReadiness";
 import { useTableTheme } from "../theme/TableThemeContext";
@@ -84,14 +82,13 @@ export function BootScreen({ onReady }: BootScreenProps) {
           pointerEvents="box-none"
         >
           {loading && (
-            <Animated.View entering={FadeIn.duration(220)} style={styles.center}>
-              <BootSpinner />
-            </Animated.View>
+            <View style={styles.center}>
+              <ActivityIndicator size="large" color={ui.accent} />
+            </View>
           )}
 
           {failed && (
-            <Animated.View
-              entering={FadeInDown.duration(280)}
+            <View
               style={[
                 styles.card,
                 {
@@ -129,12 +126,11 @@ export function BootScreen({ onReady }: BootScreenProps) {
                   />
                 ) : null}
               </View>
-            </Animated.View>
+            </View>
           )}
 
           {outdated && (
-            <Animated.View
-              entering={FadeInDown.duration(280)}
+            <View
               style={[
                 styles.card,
                 {
@@ -170,7 +166,7 @@ export function BootScreen({ onReady }: BootScreenProps) {
                   onPress={handleRetry}
                 />
               </View>
-            </Animated.View>
+            </View>
           )}
         </View>
       </SafeAreaView>

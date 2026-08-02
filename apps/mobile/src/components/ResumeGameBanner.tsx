@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { FadeInUp, FadeOut } from "react-native-reanimated";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useUiTheme } from "../theme/UiThemeContext";
@@ -58,9 +57,7 @@ export function ResumeGameBanner() {
   };
 
   return (
-    <Animated.View
-      entering={FadeInUp.duration(220)}
-      exiting={FadeOut.duration(160)}
+    <View
       pointerEvents="box-none"
       style={[styles.wrap, { top: insets.top + spacing.xs }]}
     >
@@ -80,7 +77,7 @@ export function ResumeGameBanner() {
           <Text style={[styles.resumeText, { color: ui.badgeText }]}>RESUME</Text>
         </View>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 

@@ -172,6 +172,9 @@ export function playerMustAct(state: GameState, player: PlayerId): boolean {
   );
 }
 
+/** Forced actions only — mirrors game-core humanForcedAct for UI / tests. */
+export { humanForcedAct } from "@durak/game-core";
+
 export function getHumanView(state: GameState, human: PlayerId): HumanView {
   const isDefender = state.defenderId === human;
   const isAttacker = !isDefender;

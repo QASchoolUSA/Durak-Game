@@ -3,9 +3,10 @@ import {
   applyMove,
   cloneGameState,
   createGame,
+  activeHumanPlayer,
+  timeoutMoveFor,
   type Move,
 } from "@durak/game-core";
-import { timeoutMoveFor } from "./onlineGame";
 
 describe("online game flow helpers", () => {
   it("applies a valid attack and defend sequence", () => {
@@ -61,5 +62,18 @@ describe("online game flow helpers", () => {
     const move = timeoutMoveFor(state, human);
     expect(move).not.toBeNull();
     expect((move as Move).player).toBe(human);
+  });
+
+  it("clock prefers defender who can take over throw-in attacker", () => {
+    let state = createGame(["p0", "p1"], { seed: 42 });
+    const attacker = state.attackerId;
+    const defender = state.defenderId;
+    const card = state.hands[attacker]![0]!;
+    state = applyMove(state, { type: "ATTACK", player: attacker, card });
+
+    const bots = new Set<string>();
+    const onClock = activeHumanPlayer(state, bots);
+    expect(onClock).toBe(defender);
+    expect(timeoutMoveFor(state, defender)?.type).toBe("TAKE");
   });
 });

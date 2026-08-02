@@ -159,6 +159,8 @@ async function applyGameUpdate(
   options?: {
     returnWindow?: RoomDoc["returnWindow"];
     clearReturnWindow?: boolean;
+    /** After a null timeout, only forced seats may own the clock. */
+    clockForcedOnly?: boolean;
   },
 ) {
   const status = next.phase === "gameOver" ? "finished" : "playing";
@@ -169,7 +171,9 @@ async function applyGameUpdate(
   let turnDeadlineAt: number | undefined = undefined;
   let turnClockPlayerId: string | undefined = undefined;
   if (next.phase === "playing") {
-    const human = activeHumanPlayer(next, bots);
+    const human = activeHumanPlayer(next, bots, {
+      forcedOnly: options?.clockForcedOnly,
+    });
     if (human) {
       const clock = await scheduleHumanTurnClock(
         ctx,
@@ -191,18 +195,20 @@ async function applyGameUpdate(
     }
   }
 
+  const returnWindowPatch =
+    options?.clearReturnWindow === false
+      ? {}
+      : options?.returnWindow
+        ? { returnWindow: options.returnWindow }
+        : { returnWindow: undefined };
+
   await ctx.db.patch(roomId, {
     gameState: next,
     status,
     ...touchFields(now),
     turnDeadlineAt,
     turnClockPlayerId,
-    returnWindow: options?.returnWindow,
-    ...(options?.clearReturnWindow !== false
-      ? options?.returnWindow
-        ? {}
-        : { returnWindow: undefined }
-      : {}),
+    ...returnWindowPatch,
     pendingReveal: undefined,
     economy,
     version: room.version + 1,
@@ -1139,12 +1145,25 @@ export const processHumanTimeout = internalMutation({
     if (!human) return;
 
     const move = timeoutMoveFor(state, human);
-    if (!move) return;
+    if (!move) {
+      // Timed-out seat had no auto-resolvable move (typically optional throw-in).
+      // Re-drive the clock for forced seats only so we never leave a dead deadline.
+      await applyGameUpdate(ctx, args.roomId, room, state, {
+        clockForcedOnly: true,
+        clearReturnWindow: false,
+      });
+      return;
+    }
 
     let next: GameState;
     try {
       next = applyMove(state, move);
     } catch {
+      // Illegal under current state — still re-drive so the table cannot stall.
+      await applyGameUpdate(ctx, args.roomId, room, state, {
+        clockForcedOnly: true,
+        clearReturnWindow: false,
+      });
       return;
     }
 

@@ -32,8 +32,55 @@ const BASE_CARD_LAYOUT = [
 ];
 
 export interface CardFanProps {
-  /** When false, fan renders at full spread with no motion loops. */
+  /** When false, fan renders at full spread with no worklets / motion loops. */
   animate?: boolean;
+}
+
+function StaticFanCard({
+  card,
+  rotate,
+  tx,
+  ty,
+  isTrump,
+  cardW,
+  cardH,
+}: {
+  card: CardModel;
+  rotate: number;
+  tx: number;
+  ty: number;
+  isTrump: boolean;
+  cardW: number;
+  cardH: number;
+}) {
+  const cardTheme = useCardTheme();
+
+  return (
+    <View
+      style={[
+        styles.cardAnchor,
+        {
+          width: cardW,
+          height: cardH,
+          marginLeft: -cardW / 2,
+          marginTop: -cardH / 2,
+          transform: [
+            { translateX: tx },
+            { translateY: ty },
+            { rotate: `${rotate}deg` },
+          ],
+        },
+      ]}
+    >
+      <Card
+        card={card}
+        width={cardW}
+        height={cardH}
+        trump={isTrump}
+        themeOverride={cardTheme}
+      />
+    </View>
+  );
 }
 
 function FanCard({
@@ -97,39 +144,27 @@ function FanCard({
   );
 }
 
-export function CardFan({ animate = true }: CardFanProps) {
-  const { cardSizes, s } = useGameLayout();
-  const { w, h } = cardSizes.fan;
-  const fanSpreadX = s(88);
-  const fanDropY = s(18);
-  const fanWidth = w + fanSpreadX * 2;
-  const fanHeight = h + fanDropY * 2 + s(8);
-
-  const cardLayout = useMemo(
-    () =>
-      BASE_CARD_LAYOUT.map((item) => ({
-        rotate: item.rotate,
-        tx: s(Math.abs(item.tx)) * Math.sign(item.tx),
-        ty: s(item.ty),
-      })),
-    [s],
-  );
-
+function AnimatedCardFan({
+  cardLayout,
+  fanWidth,
+  fanHeight,
+  cardW,
+  cardH,
+}: {
+  cardLayout: Array<{ rotate: number; tx: number; ty: number }>;
+  fanWidth: number;
+  fanHeight: number;
+  cardW: number;
+  cardH: number;
+}) {
   const sway = useSharedValue(0);
-  const spread = useSharedValue(animate ? 0 : 1);
+  const spread = useSharedValue(0);
   const floatY = useSharedValue(0);
 
   useEffect(() => {
     cancelAnimation(sway);
     cancelAnimation(spread);
     cancelAnimation(floatY);
-
-    if (!animate) {
-      spread.value = 1;
-      sway.value = 0;
-      floatY.value = 0;
-      return;
-    }
 
     spread.value = withTiming(1, {
       duration: 900,
@@ -159,7 +194,7 @@ export function CardFan({ animate = true }: CardFanProps) {
       cancelAnimation(spread);
       cancelAnimation(floatY);
     };
-  }, [animate, sway, spread, floatY]);
+  }, [sway, spread, floatY]);
 
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: floatY.value }],
@@ -184,11 +219,62 @@ export function CardFan({ animate = true }: CardFanProps) {
           sway={sway}
           spread={spread}
           isTrump={i === 2}
-          cardW={w}
-          cardH={h}
+          cardW={cardW}
+          cardH={cardH}
         />
       ))}
     </Animated.View>
+  );
+}
+
+export function CardFan({ animate = true }: CardFanProps) {
+  const { cardSizes, s } = useGameLayout();
+  const { w, h } = cardSizes.fan;
+  const fanSpreadX = s(88);
+  const fanDropY = s(18);
+  const fanWidth = w + fanSpreadX * 2;
+  const fanHeight = h + fanDropY * 2 + s(8);
+
+  const cardLayout = useMemo(
+    () =>
+      BASE_CARD_LAYOUT.map((item) => ({
+        rotate: item.rotate,
+        tx: s(Math.abs(item.tx)) * Math.sign(item.tx),
+        ty: s(item.ty),
+      })),
+    [s],
+  );
+
+  if (!animate) {
+    return (
+      <View
+        style={[styles.container, { width: fanWidth, height: fanHeight }]}
+        pointerEvents="none"
+      >
+        {FAN_CARDS.map((card, i) => (
+          <StaticFanCard
+            key={card.id}
+            card={card}
+            rotate={cardLayout[i]!.rotate}
+            tx={cardLayout[i]!.tx}
+            ty={cardLayout[i]!.ty}
+            isTrump={i === 2}
+            cardW={w}
+            cardH={h}
+          />
+        ))}
+      </View>
+    );
+  }
+
+  return (
+    <AnimatedCardFan
+      cardLayout={cardLayout}
+      fanWidth={fanWidth}
+      fanHeight={fanHeight}
+      cardW={w}
+      cardH={h}
+    />
   );
 }
 

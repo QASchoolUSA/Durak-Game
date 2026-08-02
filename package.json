@@ -20,9 +20,9 @@
   "devDependencies": {
     "typescript": "^5.5.4"
   },
-  "packageManager": "pnpm@11.4.0",
+  "packageManager": "pnpm@11.17.0",
   "dependencies": {
-    "expo": "~56.0.11",
+    "expo": "~56.0.17",
     "react": "19.2.3",
     "react-native": "0.85.3"
   }

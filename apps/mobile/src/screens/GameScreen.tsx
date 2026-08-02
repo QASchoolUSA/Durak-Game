@@ -1077,6 +1077,11 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     setMenuOpen(true);
   }, []);
 
+  const undefendedTargets = useMemo(
+    () => (game ? undefendedPairs(game) : []),
+    [game],
+  );
+
   if (!game || !view) {
     if (playMode === "online") {
       return (
@@ -1126,10 +1131,6 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       : null;
 
   const turnStatus = getTurnStatus(game, humanId, names);
-  const undefendedTargets = useMemo(
-    () => (game ? undefendedPairs(game) : []),
-    [game],
-  );
   const highlightStrong =
     Boolean(view?.isDefender) && Boolean(view?.mustAct) && !game.takeInProgress;
 

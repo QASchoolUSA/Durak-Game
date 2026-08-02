@@ -1,16 +1,9 @@
 import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
 import { radius } from "../theme";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { useGameLayout } from "../theme/useGameLayout";
 import { trigger } from "../feedback/haptics";
-
-const SPRING = { damping: 14, stiffness: 320, mass: 0.6 };
 
 export type MenuButtonVariant = "primary" | "secondary" | "ghost";
 
@@ -33,7 +26,6 @@ function MenuButtonComponent({
 }: MenuButtonProps) {
   const ui = useUiTheme();
   const lay = useGameLayout();
-  const scale = useSharedValue(1);
 
   const styles = useMemo(
     () =>
@@ -73,10 +65,6 @@ function MenuButtonComponent({
     [lay],
   );
 
-  const aStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
   const bg =
     variant === "primary"
       ? ui.accent
@@ -107,38 +95,33 @@ function MenuButtonComponent({
 
   return (
     <View style={[styles.wrap, extraShadow]}>
-      <Animated.View style={aStyle}>
-        <Pressable
-          onPressIn={() => {
-            scale.value = withSpring(0.96, SPRING);
-            trigger("uiTap");
-          }}
-          onPressOut={() => {
-            scale.value = withSpring(1.0, SPRING);
-          }}
-          onPress={onPress}
-          disabled={disabled}
-          style={[
-            styles.btn,
-            { backgroundColor: bg, borderColor },
-            disabled && styles.disabled,
-          ]}
-        >
-          {icon ? (
-            <Text style={[styles.icon, { color: textColor }]}>{icon}</Text>
-          ) : null}
-          <Text style={[styles.label, { color: textColor }]}>{label}</Text>
-          {badgeCount > 0 ? (
-            <View
-              style={[styles.badge, { backgroundColor: ui.badgeBg ?? ui.accent }]}
-            >
-              <Text style={[styles.badgeText, { color: ui.badgeText }]}>
-                {badgeCount > 9 ? "9+" : badgeCount}
-              </Text>
-            </View>
-          ) : null}
-        </Pressable>
-      </Animated.View>
+      <Pressable
+        onPressIn={() => {
+          trigger("uiTap");
+        }}
+        onPress={onPress}
+        disabled={disabled}
+        style={({ pressed }) => [
+          styles.btn,
+          { backgroundColor: bg, borderColor },
+          disabled && styles.disabled,
+          pressed && !disabled ? { transform: [{ scale: 0.96 }] } : null,
+        ]}
+      >
+        {icon ? (
+          <Text style={[styles.icon, { color: textColor }]}>{icon}</Text>
+        ) : null}
+        <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+        {badgeCount > 0 ? (
+          <View
+            style={[styles.badge, { backgroundColor: ui.badgeBg ?? ui.accent }]}
+          >
+            <Text style={[styles.badgeText, { color: ui.badgeText }]}>
+              {badgeCount > 9 ? "9+" : badgeCount}
+            </Text>
+          </View>
+        ) : null}
+      </Pressable>
     </View>
   );
 }

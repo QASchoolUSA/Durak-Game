@@ -6,3 +6,4 @@ export * from "./ai";
 export * from "./turnTimer";
 export * from "./aiTiming";
 export * from "./matchEconomy";
+export * from "./timeoutMove";

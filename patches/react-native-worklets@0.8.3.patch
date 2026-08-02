@@ -1,0 +1,149 @@
+diff --git a/lib/module/memory/serializableMappingCache.js b/lib/module/memory/serializableMappingCache.js
+index 094a1865b8c5aa94520d394dd3cfc8f4327dd9ca..993a66a4d8e228f87003fe9fc1e6c7c4625d13e1 100644
+--- a/lib/module/memory/serializableMappingCache.js
++++ b/lib/module/memory/serializableMappingCache.js
+@@ -1,11 +1,11 @@
+ 'use strict';
+ 
++export const serializableMappingFlag = Symbol('serializable flag');
++const cache = (globalThis.__workletsSerializableCache ??= new WeakMap());
+ export const serializableMappingCache = {
+-  set(_serializable, _serializableRef) {
+-    // NOOP
++  set(serializable, serializableRef) {
++    cache.set(serializable, serializableRef || serializableMappingFlag);
+   },
+-  get(_key) {
+-    return null;
+-  }
++  get: cache.get.bind(cache)
+ };
+ //# sourceMappingURL=serializableMappingCache.js.map
+diff --git a/lib/module/memory/serializableMappingCache.native.js b/lib/module/memory/serializableMappingCache.native.js
+index 63a81c12a723221a267bf33f6c8f45148f9f8a4d..9d9e1116b07cd30165cbe6aea2006e3202e38c73 100644
+--- a/lib/module/memory/serializableMappingCache.native.js
++++ b/lib/module/memory/serializableMappingCache.native.js
+@@ -1,25 +1,7 @@
+ 'use strict';
+ 
+-/**
+- * This symbol is used to represent a mapping from the value to itself.
+- *
+- * It's used to prevent converting a serializable that's already converted - for
+- * example a Shared Value that's in worklet's closure.
+- */
+ export const serializableMappingFlag = Symbol('serializable flag');
+-
+-/*
+-During a fast refresh, React holds the same instance of a Mutable
+-(that's guaranteed by `useRef`) but `serializableCache` gets regenerated and thus
+-becoming empty. This happens when editing the file that contains the definition of this cache.
+-
+-Because of it, `createSerializable` can't find given mapping
+-in `serializableCache` for the Mutable and tries to clone it as if it was a regular JS object.
+-During cloning we use `Object.entries` to iterate over the keys which throws an error on accessing `_value`.
+-For convenience we moved this cache to a separate file so it doesn't scare us with red squiggles.
+-*/
+-
+-const cache = new WeakMap();
++const cache = (globalThis.__workletsSerializableCache ??= new WeakMap());
+ export const serializableMappingCache = {
+   set(serializable, serializableRef) {
+     cache.set(serializable, serializableRef || serializableMappingFlag);
+diff --git a/lib/module/platformChecker.js b/lib/module/platformChecker.js
+index 0ba54d8f995da4e722d244c3f1930e66a9ca21e1..a239165c8a8661dfe60796e44c363809d2376985 100644
+--- a/lib/module/platformChecker.js
++++ b/lib/module/platformChecker.js
+@@ -1,8 +1,9 @@
+ 'use strict';
+ 
+ import { Platform } from 'react-native';
+-export const IS_JEST = !!process.env.JEST_WORKER_ID;
+-export const IS_WEB = /* @__PURE__ */(() => Platform.OS === 'web')();
+-export const IS_WINDOWS = /* @__PURE__ */(() => Platform.OS === 'windows')();
+-export const SHOULD_BE_USE_WEB = IS_JEST || IS_WEB || IS_WINDOWS;
++
++export const IS_JEST = typeof globalThis.jest !== 'undefined' || process.env.NODE_ENV === 'test';
++export const IS_WEB = /* #__PURE__ */(() => Platform.OS === 'web')();
++export const IS_WINDOWS = /* #__PURE__ */(() => Platform.OS === 'windows')();
++export const SHOULD_BE_USE_WEB = IS_WEB || IS_WINDOWS;
+ //# sourceMappingURL=platformChecker.js.map
+diff --git a/src/memory/serializableMappingCache.native.ts b/src/memory/serializableMappingCache.native.ts
+index f270194343dc394cdfe0f7dc892fe73ad0a56efd..dee0af83dd14ff6d3c43d5f23363733fd23a66c5 100644
+--- a/src/memory/serializableMappingCache.native.ts
++++ b/src/memory/serializableMappingCache.native.ts
+@@ -2,26 +2,11 @@
+ 
+ import type { SerializableRef } from './types';
+ 
+-/**
+- * This symbol is used to represent a mapping from the value to itself.
+- *
+- * It's used to prevent converting a serializable that's already converted - for
+- * example a Shared Value that's in worklet's closure.
+- */
+ export const serializableMappingFlag = Symbol('serializable flag');
+ 
+-/*
+-During a fast refresh, React holds the same instance of a Mutable
+-(that's guaranteed by `useRef`) but `serializableCache` gets regenerated and thus
+-becoming empty. This happens when editing the file that contains the definition of this cache.
+-
+-Because of it, `createSerializable` can't find given mapping
+-in `serializableCache` for the Mutable and tries to clone it as if it was a regular JS object.
+-During cloning we use `Object.entries` to iterate over the keys which throws an error on accessing `_value`.
+-For convenience we moved this cache to a separate file so it doesn't scare us with red squiggles.
+-*/
+-
+-const cache = new WeakMap<object, SerializableRef | symbol>();
++const cache: WeakMap<object, SerializableRef | symbol> = ((
++  globalThis as { __workletsSerializableCache?: WeakMap<object, SerializableRef | symbol> }
++).__workletsSerializableCache ??= new WeakMap());
+ 
+ export const serializableMappingCache = {
+   set(serializable: object, serializableRef?: SerializableRef): void {
+diff --git a/src/memory/serializableMappingCache.ts b/src/memory/serializableMappingCache.ts
+index 94a070598dfa424e241da50c50cf8d2348b5ae64..dee0af83dd14ff6d3c43d5f23363733fd23a66c5 100644
+--- a/src/memory/serializableMappingCache.ts
++++ b/src/memory/serializableMappingCache.ts
+@@ -2,11 +2,15 @@
+ 
+ import type { SerializableRef } from './types';
+ 
++export const serializableMappingFlag = Symbol('serializable flag');
++
++const cache: WeakMap<object, SerializableRef | symbol> = ((
++  globalThis as { __workletsSerializableCache?: WeakMap<object, SerializableRef | symbol> }
++).__workletsSerializableCache ??= new WeakMap());
++
+ export const serializableMappingCache = {
+-  set(_serializable: object, _serializableRef?: SerializableRef): void {
+-    // NOOP
+-  },
+-  get(_key: object): object | symbol | SerializableRef {
+-    return null!;
++  set(serializable: object, serializableRef?: SerializableRef): void {
++    cache.set(serializable, serializableRef || serializableMappingFlag);
+   },
++  get: cache.get.bind(cache),
+ };
+diff --git a/src/platformChecker.ts b/src/platformChecker.ts
+index 98671e24e804f1f3566be103dc39e3a4c2b844b0..ac42942dc52d950688bf06f11beb5ca75e52f88e 100644
+--- a/src/platformChecker.ts
++++ b/src/platformChecker.ts
+@@ -2,8 +2,13 @@
+ 
+ import { Platform } from 'react-native';
+ 
+-export const IS_JEST: boolean = !!process.env.JEST_WORKER_ID;
++// Do not use process.env.JEST_WORKER_ID — Expo Metro transform workers set it,
++ // which incorrectly forces the web SharedValue path and aborts Expo Go.
++export const IS_JEST: boolean =
++  typeof (globalThis as { jest?: unknown }).jest !== 'undefined' ||
++  process.env.NODE_ENV === 'test';
+ export const IS_WEB: boolean = /* @__PURE__ */ (() => Platform.OS === 'web')();
+ export const IS_WINDOWS: boolean = /* @__PURE__ */ (() =>
+   Platform.OS === 'windows')();
+-export const SHOULD_BE_USE_WEB: boolean = IS_JEST || IS_WEB || IS_WINDOWS;
++// Never gate native SharedValues on IS_JEST — Expo Go / Metro worker false positives.
++export const SHOULD_BE_USE_WEB: boolean = IS_WEB || IS_WINDOWS;

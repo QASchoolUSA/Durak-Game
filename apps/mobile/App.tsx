@@ -107,7 +107,14 @@ function ProfileNameSync() {
   return null;
 }
 
-function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
+function ConvexOnlineLayer({
+  children,
+  showBanners,
+}: {
+  children: React.ReactNode;
+  /** Invite/resume banners use Reanimated; keep them off until boot finishes. */
+  showBanners: boolean;
+}) {
   if (!convex) {
     return (
       <>
@@ -120,8 +127,12 @@ function ConvexOnlineLayer({ children }: { children: React.ReactNode }) {
     <ConvexAuthProvider client={convex} storage={convexTokenStorage}>
       <AuthGateProvider>
         {children}
-        <IncomingInviteBanner />
-        <ResumeGameBanner />
+        {showBanners ? (
+          <>
+            <IncomingInviteBanner />
+            <ResumeGameBanner />
+          </>
+        ) : null}
       </AuthGateProvider>
     </ConvexAuthProvider>
   );
@@ -173,6 +184,7 @@ export default function App() {
   // Show the welcome/auth landing on first run. With no Convex backend the auth
   // hooks can't run, so guests skip straight in.
   const showWelcome = convexEnabled && onboardedHydrated && !onboarded;
+  const inGameResultFlow = screen === "game" || screen === "result";
 
   const content = (
     <View style={styles.appShell}>
@@ -191,26 +203,32 @@ export default function App() {
         </View>
       )}
       {screen === "lobby" && <LobbyScreen />}
-      <GameResultCrossfade
-        screen={screen}
-        game={game}
-        onOpenSettings={() => setSettingsVisible(true)}
-        errorBoundary={(children) => (
-          <ScreenErrorBoundary screenName="GameScreen">{children}</ScreenErrorBoundary>
-        )}
-        resultErrorBoundary={(children) => (
-          <ScreenErrorBoundary screenName="ResultScreen">{children}</ScreenErrorBoundary>
-        )}
-      />
+      {inGameResultFlow && (
+        <GameResultCrossfade
+          screen={screen}
+          game={game}
+          onOpenSettings={() => setSettingsVisible(true)}
+          errorBoundary={(children) => (
+            <ScreenErrorBoundary screenName="GameScreen">{children}</ScreenErrorBoundary>
+          )}
+          resultErrorBoundary={(children) => (
+            <ScreenErrorBoundary screenName="ResultScreen">{children}</ScreenErrorBoundary>
+          )}
+        />
+      )}
 
-      <SettingsModal
-        visible={settingsVisible}
-        onClose={() => setSettingsVisible(false)}
-      />
-      <RulesModal
-        visible={rulesVisible}
-        onClose={() => setRulesVisible(false)}
-      />
+      {settingsVisible && (
+        <SettingsModal
+          visible
+          onClose={() => setSettingsVisible(false)}
+        />
+      )}
+      {rulesVisible && (
+        <RulesModal
+          visible
+          onClose={() => setRulesVisible(false)}
+        />
+      )}
 
       {showWelcome && (
         <View style={styles.welcomeLayer}>
@@ -226,7 +244,7 @@ export default function App() {
         <TableThemeProvider>
           <UiThemeProvider>
             <CardThemeProvider>
-              <ConvexOnlineLayer>
+              <ConvexOnlineLayer showBanners={bootComplete}>
                 {!bootComplete && (
                   <View style={styles.bootLayer}>
                     <BootScreen onReady={() => setBootComplete(true)} />

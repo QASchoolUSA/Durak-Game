@@ -16,9 +16,7 @@ import {
   aiMoveDelayMs,
   MATCH_BUY_IN,
   matchPot,
-  canPass,
-  canTake,
-  legalAttacks,
+  timeoutMoveFor,
 } from "@durak/game-core";
 import { storage, MAX_DISPLAY_NAME_LENGTH } from "./storage";
 import { type AppearanceId } from "../theme/appearanceThemes";
@@ -74,20 +72,7 @@ function playAudioSound(_name: string) {
   /* handled by triggerHaptics -> feedback.trigger */
 }
 
-export function timeoutMoveFor(state: GameState, player: PlayerId): Move | null {
-  if (state.phase !== "playing") return null;
-  if (canTake(state, player)) return { type: "TAKE", player };
-  if (canPass(state, player)) return { type: "PASS", player };
-
-  if (player === state.attackerId && state.table.length === 0) {
-    const legal = legalAttacks(state, player);
-    if (legal.length > 0) {
-      const card = legal.slice().sort((a, b) => a.rank - b.rank)[0]!;
-      return { type: "ATTACK", player, card };
-    }
-  }
-  return null;
-}
+export { timeoutMoveFor };
 
 export function soloMatchEndCreditDelta(args: {
   isDraw: boolean;
@@ -769,7 +754,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       const move = timeoutMoveFor(game, humanId);
       if (move) {
         get().submitHuman(move);
+        return;
       }
+      set({ lastMoveAt: Date.now() });
+      scheduleAi();
     },
 
     returnLastCard: () => {

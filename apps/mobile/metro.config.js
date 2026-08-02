@@ -26,8 +26,9 @@ config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, "node_modules"),
   path.resolve(workspaceRoot, "node_modules"),
 ];
-// pnpm uses a non-flat layout; let Metro follow symlinks without walking up.
-config.resolver.disableHierarchicalLookup = true;
+// pnpm uses a non-flat layout; prefer explicit nodeModulesPaths over walking up.
+// Keep hierarchical lookup enabled so Metro resolves `.native.js` (Worklets).
+config.resolver.disableHierarchicalLookup = false;
 // Pin singletons so lazy chunks share one React / Convex / Reanimated instance.
 config.resolver.extraNodeModules = {
   convex: resolvePkg("convex"),
@@ -37,6 +38,17 @@ config.resolver.extraNodeModules = {
   "react-native-worklets": resolvePkg("react-native-worklets"),
   "react-native-gesture-handler": resolvePkg("react-native-gesture-handler"),
   "react-native-svg": resolvePkg("react-native-svg"),
+};
+
+// Expo disables inlineRequires by default; Worklets needs them for init.
+config.transformer = {
+  ...config.transformer,
+  getTransformOptions: async () => ({
+    transform: {
+      experimentalImportSupport: false,
+      inlineRequires: true,
+    },
+  }),
 };
 
 module.exports = config;

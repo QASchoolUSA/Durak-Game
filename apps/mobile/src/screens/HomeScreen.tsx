@@ -2,14 +2,13 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { Easing, FadeIn } from "react-native-reanimated";
 import { Background } from "../components/Background";
 import { CardFan } from "../components/CardFan";
 import { FriendsDrawer } from "../components/FriendsDrawer";
 import { GameConfigDrawer } from "../components/GameConfigDrawer";
 import { OnlineJoinDrawer } from "../components/OnlineJoinDrawer";
 import { MenuButton } from "../components/MenuButton";
-import { GlowTitle, HeroPanel, StaticTitle } from "../components/HomeHero";
+import { HeroPanel, StaticTitle } from "../components/HomeHero";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
@@ -20,6 +19,7 @@ import { useGameStore } from "../game/store";
 import { convexEnabled } from "../game/convexClient";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { isExpoGo } from "../utils/isExpoGo";
 
 export interface HomeScreenProps {
   onOpenSettings: () => void;
@@ -105,7 +105,8 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
 
   const screen = useGameStore((s) => s.screen);
   const active = screen === "home";
-  const showAnimatedDecor = decorReady && !reduceMotion && appActive && active;
+  const showAnimatedDecor =
+    !isExpoGo && decorReady && !reduceMotion && appActive && active;
 
   return (
     <Background variant="home" deferAmbience={!showAnimatedDecor}>
@@ -132,21 +133,10 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
                 <CardFan animate={showAnimatedDecor} />
               ) : null}
             </View>
-            {showAnimatedDecor ? (
-              <GlowTitle />
-            ) : (
-              <StaticTitle />
-            )}
+            <StaticTitle />
           </HeroPanel>
 
-          <Animated.View
-            entering={
-              showAnimatedDecor
-                ? FadeIn.duration(250).easing(Easing.out(Easing.cubic))
-                : undefined
-            }
-            style={[styles.menu, { maxWidth: lay.maxContent }]}
-          >
+          <View style={[styles.menu, { maxWidth: lay.maxContent }]}>
             {BASE_MENU_ITEMS.map((item) =>
               item.action === "friends" ? (
                 <FriendsMenuButton key={item.label} onPress={() => handleMenu("friends")} />
@@ -160,7 +150,7 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
                 />
               ),
             )}
-          </Animated.View>
+          </View>
 
         </View>
       </SafeAreaView>

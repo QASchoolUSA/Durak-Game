@@ -22,7 +22,19 @@ export function useTurnTimeout(config: TurnClockConfig): void {
 
     const remaining = computeTurnRemaining(config);
     const remainingMs = remaining * 1000;
-    if (remainingMs <= 0) return;
+
+    const fireExpired = () => {
+      if (configRef.current.playMode !== "online") {
+        trigger("timerExpired");
+        configRef.current.onTimeout();
+      }
+    };
+
+    // Already past the deadline (e.g. returned from background) — auto-play now.
+    if (remainingMs <= 0) {
+      fireExpired();
+      return;
+    }
 
     let warningTimeoutId: ReturnType<typeof setTimeout> | undefined;
     const warningDelay = remainingMs - 4000;
@@ -40,12 +52,7 @@ export function useTurnTimeout(config: TurnClockConfig): void {
       }, criticalDelay);
     }
 
-    const expiredTimeoutId = setTimeout(() => {
-      if (configRef.current.playMode !== "online") {
-        trigger("timerExpired");
-        configRef.current.onTimeout();
-      }
-    }, remainingMs);
+    const expiredTimeoutId = setTimeout(fireExpired, remainingMs);
 
     return () => {
       if (warningTimeoutId) clearTimeout(warningTimeoutId);

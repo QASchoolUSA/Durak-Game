@@ -5,8 +5,6 @@ import Animated, {
   Easing,
   cancelAnimation,
   interpolate,
-  makeMutable,
-  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -54,24 +52,51 @@ function buildSparkles(count: number): SparkleSpec[] {
   }));
 }
 
-type SparkleMotion = {
-  progress: SharedValue<number>;
-};
-
 function SparkleDot({
   spec,
   color,
-  motion,
+  active,
 }: {
   spec: SparkleSpec;
   color: string;
-  motion: SparkleMotion;
+  active: boolean;
 }) {
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    if (!active) {
+      cancelAnimation(progress);
+      return;
+    }
+
+    progress.value = withDelay(
+      spec.delay,
+      withRepeat(
+        withSequence(
+          withTiming(1, {
+            duration: spec.duration * 0.45,
+            easing: Easing.inOut(Easing.sin),
+          }),
+          withTiming(0, {
+            duration: spec.duration * 0.55,
+            easing: Easing.inOut(Easing.sin),
+          }),
+        ),
+        -1,
+        false,
+      ),
+    );
+
+    return () => {
+      cancelAnimation(progress);
+    };
+  }, [progress, spec.delay, spec.duration, active]);
+
   const aStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(motion.progress.value, [0, 0.5, 1], [0.08, 0.75, 0.08]),
+    opacity: interpolate(progress.value, [0, 0.5, 1], [0.08, 0.75, 0.08]),
     transform: [
-      { translateY: interpolate(motion.progress.value, [0, 1], [0, -18]) },
-      { scale: interpolate(motion.progress.value, [0, 0.5, 1], [0.6, 1.2, 0.6]) },
+      { translateY: interpolate(progress.value, [0, 1], [0, -18]) },
+      { scale: interpolate(progress.value, [0, 0.5, 1], [0.6, 1.2, 0.6]) },
     ],
   }));
 
@@ -96,47 +121,11 @@ function SparkleDot({
 
 function SparkleLayer({ color, active }: { color: string; active: boolean }) {
   const sparkles = useMemo(() => buildSparkles(SPARKLE_COUNT), []);
-  const motion = useMemo(
-    () => sparkles.map(() => ({ progress: makeMutable(0) })),
-    [sparkles],
-  );
-
-  useEffect(() => {
-    if (!active) {
-      motion.forEach(({ progress }) => cancelAnimation(progress));
-      return;
-    }
-
-    sparkles.forEach((spec, i) => {
-      const { progress } = motion[i]!;
-      progress.value = withDelay(
-        spec.delay,
-        withRepeat(
-          withSequence(
-            withTiming(1, {
-              duration: spec.duration * 0.45,
-              easing: Easing.inOut(Easing.sin),
-            }),
-            withTiming(0, {
-              duration: spec.duration * 0.55,
-              easing: Easing.inOut(Easing.sin),
-            }),
-          ),
-          -1,
-          false,
-        ),
-      );
-    });
-
-    return () => {
-      motion.forEach(({ progress }) => cancelAnimation(progress));
-    };
-  }, [sparkles, motion, active]);
 
   return (
     <>
-      {sparkles.map((spec, i) => (
-        <SparkleDot key={spec.id} spec={spec} color={color} motion={motion[i]!} />
+      {sparkles.map((spec) => (
+        <SparkleDot key={spec.id} spec={spec} color={color} active={active} />
       ))}
     </>
   );

@@ -697,7 +697,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       const move = timeoutMoveFor(game, humanId);
       if (move) {
         get().submitHuman(move);
+        return;
       }
+      // Optional throw-in (or other non-auto seat): decline and let AI / clock progress.
+      set({ lastMoveAt: Date.now() });
+      scheduleAi();
     },
 
     returnLastCard: () => {
