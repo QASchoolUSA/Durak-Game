@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
-import { requireStableUserId } from "./lib/requireAuth";
+import { requireRegisteredUserId } from "./lib/requireAuth";
 import { getProfileByUserId, findFriendship } from "./lib/social";
 import { notifyUser } from "./push";
 
@@ -32,7 +32,7 @@ async function toEntry(
 export const sendRequest = mutation({
   args: { toUserId: v.id("users") },
   handler: async (ctx, { toUserId }) => {
-    const me = await requireStableUserId(ctx);
+    const me = await requireRegisteredUserId(ctx);
     if (toUserId === me) throw new Error("You can't add yourself.");
 
     const target = await getProfileByUserId(ctx, toUserId);
@@ -88,7 +88,7 @@ async function notifyMyProfileTo(
 export const acceptRequest = mutation({
   args: { friendshipId: v.id("friendships") },
   handler: async (ctx, { friendshipId }) => {
-    const me = await requireStableUserId(ctx);
+    const me = await requireRegisteredUserId(ctx);
     const friendship = await ctx.db.get(friendshipId);
     if (!friendship) throw new Error("Request not found.");
     if (friendship.recipientId !== me || friendship.status !== "pending") {
@@ -105,7 +105,7 @@ export const acceptRequest = mutation({
 export const declineRequest = mutation({
   args: { friendshipId: v.id("friendships") },
   handler: async (ctx, { friendshipId }) => {
-    const me = await requireStableUserId(ctx);
+    const me = await requireRegisteredUserId(ctx);
     const friendship = await ctx.db.get(friendshipId);
     if (!friendship) return;
     if (friendship.recipientId !== me || friendship.status !== "pending") {
@@ -118,7 +118,7 @@ export const declineRequest = mutation({
 export const cancelRequest = mutation({
   args: { friendshipId: v.id("friendships") },
   handler: async (ctx, { friendshipId }) => {
-    const me = await requireStableUserId(ctx);
+    const me = await requireRegisteredUserId(ctx);
     const friendship = await ctx.db.get(friendshipId);
     if (!friendship) return;
     if (friendship.requesterId !== me || friendship.status !== "pending") {
@@ -131,7 +131,7 @@ export const cancelRequest = mutation({
 export const removeFriend = mutation({
   args: { friendshipId: v.id("friendships") },
   handler: async (ctx, { friendshipId }) => {
-    const me = await requireStableUserId(ctx);
+    const me = await requireRegisteredUserId(ctx);
     const friendship = await ctx.db.get(friendshipId);
     if (!friendship) return;
     if (friendship.requesterId !== me && friendship.recipientId !== me) {
@@ -144,7 +144,7 @@ export const removeFriend = mutation({
 export const listFriends = query({
   args: {},
   handler: async (ctx): Promise<FriendEntry[]> => {
-    const me = await requireStableUserId(ctx);
+    const me = await requireRegisteredUserId(ctx);
     const asRequester = await ctx.db
       .query("friendships")
       .withIndex("by_requester", (q) => q.eq("requesterId", me))
@@ -169,7 +169,7 @@ export const listFriends = query({
 export const incomingRequests = query({
   args: {},
   handler: async (ctx): Promise<FriendEntry[]> => {
-    const me = await requireStableUserId(ctx);
+    const me = await requireRegisteredUserId(ctx);
     const rows = await ctx.db
       .query("friendships")
       .withIndex("by_recipient", (q) => q.eq("recipientId", me))
@@ -188,7 +188,7 @@ export const incomingRequests = query({
 export const outgoingRequests = query({
   args: {},
   handler: async (ctx): Promise<FriendEntry[]> => {
-    const me = await requireStableUserId(ctx);
+    const me = await requireRegisteredUserId(ctx);
     const rows = await ctx.db
       .query("friendships")
       .withIndex("by_requester", (q) => q.eq("requesterId", me))

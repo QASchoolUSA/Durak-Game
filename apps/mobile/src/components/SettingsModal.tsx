@@ -207,7 +207,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   }, []);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const prevVisible = useRef(visible);
+  const prevVisible = useRef(false);
 
   const ty        = useSharedValue(drawerH);
   const backdropO = useSharedValue(0);

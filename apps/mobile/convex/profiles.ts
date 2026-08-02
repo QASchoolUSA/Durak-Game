@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { requireStableUserId } from "./lib/requireAuth";
+import { requireRegisteredUserId, requireStableUserId } from "./lib/requireAuth";
 import { normalizeDisplayName } from "./lib/displayName";
 import {
   findFriendship,
@@ -49,7 +49,7 @@ export const getMyProfile = query({
 export const setHandle = mutation({
   args: { handle: v.string(), displayName: v.optional(v.string()) },
   handler: async (ctx, { handle, displayName }) => {
-    const userId = await requireStableUserId(ctx);
+    const userId = await requireRegisteredUserId(ctx);
     const { handle: nextHandle, handleLower } = normalizeHandle(handle);
 
     const taken = await ctx.db
@@ -129,7 +129,7 @@ export const updateMyDisplayName = mutation({
 export const searchByHandle = query({
   args: { query: v.string() },
   handler: async (ctx, { query: raw }) => {
-    const userId = await requireStableUserId(ctx);
+    const userId = await requireRegisteredUserId(ctx);
     const prefix = raw.trim().toLowerCase();
     if (prefix.length === 0) return [];
 

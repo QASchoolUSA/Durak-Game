@@ -15,6 +15,7 @@ import {
   configureNotificationHandler,
 } from "./notifications";
 import { useGameStore } from "./store";
+import { useAccountKind } from "./useAccountKind";
 import { saveRoomSession } from "./onlineSessionStorage";
 import { trigger } from "../feedback/haptics";
 
@@ -26,12 +27,13 @@ function getProjectId(): string | undefined {
 }
 
 /**
- * Registers this device's Expo push token with Convex once the user is
- * authenticated, and wires up the foreground notification handler + tap
- * listener. Mounted inside the authenticated layer in App.tsx.
+ * Registers this device's Expo push token with Convex once the user has a
+ * registered (non-guest) account, and wires up the foreground notification
+ * handler + tap listener. Mounted inside the authenticated layer in App.tsx.
  */
 export function usePushRegistration(): void {
   const { isAuthenticated } = useConvexAuth();
+  const { isGuest, isLoading: accountLoading } = useAccountKind();
   const registerPushToken = useMutation(api.push.registerPushToken);
   const joinRoom = useMutation(api.rooms.joinRoom);
   const enterOnlineLobby = useGameStore((s) => s.enterOnlineLobby);
@@ -75,7 +77,13 @@ export function usePushRegistration(): void {
   }, [joinRoom, enterOnlineLobby]);
 
   useEffect(() => {
-    if (!isAuthenticated || registeredRef.current) return;
+    if (isGuest) {
+      registeredRef.current = false;
+    }
+  }, [isGuest]);
+
+  useEffect(() => {
+    if (!isAuthenticated || accountLoading || isGuest || registeredRef.current) return;
     if (Platform.OS === "web" || !Device.isDevice || isExpoGo) return;
 
     let cancelled = false;
@@ -115,5 +123,5 @@ export function usePushRegistration(): void {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, registerPushToken]);
+  }, [isAuthenticated, accountLoading, isGuest, registerPushToken]);
 }

@@ -1,7 +1,11 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { requireStableUserId, requireUserId } from "./lib/requireAuth";
+import {
+  isAnonymousUser,
+  requireStableUserId,
+  requireUserId,
+} from "./lib/requireAuth";
 
 const UPGRADE_TTL_MS = 10 * 60 * 1000;
 
@@ -13,7 +17,7 @@ export const getAccountStatus = query({
     const user = await ctx.db.get(userId);
     return {
       userId,
-      isAnonymous: !user || !(user as { email?: string }).email || Boolean((user as { isAnonymous?: boolean }).isAnonymous),
+      isAnonymous: isAnonymousUser(user),
       email: (user as { email?: string } | null)?.email ?? null,
     };
   },

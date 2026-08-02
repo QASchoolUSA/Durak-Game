@@ -16,6 +16,7 @@ import { useAppActive } from "../hooks/useAppActive";
 import { useReduceMotion } from "../hooks/useReduceMotion";
 import { EconomyBar } from "../components/EconomyBar";
 import { useGameStore } from "../game/store";
+import { useAccountKind } from "../game/useAccountKind";
 import { convexEnabled } from "../game/convexClient";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -33,15 +34,17 @@ type MenuItem = {
   action: string;
 };
 
-const BASE_MENU_ITEMS: MenuItem[] = [
-  { label: "PLAY",        variant: "primary",   icon: "▶", action: "play"     },
-  { label: "JOIN GAME",   variant: "secondary", icon: "⎘", action: "join"     },
-  ...(convexEnabled
-    ? [{ label: "FRIENDS", variant: "secondary" as const, icon: "♣", action: "friends" }]
-    : []),
-  { label: "SETTINGS",    variant: "secondary", icon: "⚙", action: "settings" },
-  { label: "HOW TO PLAY", variant: "secondary",     icon: "?", action: "rules"    },
-];
+function buildMenuItems(showFriends: boolean): MenuItem[] {
+  return [
+    { label: "PLAY",        variant: "primary",   icon: "▶", action: "play"     },
+    { label: "JOIN GAME",   variant: "secondary", icon: "⎘", action: "join"     },
+    ...(showFriends
+      ? [{ label: "FRIENDS", variant: "secondary" as const, icon: "♣", action: "friends" }]
+      : []),
+    { label: "SETTINGS",    variant: "secondary", icon: "⚙", action: "settings" },
+    { label: "HOW TO PLAY", variant: "secondary",     icon: "?", action: "rules"    },
+  ];
+}
 
 /** Reactive badge for pending friend requests + game invites. */
 function FriendsMenuButton({ onPress }: { onPress: () => void }) {
@@ -72,6 +75,7 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   const appActive = useAppActive();
   const lay = useGameLayout();
   const insets = useSafeAreaInsets();
+  const { isGuest, isLoading: accountLoading } = useAccountKind();
   const playerNameHydrated = useGameStore((s) => s.playerNameHydrated);
   const goldBalance = useGameStore((s) => s.goldBalance);
   const creditBalance = useGameStore((s) => s.creditBalance);
@@ -79,6 +83,10 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   const [joinOpen, setJoinOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [decorReady, setDecorReady] = useState(reduceMotion);
+
+  // Wait for account kind so FRIENDS does not flash for guests.
+  const showFriends = convexEnabled && !accountLoading && !isGuest;
+  const menuItems = buildMenuItems(showFriends);
 
   useEffect(() => {
     if (reduceMotion) {
@@ -137,7 +145,7 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
           </HeroPanel>
 
           <View style={[styles.menu, { maxWidth: lay.maxContent }]}>
-            {BASE_MENU_ITEMS.map((item) =>
+            {menuItems.map((item) =>
               item.action === "friends" ? (
                 <FriendsMenuButton key={item.label} onPress={() => handleMenu("friends")} />
               ) : (

@@ -23,6 +23,7 @@ import { useUiTheme } from "../theme/UiThemeContext";
 import { radius, spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
 import { InviteFriendsSheet } from "../components/InviteFriendsSheet";
+import { useAccountKind } from "../game/useAccountKind";
 
 type RoomMemberView = {
   displayName: string;
@@ -37,6 +38,7 @@ export function LobbyScreen() {
   const lay = useGameLayout();
 
   const { isAuthenticated } = useConvexAuth();
+  const { isGuest } = useAccountKind();
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
   const onlineRoomCode = useGameStore((s) => s.onlineRoomCode);
   const onlineIsHost = useGameStore((s) => s.onlineIsHost);
@@ -44,6 +46,8 @@ export function LobbyScreen() {
 
   const [addAiSeat, setAddAiSeat] = useState<number | null>(null);
   const [inviteFriendsSeat, setInviteFriendsSeat] = useState<number | null>(null);
+
+  const canInviteFriends = onlineIsHost && !isGuest;
 
   const startGame = useMutation(api.rooms.startGame);
   const leaveRoom = useMutation(api.rooms.leaveRoom);
@@ -251,6 +255,7 @@ export function LobbyScreen() {
                     isYou={member?.isSelf === true}
                     showReady={humanCount >= 2 && member != null && !member.isBot}
                     canManageBots={onlineIsHost}
+                    canInviteFriends={canInviteFriends}
                     onAddBot={() => setAddAiSeat(seatIndex)}
                     onRemoveBot={() => handleLobbyBot(seatIndex, false)}
                     onInviteFriend={() => setInviteFriendsSeat(seatIndex)}
@@ -328,7 +333,7 @@ export function LobbyScreen() {
         onConfirm={handleConfirmAddAi}
       />
 
-      {onlineRoomId && (
+      {onlineRoomId && canInviteFriends && (
         <InviteFriendsSheet
           visible={inviteFriendsSeat !== null}
           roomId={onlineRoomId as Id<"rooms">}
@@ -346,6 +351,7 @@ function SeatRow({
   isYou,
   showReady,
   canManageBots,
+  canInviteFriends,
   onAddBot,
   onRemoveBot,
   onInviteFriend,
@@ -355,6 +361,7 @@ function SeatRow({
   isYou: boolean;
   showReady: boolean;
   canManageBots: boolean;
+  canInviteFriends: boolean;
   onAddBot: () => void;
   onRemoveBot: () => void;
   onInviteFriend: () => void;
@@ -388,12 +395,14 @@ function SeatRow({
               <Text style={[styles.seatActionText, { color: ui.accent }]}>+ AI</Text>
             </Pressable>
           )}
-          <Pressable
-            style={[styles.seatAction, { borderColor: ui.accent, backgroundColor: ui.accentSoft }]}
-            onPress={onInviteFriend}
-          >
-            <Text style={[styles.seatActionText, { color: ui.accent }]}>+ Invite</Text>
-          </Pressable>
+          {canInviteFriends && (
+            <Pressable
+              style={[styles.seatAction, { borderColor: ui.accent, backgroundColor: ui.accentSoft }]}
+              onPress={onInviteFriend}
+            >
+              <Text style={[styles.seatActionText, { color: ui.accent }]}>+ Invite</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     );

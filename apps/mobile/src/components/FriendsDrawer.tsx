@@ -267,10 +267,7 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
     }
   };
 
-  // Prompt for a handle the first time someone with no profile opens the drawer.
-  useEffect(() => {
-    if (profile === null) setHandleOpen(true);
-  }, [profile]);
+  // Registered users claim a handle at signup; do not force HandleSetup here.
 
   const requestsBadge = incoming.length;
   const invitesBadge = invites.length;
@@ -398,7 +395,15 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
                       (edit)
                     </Text>
                   </Text>
-                ) : null}
+                ) : (
+                  <Text style={[styles.myHandle, { color: ui.textMuted }]}>
+                    Set your{" "}
+                    <Text onPress={() => setHandleOpen(true)} style={{ color: ui.accent }}>
+                      @handle
+                    </Text>{" "}
+                    to find friends
+                  </Text>
+                )}
 
                 <View style={styles.tabs}>
                   {tabs.map((t) => {

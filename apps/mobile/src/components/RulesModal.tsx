@@ -88,7 +88,7 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
   );
 
   const [modalVisible, setModalVisible] = useState(false);
-  const prevVisible = useRef(visible);
+  const prevVisible = useRef(false);
 
   const ty        = useSharedValue(drawerH);
   const backdropO = useSharedValue(0);

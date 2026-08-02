@@ -7,7 +7,7 @@ import {
   internalQuery,
   mutation,
 } from "./_generated/server";
-import { requireStableUserId } from "./lib/requireAuth";
+import { requireRegisteredUserId, requireStableUserId } from "./lib/requireAuth";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
@@ -17,7 +17,7 @@ const platformValidator = v.union(v.literal("ios"), v.literal("android"));
 export const registerPushToken = mutation({
   args: { token: v.string(), platform: platformValidator },
   handler: async (ctx, { token, platform }) => {
-    const userId = await requireStableUserId(ctx);
+    const userId = await requireRegisteredUserId(ctx);
     const now = Date.now();
     const existing = await ctx.db
       .query("pushTokens")

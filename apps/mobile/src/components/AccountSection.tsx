@@ -40,8 +40,8 @@ export function AccountSection() {
         {isGuest ? (
           <>
             <Text style={[styles.hint, { color: ui.textMuted }]}>
-              You're playing as a guest. Create an account to keep your
-              progress and friends across devices.
+              You're playing as a guest. Create an account with an @handle to
+              add friends and get game invites.
             </Text>
             <MenuButton
               label="CREATE ACCOUNT / SIGN IN"

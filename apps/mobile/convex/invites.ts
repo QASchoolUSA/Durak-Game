@@ -1,7 +1,7 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { requireStableUserId, requireUserId } from "./lib/requireAuth";
+import { requireRegisteredUserId, requireStableUserId, requireUserId } from "./lib/requireAuth";
 import { findFriendship, getProfileByUserId } from "./lib/social";
 import { createRoomForHost } from "./rooms";
 import { notifyUser } from "./push";
@@ -24,7 +24,7 @@ export const sendInvite = mutation({
     turnTimerSeconds: v.optional(v.number()),
   },
   handler: async (ctx, { toUserId, config, displayName, turnTimerSeconds }) => {
-    const me = await requireStableUserId(ctx);
+    const me = await requireRegisteredUserId(ctx);
     const hostSubject = await requireUserId(ctx);
     if (toUserId === me) throw new Error("You can't invite yourself.");
 
@@ -176,7 +176,7 @@ export const inviteFriendToRoom = mutation({
     roomId: v.id("rooms"),
   },
   handler: async (ctx, { toUserId, roomId }) => {
-    const me = await requireStableUserId(ctx);
+    const me = await requireRegisteredUserId(ctx);
     if (toUserId === me) throw new Error("You can't invite yourself.");
 
     const friendship = await findFriendship(ctx, me, toUserId);
