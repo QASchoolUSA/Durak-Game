@@ -16,6 +16,7 @@ import {
 import { convex, convexEnabled } from "./src/game/convexClient";
 import { convexTokenStorage } from "./src/game/convexTokenStorage";
 import { AuthGateProvider } from "./src/game/useAuthBootstrap";
+import { AccountKindProvider } from "./src/game/useAccountKind";
 import { useGoldWallet } from "./src/game/useGoldWallet";
 import { useSoloCreditSettlement } from "./src/game/useSoloCreditSettlement";
 import { useOnlineGame } from "./src/game/useOnlineGame";
@@ -117,22 +118,24 @@ function ConvexOnlineLayer({
 }) {
   if (!convex) {
     return (
-      <>
+      <AccountKindProvider>
         <PlaySessionIdleSync />
         {children}
-      </>
+      </AccountKindProvider>
     );
   }
   return (
     <ConvexAuthProvider client={convex} storage={convexTokenStorage}>
       <AuthGateProvider>
-        {children}
-        {showBanners ? (
-          <>
-            <IncomingInviteBanner />
-            <ResumeGameBanner />
-          </>
-        ) : null}
+        <AccountKindProvider>
+          {children}
+          {showBanners ? (
+            <>
+              <IncomingInviteBanner />
+              <ResumeGameBanner />
+            </>
+          ) : null}
+        </AccountKindProvider>
       </AuthGateProvider>
     </ConvexAuthProvider>
   );

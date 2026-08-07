@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Background } from "../components/Background";
@@ -10,7 +10,7 @@ import { OnlineJoinDrawer } from "../components/OnlineJoinDrawer";
 import { MenuButton } from "../components/MenuButton";
 import { HeroPanel, StaticTitle } from "../components/HomeHero";
 import { useUiTheme } from "../theme/UiThemeContext";
-import { spacing, typography } from "../theme";
+import { radius, spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
 import { useAppActive } from "../hooks/useAppActive";
 import { useReduceMotion } from "../hooks/useReduceMotion";
@@ -69,13 +69,36 @@ function FriendsMenuButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
+function IdentityChip({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
   const ui = useUiTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      style={[
+        styles.identityChip,
+        { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
+      ]}
+    >
+      <Text style={[styles.identityChipText, { color: ui.textPrimary }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   const reduceMotion = useReduceMotion();
   const appActive = useAppActive();
   const lay = useGameLayout();
   const insets = useSafeAreaInsets();
-  const { isGuest, isLoading: accountLoading } = useAccountKind();
+  const { isGuest, handle, isLoading: accountLoading } = useAccountKind();
   const playerNameHydrated = useGameStore((s) => s.playerNameHydrated);
   const goldBalance = useGameStore((s) => s.goldBalance);
   const creditBalance = useGameStore((s) => s.creditBalance);
@@ -87,6 +110,14 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
   // Wait for account kind so FRIENDS does not flash for guests.
   const showFriends = convexEnabled && !accountLoading && !isGuest;
   const menuItems = buildMenuItems(showFriends);
+  const identityLabel =
+    convexEnabled && !accountLoading
+      ? isGuest
+        ? "Guest"
+        : handle
+          ? `@${handle}`
+          : "Account"
+      : null;
 
   useEffect(() => {
     if (reduceMotion) {
@@ -94,10 +125,10 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
       return;
     }
     setDecorReady(false);
-    const handle = requestIdleCallback(() => {
+    const handleId = requestIdleCallback(() => {
       setDecorReady(true);
     });
-    return () => cancelIdleCallback(handle);
+    return () => cancelIdleCallback(handleId);
   }, [reduceMotion]);
 
   const handleMenu = (action: string) => {
@@ -120,6 +151,11 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
     <Background variant="home" deferAmbience={!showAnimatedDecor}>
       <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
         <View style={[styles.topBar, { paddingHorizontal: lay.hPad }]}>
+          {identityLabel ? (
+            <IdentityChip label={identityLabel} onPress={onOpenSettings} />
+          ) : (
+            <View />
+          )}
           <EconomyBar
             variant="home"
             creditBalance={creditBalance}
@@ -188,9 +224,23 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   topBar: {
-    alignItems: "flex-end",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingTop: spacing.xs,
     paddingBottom: spacing.xs,
+    gap: spacing.sm,
+  },
+  identityChip: {
+    maxWidth: "42%",
+    borderRadius: radius.panel,
+    borderWidth: 1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  identityChipText: {
+    ...typography.caption,
+    fontWeight: "700",
   },
   content: {
     flex:           1,

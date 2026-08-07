@@ -12,13 +12,17 @@ import { useGameLayout } from "../theme/useGameLayout";
 import { useAppActive } from "../hooks/useAppActive";
 import { useReduceMotion } from "../hooks/useReduceMotion";
 import { useGameStore } from "../game/store";
+import { useOnlineAuth } from "../game/useAuthBootstrap";
+import { useAccountKind } from "../game/useAccountKind";
 import { spacing, typography } from "../theme";
 import { isExpoGo } from "../utils/isExpoGo";
+import { trigger } from "../feedback/haptics";
+
+type AuthMode = "signIn" | "signUp";
 
 /**
- * First-run landing. "Continue as guest" proceeds with the existing anonymous
- * session; registering upgrades that same account (wallet/friends preserved).
- * Mirrors the home screen's hero panel so the transition feels seamless.
+ * First-run landing. Create Account / Sign In open the auth sheet;
+ * Continue as Guest mints an anonymous session then enters the home screen.
  */
 export function WelcomeScreen() {
   const ui = useUiTheme();
@@ -26,8 +30,35 @@ export function WelcomeScreen() {
   const reduceMotion = useReduceMotion();
   const appActive = useAppActive();
   const setOnboarded = useGameStore((s) => s.setOnboarded);
+  const { ensureGuestSession } = useOnlineAuth();
+  const { markRegistered } = useAccountKind();
   const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>("signUp");
+  const [guestBusy, setGuestBusy] = useState(false);
+  const [guestError, setGuestError] = useState<string | null>(null);
   const animate = !isExpoGo && !reduceMotion && appActive;
+
+  const openAuth = (mode: AuthMode) => {
+    setGuestError(null);
+    setAuthMode(mode);
+    setAuthOpen(true);
+  };
+
+  const continueAsGuest = async () => {
+    if (guestBusy) return;
+    setGuestBusy(true);
+    setGuestError(null);
+    try {
+      await ensureGuestSession();
+      setOnboarded(true);
+      trigger("confirm");
+    } catch {
+      setGuestError("Could not start a guest session. Check your connection.");
+      trigger("error");
+    } finally {
+      setGuestBusy(false);
+    }
+  };
 
   const hero = (
     <HeroPanel maxWidth={lay.maxContent}>
@@ -49,17 +80,27 @@ export function WelcomeScreen() {
   const menu = (
     <>
       <MenuButton
-        label="SIGN IN / REGISTER"
+        label="CREATE ACCOUNT"
         variant="primary"
         icon="➤"
-        onPress={() => setAuthOpen(true)}
+        onPress={() => openAuth("signUp")}
       />
       <MenuButton
-        label="CONTINUE AS GUEST"
+        label="SIGN IN"
         variant="secondary"
-        icon="♠"
-        onPress={() => setOnboarded(true)}
+        icon="✉"
+        onPress={() => openAuth("signIn")}
       />
+      <MenuButton
+        label={guestBusy ? "STARTING…" : "CONTINUE AS GUEST"}
+        variant="ghost"
+        icon="♠"
+        onPress={() => void continueAsGuest()}
+        disabled={guestBusy}
+      />
+      {guestError ? (
+        <Text style={[styles.guestError, { color: ui.textMuted }]}>{guestError}</Text>
+      ) : null}
     </>
   );
 
@@ -93,7 +134,12 @@ export function WelcomeScreen() {
         </View>
       </SafeAreaView>
 
-      <AuthSheet visible={authOpen} onClose={() => setAuthOpen(false)} />
+      <AuthSheet
+        visible={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onAuthenticated={markRegistered}
+        initialMode={authMode}
+      />
     </Background>
   );
 }
@@ -122,5 +168,10 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
     gap: spacing.sm,
+  },
+  guestError: {
+    ...typography.caption,
+    textAlign: "center",
+    marginTop: spacing.xs,
   },
 });

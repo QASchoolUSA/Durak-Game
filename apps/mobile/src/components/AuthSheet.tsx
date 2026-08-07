@@ -24,7 +24,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useConvex, useConvexAuth, useMutation } from "convex/react";
+import { useConvex, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { MenuButton } from "./MenuButton";
 import { useTableTheme } from "../theme/TableThemeContext";
@@ -33,6 +33,8 @@ import { useGameStore } from "../game/store";
 import { trigger } from "../feedback/haptics";
 import { colors, radius, spacing, typography } from "../theme";
 import { waitForRegisteredAccount } from "../game/waitForRegisteredAccount";
+import { useOnlineAuth } from "../game/useAuthBootstrap";
+import { useAccountKind } from "../game/useAccountKind";
 import { useGameLayout } from "../theme/useGameLayout";
 import { sheetHorizontalFrame } from "../theme/gameLayout";
 
@@ -92,7 +94,9 @@ export function AuthSheet({
   );
 
   const { signIn } = useAuthActions();
-  const { isAuthenticated } = useConvexAuth();
+  const { beginCredentialAuth, endCredentialAuth, ensureGuestSession } =
+    useOnlineAuth();
+  const { markRegistered } = useAccountKind();
   const beginGuestUpgrade = useMutation(api.account.beginGuestUpgrade);
   const completeGuestUpgrade = useMutation(api.account.completeGuestUpgrade);
   const setHandleMut = useMutation(api.profiles.setHandle);
@@ -107,6 +111,7 @@ export function AuthSheet({
   const [busy, setBusy] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [accessoryId, setAccessoryId] = useState(AUTH_ACCESSORY_ID);
 
   const handleAccessoryId = `${accessoryId}-handle`;
@@ -290,6 +295,7 @@ export function AuthSheet({
       setHandle("");
       setShowPassword(false);
       setError(null);
+      setSuccessMessage(null);
       setAccessoryId(`${AUTH_ACCESSORY_ID}-${Date.now()}`);
       ty.value = drawerH; keyboardLift.value = 0; backdropO.value = 0;
       keyboardAdjustedRef.current = false;
@@ -336,7 +342,6 @@ export function AuthSheet({
 
   // Mint a migration token while still signed in as the guest (if anonymous).
   const captureGuestToken = async (): Promise<string | null> => {
-    if (!isAuthenticated) return null;
     try {
       const { token } = await beginGuestUpgrade({});
       return token;
@@ -348,42 +353,79 @@ export function AuthSheet({
   const finishAuth = async (guestToken: string | null) => {
     if (mode === "signUp" && handle) {
       const trimmedHandle = handle.trim();
-      for (let attempt = 0; attempt < 3; attempt++) {
+      let handleSet = false;
+      for (let attempt = 0; attempt < 5; attempt++) {
         try {
           const res = await setHandleMut({
             handle: trimmedHandle,
             displayName: trimmedHandle,
           });
           useGameStore.getState().adoptHandleDisplayName(res.handle);
+          handleSet = true;
           break;
         } catch {
-          /* transient token issues, wait and retry */
-          await new Promise((r) => setTimeout(r, 400));
+          await new Promise((r) => setTimeout(r, 500));
         }
+      }
+      if (!handleSet) {
+        throw new Error(
+          "Account created, but we could not save your handle. Please try again.",
+        );
       }
     }
 
     if (guestToken) {
-      // Retry briefly: right after sign-in the new auth token may not have
-      // propagated yet, in which case the server leaves the token for a retry.
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           const res = await completeGuestUpgrade({ token: guestToken });
           if (res.migrated) break;
         } catch {
-          /* non-fatal: account still works, guest data just not merged */
           break;
         }
         await new Promise((r) => setTimeout(r, 400));
       }
     }
-    await waitForRegisteredAccount(() =>
-      convex.query(api.account.getAccountStatus, {}),
+
+    const status = await waitForRegisteredAccount(
+      () => convex.query(api.account.getAccountStatus, {}),
+      { timeoutMs: 12_000 },
     );
 
-    setOnboarded(true);
-    trigger("confirm");
+    if (!status || status.isAnonymous) {
+      throw new Error(
+        "Signed in, but your account is still syncing. Please try again.",
+      );
+    }
+
+    // Sign-in: adopt existing profile handle as display name when available.
+    let signedInHandle: string | null =
+      mode === "signUp" && handle.trim() ? handle.trim() : null;
+    if (mode === "signIn" || !signedInHandle) {
+      try {
+        const profile = await convex.query(api.profiles.getMyProfile, {});
+        if (profile?.handle) {
+          signedInHandle = profile.handle;
+          if (mode === "signIn") {
+            useGameStore.getState().adoptHandleDisplayName(profile.handle);
+          }
+        }
+      } catch {
+        /* non-fatal */
+      }
+    }
+
+    markRegistered();
     onAuthenticated?.();
+    setOnboarded(true);
+    setSuccessMessage(
+      signedInHandle
+        ? `Signed in as @${signedInHandle}`
+        : status.email
+          ? `Signed in as ${status.email}`
+          : "Signed in",
+    );
+    trigger("confirm");
+    await new Promise((r) => setTimeout(r, 900));
     handleClose();
   };
 
@@ -413,10 +455,13 @@ export function AuthSheet({
     }
     setBusy(true);
     setError(null);
+    setSuccessMessage(null);
 
     if (mode === "signUp") {
       try {
-        const checkRes = await convex.query(api.profiles.checkHandle, { handle: handle.trim() });
+        const checkRes = await convex.query(api.profiles.checkHandle, {
+          handle: handle.trim(),
+        });
         if (!checkRes.ok) {
           setError(checkRes.error ?? "Invalid handle.");
           trigger("error");
@@ -429,7 +474,7 @@ export function AuthSheet({
           setBusy(false);
           return;
         }
-      } catch (err) {
+      } catch {
         setError("Could not verify handle availability.");
         trigger("error");
         setBusy(false);
@@ -437,20 +482,37 @@ export function AuthSheet({
       }
     }
 
-    const guestToken = await captureGuestToken();
     try {
-      await signIn("password", {
-        email: email.trim(),
-        password,
-        flow: mode,
-      });
-      await finishAuth(guestToken);
-    } catch {
-      setError(
-        mode === "signUp"
-          ? "Could not create the account. That email may already be in use — try signing in instead."
-          : "Could not sign in. Check your email and password.",
-      );
+      // Prefer a guest session so wallet/gold can migrate on upgrade.
+      try {
+        await ensureGuestSession();
+      } catch {
+        /* proceed — signup/sign-in still works without migration */
+      }
+
+      const guestToken = await captureGuestToken();
+      beginCredentialAuth();
+      try {
+        await signIn("password", {
+          email: email.trim(),
+          password,
+          flow: mode,
+        });
+        await finishAuth(guestToken);
+      } finally {
+        endCredentialAuth();
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error &&
+        (err.message.includes("syncing") ||
+          err.message.includes("handle") ||
+          err.message.includes("guest session"))
+          ? err.message
+          : mode === "signUp"
+            ? "Could not create the account. That email may already be in use — try signing in instead."
+            : "Could not sign in. Check your email and password.";
+      setError(message);
       trigger("error");
     } finally {
       setBusy(false);
@@ -462,6 +524,7 @@ export function AuthSheet({
     trigger("selection");
     setMode(next);
     setError(null);
+    setSuccessMessage(null);
   };
 
   const aBackdrop = useAnimatedStyle(() => ({ opacity: backdropO.value }));
@@ -677,22 +740,27 @@ export function AuthSheet({
                 {error ? (
                   <Text style={[styles.error, { color: colors.danger }]}>{error}</Text>
                 ) : null}
+                {successMessage ? (
+                  <Text style={[styles.error, { color: ui.accent }]}>{successMessage}</Text>
+                ) : null}
 
                 <View ref={submitRef} collapsable={false} style={styles.submitWrap}>
                   <MenuButton
                     label={
-                      busy
-                        ? "PLEASE WAIT…"
-                        : mode === "signUp"
-                          ? "CREATE ACCOUNT"
-                          : "SIGN IN"
+                      successMessage
+                        ? "CONTINUING…"
+                        : busy
+                          ? "PLEASE WAIT…"
+                          : mode === "signUp"
+                            ? "CREATE ACCOUNT"
+                            : "SIGN IN"
                     }
                     variant="primary"
-                    icon={busy ? undefined : "➤"}
+                    icon={busy || successMessage ? undefined : "➤"}
                     onPress={() => void handleEmailAuth()}
-                    disabled={!canSubmit}
+                    disabled={!canSubmit || !!successMessage}
                   />
-                  {busy ? (
+                  {busy && !successMessage ? (
                     <ActivityIndicator color={ui.accent} style={styles.busySpinner} />
                   ) : null}
                 </View>

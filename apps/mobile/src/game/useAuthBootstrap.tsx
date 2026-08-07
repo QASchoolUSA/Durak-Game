@@ -13,17 +13,28 @@ import { useAuthActions } from "@convex-dev/auth/react";
 type AuthGateContextValue = {
   authReady: boolean;
   authLoading: boolean;
+  /** Mint/restore an anonymous guest session (Continue as Guest, post sign-out). */
+  ensureGuestSession: () => Promise<void>;
+  /** Ensure some session exists before online play (guest or registered). */
   ensureAuthenticated: () => Promise<void>;
+  /**
+   * Call before password sign-in/sign-up so in-flight anonymous auth cannot
+   * overwrite the credential session.
+   */
+  beginCredentialAuth: () => void;
+  /** Clear the credential-auth lock after finish (success or failure). */
+  endCredentialAuth: () => void;
 };
 
 const AuthGateContext = createContext<AuthGateContextValue | null>(null);
 
-const MAX_AUTO_SIGN_IN_ATTEMPTS = 4;
-const AUTO_SIGN_IN_DELAYS_MS = [0, 2_000, 5_000, 10_000];
-
 /**
- * Single launch bootstrap for Convex Auth (anonymous).
- * Only this provider auto-signs-in; consumers use useOnlineAuth().
+ * Auth gate for Convex.
+ *
+ * - Restored tokens are kept; we do NOT auto-mint anonymous on cold launch
+ *   (avoids racing password login on Welcome).
+ * - Guests call ensureGuestSession() explicitly.
+ * - beginCredentialAuth() suppresses anonymous sign-in until endCredentialAuth().
  */
 export function AuthGateProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -31,24 +42,59 @@ export function AuthGateProvider({ children }: { children: ReactNode }) {
   const [signingIn, setSigningIn] = useState(false);
   const signInFlightRef = useRef<Promise<boolean> | null>(null);
   const storageCheckedRef = useRef(false);
-  /** True once this session has ever been authenticated (incl. restored token). */
+  /** True once this launch has had a valid session (restored or minted). */
   const hadAuthenticatedSessionRef = useRef(false);
-  const autoSignInAttemptsRef = useRef(0);
-  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Generation bump: in-flight anonymous completions with a stale generation
+   * are treated as cancelled (token may still land — we also block starting
+   * new anonymous work while credential auth is active).
+   */
+  const authGenerationRef = useRef(0);
+  const credentialAuthActiveRef = useRef(false);
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  isAuthenticatedRef.current = isAuthenticated;
 
-  const clearRetryTimer = useCallback(() => {
-    if (retryTimerRef.current) {
-      clearTimeout(retryTimerRef.current);
-      retryTimerRef.current = null;
+  useEffect(() => {
+    if (isLoading) return;
+    if (!storageCheckedRef.current) {
+      storageCheckedRef.current = true;
+      if (__DEV__) {
+        console.debug(
+          `[auth] session ${isAuthenticated ? "restored from storage" : "missing — waiting for guest or credentials"}`,
+        );
+      }
     }
-  }, []);
+    if (isAuthenticated) {
+      hadAuthenticatedSessionRef.current = true;
+    }
+  }, [isLoading, isAuthenticated]);
 
-  const runSignIn = useCallback((): Promise<boolean> => {
+  const runAnonymousSignIn = useCallback((): Promise<boolean> => {
+    if (credentialAuthActiveRef.current) {
+      if (__DEV__) {
+        console.debug("[auth] skip anonymous — credential auth in progress");
+      }
+      return Promise.resolve(false);
+    }
     if (signInFlightRef.current) return signInFlightRef.current;
 
+    const generation = authGenerationRef.current;
     setSigningIn(true);
     const flight = signIn("anonymous")
-      .then(() => true)
+      .then(() => {
+        if (
+          credentialAuthActiveRef.current ||
+          generation !== authGenerationRef.current
+        ) {
+          if (__DEV__) {
+            console.warn(
+              "[auth] discarding late anonymous sign-in (credential auth won)",
+            );
+          }
+          return false;
+        }
+        return true;
+      })
       .catch((err) => {
         console.warn("[auth] anonymous sign-in failed", err);
         return false;
@@ -62,81 +108,73 @@ export function AuthGateProvider({ children }: { children: ReactNode }) {
     return flight;
   }, [signIn]);
 
-  const scheduleAutoSignIn = useCallback(() => {
-    if (hadAuthenticatedSessionRef.current) return;
-    if (signInFlightRef.current) return;
-    if (autoSignInAttemptsRef.current >= MAX_AUTO_SIGN_IN_ATTEMPTS) return;
+  const beginCredentialAuth = useCallback(() => {
+    credentialAuthActiveRef.current = true;
+    // Invalidate any in-flight anonymous completion.
+    authGenerationRef.current += 1;
+  }, []);
 
-    const attempt = autoSignInAttemptsRef.current;
-    autoSignInAttemptsRef.current += 1;
-    const delay = AUTO_SIGN_IN_DELAYS_MS[attempt] ?? 10_000;
+  const endCredentialAuth = useCallback(() => {
+    credentialAuthActiveRef.current = false;
+  }, []);
 
-    clearRetryTimer();
-    retryTimerRef.current = setTimeout(() => {
-      retryTimerRef.current = null;
-      void runSignIn().then((ok) => {
-        if (!ok && !hadAuthenticatedSessionRef.current) {
-          scheduleAutoSignIn();
-        }
-      });
-    }, delay);
-  }, [clearRetryTimer, runSignIn]);
+  const ensureGuestSession = useCallback(async () => {
+    // Allow guest minting after intentional sign-out.
+    hadAuthenticatedSessionRef.current = false;
+    credentialAuthActiveRef.current = false;
+    authGenerationRef.current += 1;
 
-  useEffect(() => {
-    if (isLoading) return;
-
-    if (!storageCheckedRef.current) {
-      storageCheckedRef.current = true;
-      if (__DEV__) {
-        console.debug(
-          `[auth] session ${isAuthenticated ? "restored from storage" : "missing — signing in anonymously"}`,
-        );
-      }
+    // After signOut(), React may still report authenticated for a tick —
+    // wait briefly for the token clear before deciding to mint.
+    for (let i = 0; i < 25; i++) {
+      if (!isAuthenticatedRef.current) break;
+      await new Promise((r) => setTimeout(r, 40));
     }
 
-    if (isAuthenticated) {
+    if (isAuthenticatedRef.current) {
       hadAuthenticatedSessionRef.current = true;
-      autoSignInAttemptsRef.current = 0;
-      clearRetryTimer();
       return;
     }
 
-    // WebSocket reconnect can briefly clear auth; don't hammer signIn if we
-    // already had a valid session this launch.
-    if (hadAuthenticatedSessionRef.current) return;
-    if (signInFlightRef.current || retryTimerRef.current) return;
-
-    scheduleAutoSignIn();
-  }, [
-    isLoading,
-    isAuthenticated,
-    clearRetryTimer,
-    scheduleAutoSignIn,
-  ]);
-
-  useEffect(() => () => clearRetryTimer(), [clearRetryTimer]);
+    const ok = await runAnonymousSignIn();
+    if (!ok) {
+      throw new Error("Could not start a guest session. Check your connection.");
+    }
+    hadAuthenticatedSessionRef.current = true;
+  }, [runAnonymousSignIn]);
 
   const ensureAuthenticated = useCallback(async () => {
-    if (isAuthenticated) return;
-    const ok = await runSignIn();
-    if (!ok && !hadAuthenticatedSessionRef.current) {
-      scheduleAutoSignIn();
+    if (isAuthenticatedRef.current) return;
+    if (credentialAuthActiveRef.current) {
+      // Don't mint a guest over an in-progress password login.
+      throw new Error("Signing in… try again in a moment.");
     }
-  }, [isAuthenticated, runSignIn, scheduleAutoSignIn]);
+    const ok = await runAnonymousSignIn();
+    if (!ok && !isAuthenticatedRef.current) {
+      throw new Error("Not authenticated");
+    }
+  }, [runAnonymousSignIn]);
 
   const authReady = !isLoading && isAuthenticated;
   const authLoading = isLoading || signingIn;
 
   return (
     <AuthGateContext.Provider
-      value={{ authReady, authLoading, ensureAuthenticated }}
+      value={{
+        authReady,
+        authLoading,
+        ensureGuestSession,
+        ensureAuthenticated,
+        beginCredentialAuth,
+        endCredentialAuth,
+      }}
     >
       {children}
     </AuthGateContext.Provider>
   );
 }
 
-/** Read auth status and await sign-in before online mutations (no auto sign-in on mount). */
+/** Read auth status and await sign-in before online mutations. */
 export function useOnlineAuth(): AuthGateContextValue {
   const ctx = useContext(AuthGateContext);
   if (!ctx) {

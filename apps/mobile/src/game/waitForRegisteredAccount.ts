@@ -6,14 +6,14 @@ export type AccountStatusSnapshot = {
 export type WaitForRegisteredAccountOptions = {
   /** Poll interval in ms. Default 400. */
   intervalMs?: number;
-  /** Max wait in ms. Default 4000. */
+  /** Max wait in ms. Default 12000. */
   timeoutMs?: number;
   /** Injectable sleep for tests. */
   sleep?: (ms: number) => Promise<void>;
 };
 
 const DEFAULT_INTERVAL_MS = 400;
-const DEFAULT_TIMEOUT_MS = 4_000;
+const DEFAULT_TIMEOUT_MS = 12_000;
 
 /**
  * Poll until the server reports a registered (non-anonymous) account, or timeout.
