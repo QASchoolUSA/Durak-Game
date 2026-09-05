@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useMutation, useQuery, useConvexAuth } from "convex/react";
+import { useTranslation } from "react-i18next";
 import { Background } from "../components/Background";
 import { Confetti } from "../components/Confetti";
 import { MenuButton } from "../components/MenuButton";
@@ -24,10 +25,16 @@ import type { Id } from "../../convex/_generated/dataModel";
 
 const RANK_MEDALS = ["🥇", "🥈", "🥉", "4️⃣"];
 
-function rankBadge(rank: number, total: number, isLoser: boolean, accent: string) {
-  if (isLoser) return { emoji: "🃏", label: "DURAK", color: colors.lose };
-  if (rank === 1) return { emoji: RANK_MEDALS[0]!, label: "WINNER", color: accent };
-  return { emoji: RANK_MEDALS[rank - 1] ?? `${rank}`, label: "FINISHED", color: colors.textMuted };
+function rankBadge(
+  rank: number,
+  total: number,
+  isLoser: boolean,
+  accent: string,
+  t: (key: string) => string,
+) {
+  if (isLoser) return { emoji: "🃏", label: t("result.rankDurak"), color: colors.lose };
+  if (rank === 1) return { emoji: RANK_MEDALS[0]!, label: t("result.rankWinner"), color: accent };
+  return { emoji: RANK_MEDALS[rank - 1] ?? `${rank}`, label: t("result.rankFinished"), color: colors.textMuted };
 }
 
 function CreditPrizeDisplay({ amount, label }: { amount: number; label: string }) {
@@ -66,7 +73,8 @@ function RankingRow({
   isLoser: boolean;
 }) {
   const ui = useUiTheme();
-  const badge = rankBadge(rank, total, isLoser, ui.accent);
+  const { t } = useTranslation();
+  const badge = rankBadge(rank, total, isLoser, ui.accent, t);
 
   return (
     <View
@@ -84,7 +92,7 @@ function RankingRow({
         <Text style={[styles.rankName, { color: ui.textPrimary }, isHuman && { color: ui.accent }]}>
           {name}
         </Text>
-        {isHuman && <Text style={[styles.rankYou, { color: ui.accentMuted }]}>(you)</Text>}
+        {isHuman && <Text style={[styles.rankYou, { color: ui.accentMuted }]}>{t("common.you")}</Text>}
       </View>
       <View style={[styles.rankBadge, { borderColor: badge.color }]}>
         <Text style={[styles.rankBadgeText, { color: badge.color }]}>{badge.label}</Text>
@@ -99,6 +107,7 @@ export interface ResultScreenProps {
 }
 
 export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const reduceMotion = useReduceMotion();
   const game = useGameStore((s) => s.game);
@@ -162,7 +171,7 @@ export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
       deductCreditsLocal,
     });
     if (!charged) {
-      setOnlineStatusMessage("Not enough credits.");
+      setOnlineStatusMessage(t("common.notEnoughCredits"));
       trigger("error");
       return;
     }
@@ -181,6 +190,7 @@ export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
     setOnlineStatusMessage,
     startGame,
     numPlayers,
+    t,
   ]);
 
   const handleMainMenu = useCallback(async () => {
@@ -215,10 +225,10 @@ export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
   ];
 
   const { headline, emoji, headlineColor } = isDraw
-    ? { headline: "DRAW", emoji: "🤝", headlineColor: colors.textMuted }
+    ? { headline: t("result.draw"), emoji: "🤝", headlineColor: colors.textMuted }
     : humanLost
-      ? { headline: "DURAK!", emoji: "🃏", headlineColor: colors.lose }
-      : { headline: "VICTORY!", emoji: "🏆", headlineColor: ui.accent };
+      ? { headline: t("result.durak"), emoji: "🃏", headlineColor: colors.lose }
+      : { headline: t("result.victory"), emoji: "🏆", headlineColor: ui.accent };
 
   const humanRank1 = (game?.finishedOrder[0] ?? null) === humanId;
   const effectiveBuyIn = buyIn || MATCH_BUY_IN;
@@ -230,9 +240,9 @@ export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
     : null;
 
   const creditPrizeLabel =
-    isDraw ? "credits returned"
-    : humanRank1 ? "credits won"
-    : "buy-in lost";
+    isDraw ? t("result.prizeReturned")
+    : humanRank1 ? t("result.prizeWon")
+    : t("result.prizeLost");
 
   useEffect(() => {
     if (humanRank1 && !isDraw) trigger("success");
@@ -274,14 +284,14 @@ export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
             </Text>
             {humanRank1 && !isDraw && (
               <Text style={[styles.heroSub, { color: ui.textMuted }]}>
-                {names[loser!] ?? loser} is the fool!
+                {t("result.subFool", { name: names[loser!] ?? loser })}
               </Text>
             )}
             {humanLost && (
-              <Text style={[styles.heroSub, { color: ui.textMuted }]}>Better luck next round.</Text>
+              <Text style={[styles.heroSub, { color: ui.textMuted }]}>{t("result.subBetterLuck")}</Text>
             )}
             {isDraw && (
-              <Text style={[styles.heroSub, { color: ui.textMuted }]}>Everyone ran out together.</Text>
+              <Text style={[styles.heroSub, { color: ui.textMuted }]}>{t("result.subDraw")}</Text>
             )}
           </View>
 
@@ -303,7 +313,7 @@ export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
                 },
               ]}
             >
-              FINAL STANDINGS
+              {t("result.finalStandings")}
             </Text>
             {rankings.map((r) => (
               <RankingRow
@@ -327,12 +337,12 @@ export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
             {playMode === "online" && !onlineIsHost ? (
               <Text style={[styles.waitingHost, { color: ui.textMuted }]}>
                 {returning || roomView?.status === "playing"
-                  ? "Starting next round…"
-                  : "Waiting for host to start the next round…"}
+                  ? t("result.starting")
+                  : t("result.waitingHost")}
               </Text>
             ) : (
               <MenuButton
-                label={playMode === "online" ? "NEXT ROUND" : "PLAY AGAIN"}
+                label={playMode === "online" ? t("result.nextRound") : t("result.playAgain")}
                 variant="primary"
                 onPress={handlePlayAgain}
                 icon="▶"
@@ -340,7 +350,7 @@ export function ResultScreen({ celebrateReady = true }: ResultScreenProps) {
               />
             )}
             <MenuButton
-              label="MAIN MENU"
+              label={t("result.mainMenu")}
               variant="ghost"
               onPress={handleMainMenu}
               icon="⌂"

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { cardId, type Card, type GameState } from "@durak/game-core";
 import {
   canReveal,
@@ -10,6 +10,11 @@ import {
   playerMustAct,
   seatRoleTag,
 } from "./selectors";
+import { i18n } from "../i18n/i18n";
+
+beforeAll(async () => {
+  await i18n.changeLanguage("en");
+});
 
 const NAMES = { bot1: "Alex", you: "You", bot2: "Bo" };
 
@@ -290,10 +295,10 @@ describe("canReveal", () => {
 });
 
 describe("seatRoleTag", () => {
-  it("labels attacker and defender, omits taking/none", () => {
+  it("labels attacker, defender, and taking", () => {
     expect(seatRoleTag("attacker")).toEqual({ label: "ATTACK", indication: "play" });
     expect(seatRoleTag("defender")).toEqual({ label: "DEFEND", indication: "defend" });
-    expect(seatRoleTag("taking")).toBeNull();
+    expect(seatRoleTag("taking")).toEqual({ label: "I TAKE", indication: "defend" });
     expect(seatRoleTag(null)).toBeNull();
   });
 });

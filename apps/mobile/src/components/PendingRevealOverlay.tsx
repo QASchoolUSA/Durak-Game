@@ -7,6 +7,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
 import type { Card as CardModel, Suit } from "@durak/game-core";
 import { Card } from "./Card";
 import { useUiTheme } from "../theme/UiThemeContext";
@@ -75,6 +76,7 @@ export function PendingRevealOverlay({
   trumpSuit,
   onDismiss,
 }: PendingRevealOverlayProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const visible = card != null && expiresAt > Date.now();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -111,8 +113,8 @@ export function PendingRevealOverlay({
     <Modal visible transparent animationType="fade" onRequestClose={onDismiss}>
       <Pressable style={styles.backdrop} onPress={onDismiss}>
         <Pressable style={styles.panel} onPress={(e) => e.stopPropagation()}>
-          <Text style={[styles.title, { color: ui.accent }]}>REVEALED</Text>
-          <Text style={[styles.sub, { color: ui.textMuted }]}>Memorize this card…</Text>
+          <Text style={[styles.title, { color: ui.accent }]}>{t("game.reveal.revealed")}</Text>
+          <Text style={[styles.sub, { color: ui.textMuted }]}>{t("game.reveal.memorize")}</Text>
           <FlippableCard
             card={card}
             trumpSuit={trumpSuit}

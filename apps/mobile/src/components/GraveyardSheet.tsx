@@ -18,6 +18,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 import type { Card as CardModel, Suit } from "@durak/game-core";
 import { SUIT_SYMBOLS, isRed } from "@durak/game-core";
 import { Card } from "./Card";
@@ -36,11 +37,11 @@ const BASE_GRAVE_CARD_W = 46;
 
 const SUIT_ORDER: Suit[] = ["clubs", "diamonds", "hearts", "spades"];
 
-const SUIT_NAMES: Record<Suit, string> = {
-  clubs: "Clubs",
-  diamonds: "Diamonds",
-  hearts: "Hearts",
-  spades: "Spades",
+const SUIT_NAME_KEYS: Record<Suit, string> = {
+  clubs: "game.suit.clubs",
+  diamonds: "game.suit.diamonds",
+  hearts: "game.suit.hearts",
+  spades: "game.suit.spades",
 };
 
 export interface GraveyardSheetProps {
@@ -107,6 +108,7 @@ function SuitPanel({
   cardH: number;
   gridGap: number;
 }) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const isTrump = suit === trumpSuit;
   const pipColor = isRed(suit) ? colors.suitRed : colors.suitBlack;
@@ -130,7 +132,7 @@ function SuitPanel({
           <Text style={[styles.suitSymbol, { color: pipColor }]}>
             {SUIT_SYMBOLS[suit]}
           </Text>
-          <Text style={[styles.suitName, { color: ui.textPrimary }]}>{SUIT_NAMES[suit]}</Text>
+          <Text style={[styles.suitName, { color: ui.textPrimary }]}>{t(SUIT_NAME_KEYS[suit])}</Text>
           {isTrump && (
             <View
               style={[
@@ -141,7 +143,7 @@ function SuitPanel({
                 },
               ]}
             >
-              <Text style={[styles.trumpBadgeText, { color: ui.accent }]}>Trump</Text>
+              <Text style={[styles.trumpBadgeText, { color: ui.accent }]}>{t("game.graveyard.trump")}</Text>
             </View>
           )}
         </View>
@@ -171,6 +173,7 @@ function SuitPanel({
 }
 
 export function GraveyardSheet({ visible, onClose, cards, trumpSuit }: GraveyardSheetProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const sheetGradient = tableTheme.backgroundGradient ?? [
@@ -295,11 +298,11 @@ export function GraveyardSheet({ visible, onClose, cards, trumpSuit }: Graveyard
                 <View style={[styles.handle, { backgroundColor: ui.accentMuted }]} />
               </View>
               <View style={styles.header}>
-                <Text style={[styles.title, { color: ui.accent }]}>GRAVEYARD</Text>
+                <Text style={[styles.title, { color: ui.accent }]}>{t("game.graveyard.title")}</Text>
                 <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
                   {cards.length === 0
-                    ? "No cards out of play yet"
-                    : `${cards.length} card${cards.length === 1 ? "" : "s"} out of play`}
+                    ? t("game.graveyard.empty")
+                    : t("game.graveyard.count", { count: cards.length })}
                 </Text>
                 {cards.length > 0 && (
                   <GraveyardSummary cards={cards} trumpSuit={trumpSuit} />

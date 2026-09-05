@@ -22,6 +22,11 @@ type AuthGateContextValue = {
    * overwrite the credential session.
    */
   beginCredentialAuth: () => void;
+  /**
+   * Call after password signIn resolves so late anonymous cleanup will not
+   * signOut the registered token.
+   */
+  claimCredentialSession: () => void;
   /** Clear the credential-auth lock after finish (success or failure). */
   endCredentialAuth: () => void;
 };
@@ -38,7 +43,7 @@ const AuthGateContext = createContext<AuthGateContextValue | null>(null);
  */
 export function AuthGateProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
-  const { signIn } = useAuthActions();
+  const { signIn, signOut } = useAuthActions();
   const [signingIn, setSigningIn] = useState(false);
   const signInFlightRef = useRef<Promise<boolean> | null>(null);
   const storageCheckedRef = useRef(false);
@@ -46,11 +51,13 @@ export function AuthGateProvider({ children }: { children: ReactNode }) {
   const hadAuthenticatedSessionRef = useRef(false);
   /**
    * Generation bump: in-flight anonymous completions with a stale generation
-   * are treated as cancelled (token may still land — we also block starting
-   * new anonymous work while credential auth is active).
+   * are treated as cancelled. If a late anonymous token still lands while
+   * credential auth is active, we signOut so it cannot stick over password auth.
    */
   const authGenerationRef = useRef(0);
   const credentialAuthActiveRef = useRef(false);
+  /** True after password signIn resolved — late anonymous must not signOut. */
+  const credentialSessionClaimedRef = useRef(false);
   const isAuthenticatedRef = useRef(isAuthenticated);
   isAuthenticatedRef.current = isAuthenticated;
 
@@ -81,14 +88,30 @@ export function AuthGateProvider({ children }: { children: ReactNode }) {
     const generation = authGenerationRef.current;
     setSigningIn(true);
     const flight = signIn("anonymous")
-      .then(() => {
-        if (
-          credentialAuthActiveRef.current ||
-          generation !== authGenerationRef.current
-        ) {
+      .then(async () => {
+        if (credentialAuthActiveRef.current) {
           if (__DEV__) {
             console.warn(
               "[auth] discarding late anonymous sign-in (credential auth won)",
+            );
+          }
+          // Soft-cancel is not enough — signIn may already have written a guest
+          // token. Clear it only if password auth has not claimed the session yet.
+          if (!credentialSessionClaimedRef.current) {
+            try {
+              await signOut();
+            } catch (err) {
+              if (__DEV__) {
+                console.warn("[auth] failed to clear late anonymous token", err);
+              }
+            }
+          }
+          return false;
+        }
+        if (generation !== authGenerationRef.current) {
+          if (__DEV__) {
+            console.warn(
+              "[auth] discarding stale anonymous sign-in (generation bumped)",
             );
           }
           return false;
@@ -106,16 +129,22 @@ export function AuthGateProvider({ children }: { children: ReactNode }) {
 
     signInFlightRef.current = flight;
     return flight;
-  }, [signIn]);
+  }, [signIn, signOut]);
 
   const beginCredentialAuth = useCallback(() => {
     credentialAuthActiveRef.current = true;
+    credentialSessionClaimedRef.current = false;
     // Invalidate any in-flight anonymous completion.
     authGenerationRef.current += 1;
   }, []);
 
+  const claimCredentialSession = useCallback(() => {
+    credentialSessionClaimedRef.current = true;
+  }, []);
+
   const endCredentialAuth = useCallback(() => {
     credentialAuthActiveRef.current = false;
+    credentialSessionClaimedRef.current = false;
   }, []);
 
   const ensureGuestSession = useCallback(async () => {
@@ -166,6 +195,7 @@ export function AuthGateProvider({ children }: { children: ReactNode }) {
         ensureGuestSession,
         ensureAuthenticated,
         beginCredentialAuth,
+        claimCredentialSession,
         endCredentialAuth,
       }}
     >

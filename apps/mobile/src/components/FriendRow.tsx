@@ -14,23 +14,26 @@ export interface RowAction {
 }
 
 export interface FriendRowProps {
-  displayName: string;
+  /** Primary label — typically `@handle`, or a game resume title. */
   handle: string;
   subtitle?: string;
   actions?: RowAction[];
 }
 
-export function FriendRow({ displayName, handle, subtitle, actions }: FriendRowProps) {
+export function FriendRow({ handle, subtitle, actions }: FriendRowProps) {
   const ui = useUiTheme();
+  const primary = handle.startsWith("@") || handle === "game" ? handle : `@${handle}`;
   return (
     <View style={[styles.row, { borderBottomColor: ui.panelBorderSoft }]}>
       <View style={styles.info}>
         <Text style={[styles.name, { color: ui.textPrimary }]} numberOfLines={1}>
-          {displayName}
+          {primary}
         </Text>
-        <Text style={[styles.handle, { color: ui.textMuted }]} numberOfLines={1}>
-          {subtitle ?? `@${handle}`}
-        </Text>
+        {subtitle ? (
+          <Text style={[styles.subtitle, { color: ui.textMuted }]} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
       <View style={styles.actions}>
         {actions?.map((a) => {
@@ -78,7 +81,7 @@ const styles = StyleSheet.create({
   },
   info: { flex: 1 },
   name: { ...typography.heading },
-  handle: { ...typography.caption },
+  subtitle: { ...typography.caption },
   actions: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   action: {
     paddingHorizontal: spacing.md,

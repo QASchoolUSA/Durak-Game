@@ -6,6 +6,12 @@ import {
 } from "../theme/appearanceThemes";
 import type { CardDesignId } from "../theme/cardThemes";
 import type { TableDesignId } from "../theme/tableThemes";
+import { applyLanguagePreference } from "../i18n/i18n";
+import {
+  getStoredLanguagePreference,
+  setStoredLanguagePreference,
+  type LanguagePreference,
+} from "../i18n/languageStorage";
 import { getStoredCardDesign, peekStoredCardDesignSync, setStoredCardDesign } from "./cardDesignStorage";
 import { getStoredHapticsEnabled, setStoredHapticsEnabled } from "./hapticsStorage";
 import { getStoredSoundEnabled, setStoredSoundEnabled } from "./soundStorage";
@@ -28,6 +34,7 @@ interface PreferencesStore {
   soundEnabled: boolean;
   turnSeconds: TurnSecondsOption;
   tutorialCompleted: boolean;
+  language: LanguagePreference;
   appearanceLoaded: boolean;
   hydrated: boolean;
   setAppearance: (id: AppearanceId) => void;
@@ -37,6 +44,7 @@ interface PreferencesStore {
   setSoundEnabled: (enabled: boolean) => void;
   setTurnSeconds: (seconds: TurnSecondsOption) => void;
   setTutorialCompleted: (completed: boolean) => void;
+  setLanguage: (preference: LanguagePreference) => void;
 }
 
 function syncAppearance(id: AppearanceId) {
@@ -59,6 +67,7 @@ export const usePreferencesStore = create<PreferencesStore>(() => ({
   soundEnabled: true,
   turnSeconds: DEFAULT_TURN_SECONDS,
   tutorialCompleted: false,
+  language: "system",
   appearanceLoaded: false,
   hydrated: false,
   setAppearance: (id) => {
@@ -85,6 +94,11 @@ export const usePreferencesStore = create<PreferencesStore>(() => ({
   setTutorialCompleted: (completed) => {
     usePreferencesStore.setState({ tutorialCompleted: completed });
     void setStoredTutorialCompleted(completed);
+  },
+  setLanguage: (preference) => {
+    usePreferencesStore.setState({ language: preference });
+    void setStoredLanguagePreference(preference);
+    applyLanguagePreference(preference);
   },
 }));
 
@@ -184,6 +198,17 @@ export async function loadTutorialCompleted(): Promise<void> {
   }
 }
 
+export async function loadLanguagePreference(): Promise<void> {
+  try {
+    const stored = await getStoredLanguagePreference();
+    const preference = stored ?? "system";
+    usePreferencesStore.setState({ language: preference });
+    applyLanguagePreference(preference);
+  } catch {
+    applyLanguagePreference("system");
+  }
+}
+
 async function loadPreferencesImpl(): Promise<void> {
   try {
     await loadAppearance();
@@ -192,6 +217,7 @@ async function loadPreferencesImpl(): Promise<void> {
       loadSoundEnabled(),
       loadTurnSeconds(),
       loadTutorialCompleted(),
+      loadLanguagePreference(),
     ]);
   } finally {
     usePreferencesStore.setState({ hydrated: true });

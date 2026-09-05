@@ -1,5 +1,6 @@
 import React from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { radius, spacing, typography } from "../theme";
 import { trigger } from "../feedback/haptics";
@@ -24,6 +25,7 @@ export function GameCoachOverlay({
   onNext,
   onDismiss,
 }: GameCoachOverlayProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const step = steps[stepIndex];
   if (!step) return null;
@@ -40,7 +42,7 @@ export function GameCoachOverlay({
           ]}
         >
           <Text style={[styles.kicker, { color: ui.textFaint }]}>
-            TIP {stepIndex + 1} / {steps.length}
+            {t("game.coach.tip", { current: stepIndex + 1, total: steps.length })}
           </Text>
           <Text style={[styles.title, { color: ui.accent }]}>{step.title}</Text>
           <Text style={[styles.body, { color: ui.textMuted }]}>{step.body}</Text>
@@ -53,7 +55,7 @@ export function GameCoachOverlay({
               }}
               hitSlop={8}
             >
-              <Text style={[styles.skip, { color: ui.textFaint }]}>Skip</Text>
+              <Text style={[styles.skip, { color: ui.textFaint }]}>{t("game.coach.skip")}</Text>
             </Pressable>
             <Pressable
               style={[styles.nextBtn, { backgroundColor: ui.accent }]}
@@ -64,7 +66,7 @@ export function GameCoachOverlay({
               }}
             >
               <Text style={[styles.nextText, { color: ui.badgeText }]}>
-                {isLast ? "Got it" : "Next"}
+                {isLast ? t("game.coach.gotIt") : t("game.coach.next")}
               </Text>
             </Pressable>
           </View>

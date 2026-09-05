@@ -7,13 +7,13 @@ import Animated, {
   withSequence,
   withSpring,
 } from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
 import type { SeatIndication, SeatRole } from "../game/selectors";
 import { seatRoleTag } from "../game/selectors";
 import type { TurnClockConfig } from "../game/turnClockEngine";
 import { PlayerAvatar, indicationColor } from "./playerSeatShared";
 import { SeatReactionBurst } from "./SeatReactionBurst";
 import { SeatTurnTimerRing } from "./SeatTurnTimerRing";
-import { TakeSpeechBubble } from "./TakeSpeechBubble";
 import { useCardTheme } from "../theme/CardThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { MeasuredAnchor, type AnchorRect } from "./MeasuredAnchor";
@@ -113,7 +113,7 @@ function PlayerSeatComponent({
   onSeatAnchorLayout,
   onSeatAnchorRemoved,
 }: PlayerSeatProps) {
-  const isTaking = role === "taking";
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const showTimer =
     !finished && indication != null && (onClock || role === "taking");
@@ -137,13 +137,11 @@ function PlayerSeatComponent({
     <View style={styles.outer}>
       <View style={styles.shell} onLayout={onLayout}>
         <SeatReactionBurst playerId={playerId} />
-        {isTaking && !finished && <TakeSpeechBubble />}
         <Animated.View
           entering={skipEnterAnimation ? undefined : FadeIn.duration(350)}
           style={[
             styles.panel,
             { backgroundColor: ui.panelBg },
-            isTaking && !finished && styles.panelTaking,
             dimmed && !finished && styles.dimmed,
             finished && styles.finished,
           ]}
@@ -181,7 +179,7 @@ function PlayerSeatComponent({
 
           {finished && (
             <View style={styles.roleBarFinished}>
-              <Text style={[styles.roleTextFinished, { color: ui.textFaint }]}>FINISHED</Text>
+              <Text style={[styles.roleTextFinished, { color: ui.textFaint }]}>{t("common.finished")}</Text>
             </View>
           )}
         </Animated.View>
@@ -217,9 +215,6 @@ const styles = StyleSheet.create({
     minWidth: 100,
     borderRadius: radius.panel,
     overflow: "hidden",
-  },
-  panelTaking: {
-    overflow: "visible",
   },
   finished: { opacity: 0.45 },
   dimmed: { opacity: 0.5 },

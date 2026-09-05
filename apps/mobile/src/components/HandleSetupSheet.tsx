@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { useMutation } from "convex/react";
+import { useTranslation } from "react-i18next";
 import { api } from "../../convex/_generated/api";
 import { MenuButton } from "./MenuButton";
 import { useUiTheme } from "../theme/UiThemeContext";
@@ -29,10 +30,9 @@ export function HandleSetupSheet({
   onClose,
   onSaved,
 }: HandleSetupSheetProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const setHandleMut = useMutation(api.profiles.setHandle);
-  const displayName = useGameStore((s) => s.onlineDisplayName);
-  const hasCustomDisplayName = useGameStore((s) => s.hasCustomDisplayName);
   const [handle, setHandle] = useState(initialHandle ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,27 +41,18 @@ export function HandleSetupSheet({
 
   const handleSave = async () => {
     if (normalized.length < 3) {
-      setError("Handle must be at least 3 characters.");
+      setError(t("auth.error.handleMin"));
       return;
     }
     setSaving(true);
     setError(null);
     try {
-      // Without a custom name the handle IS the display name — don't bake a
-      // generated guest name into the profile.
-      const res = await setHandleMut({
-        handle: normalized,
-        displayName: hasCustomDisplayName
-          ? displayName.trim() || normalized
-          : normalized,
-      });
-      if (!hasCustomDisplayName) {
-        useGameStore.getState().adoptHandleDisplayName(res.handle);
-      }
+      const res = await setHandleMut({ handle: normalized });
+      useGameStore.getState().adoptHandleDisplayName(res.handle);
       onSaved?.(res.handle);
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save handle.");
+      setError(e instanceof Error ? e.message : t("auth.handle.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -75,16 +66,16 @@ export function HandleSetupSheet({
       >
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={[styles.card, { backgroundColor: ui.panelBg, borderColor: ui.panelBorder }]}>
-          <Text style={[styles.title, { color: ui.accent }]}>CHOOSE A HANDLE</Text>
+          <Text style={[styles.title, { color: ui.accent }]}>{t("auth.handle.title")}</Text>
           <Text style={[styles.sub, { color: ui.textMuted }]}>
-            Friends find you by your handle. Letters, numbers, and underscores.
+            {t("auth.handle.sub")}
           </Text>
           <View style={styles.inputRow}>
             <Text style={[styles.at, { color: ui.textFaint }]}>@</Text>
             <TextInput
               style={[styles.input, { color: ui.textPrimary, borderColor: ui.panelBorderSoft }]}
               value={normalized}
-              onChangeText={(t) => setHandle(t)}
+              onChangeText={(text) => setHandle(text)}
               placeholder="yourname"
               placeholderTextColor={ui.textFaint}
               autoCapitalize="none"
@@ -94,7 +85,7 @@ export function HandleSetupSheet({
           </View>
           {error && <Text style={[styles.error, { color: colors.danger }]}>{error}</Text>}
           <MenuButton
-            label={saving ? "SAVING…" : "SAVE HANDLE"}
+            label={saving ? t("auth.handle.saving") : t("auth.handle.save")}
             variant="primary"
             onPress={handleSave}
             disabled={saving || normalized.length < 3}

@@ -18,6 +18,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 import { spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
 import { sheetHorizontalFrame } from "../theme/gameLayout";
@@ -28,44 +29,17 @@ const SPRING_IN  = { damping: 26, stiffness: 290, mass: 0.85 };
 const SPRING_OUT = { damping: 30, stiffness: 340, mass: 0.75 };
 const BACKDROP_FULL = 0.76;
 
-const SECTIONS = [
-  {
-    title: "The Goal",
-    body: "Be the first player to play all cards from your hand. The last player left holding cards is the Durak (fool).",
-  },
-  {
-    title: "Card Ranking",
-    body: "Cards rank from lowest to highest: 6 · 7 · 8 · 9 · 10 · J · Q · K · A\n\nThe trump suit beats any non-trump card, regardless of rank. Within the same suit, higher rank wins.",
-  },
-  {
-    title: "Attacking",
-    body: "The attacker places one or more cards of the same rank on the table. After the first card, other non-defender players may also throw in cards matching any rank already on the table.\n\nThe first round allows up to 5 attack cards; later rounds allow up to 6.",
-  },
-  {
-    title: "Defending",
-    body: "The defender must cover each attack card with a higher card of the same suit, or any trump card. If the defender cannot or chooses not to defend, they take all table cards into their hand.",
-  },
-  {
-    title: "Taking Cards",
-    body: "If the defender takes cards, they pick up everything on the table and do NOT discard. Other attackers may continue throwing in matching cards, but never more undefended attacks than the defender holds.",
-  },
-  {
-    title: "Perevodnoy — Transfer",
-    body: "In Perevodnoy mode, the defender has a third option: play a card of the same rank as the initial attack. This transfers the entire attack to the next player, who now must defend.\n\nDefenders can keep transferring the attack around the table by playing matching-rank cards, until someone beats, takes, or an attacker throws in an extra card.\n\nYou can only transfer if the player you're passing to holds at least as many cards as there will be attacks on the table — so if your next neighbour is low on cards, transfer is unavailable even when you hold a matching rank.",
-  },
-  {
-    title: "End of Round",
-    body: "When all attacks are defended (or taken), the round ends. Players draw back up to 6 cards from the deck starting with the attacker. Once the deck is empty, no draws occur.",
-  },
-  {
-    title: "Winning",
-    body: "A player leaves the game as soon as their hand is empty and the deck is empty. The last player with cards is the Durak and loses the round.",
-  },
-  {
-    title: "Abilities Mode",
-    body: "When playing With Abilities, you have three extra powers:\n\n• Return card — after you play a card (attack, defend, or transfer), tap Return within 3 seconds to take it back. AI opponents wait during this window.\n\n• Graveyard — tap GRAVE anytime to see every card that has left play (successfully beaten pairs in the discard pile), sorted by suit.\n\n• Reveal — on your turn, if an opponent holds 2+ cards, tap REVEAL. In 3–6 player games, choose the player first. Tap one of their face-down cards to peek at it for a few seconds. Unlimited uses while eligible.",
-  },
-];
+const SECTION_KEYS = [
+  { title: "rules.goalTitle", body: "rules.goalBody" },
+  { title: "rules.rankingTitle", body: "rules.rankingBody" },
+  { title: "rules.attackingTitle", body: "rules.attackingBody" },
+  { title: "rules.defendingTitle", body: "rules.defendingBody" },
+  { title: "rules.takingTitle", body: "rules.takingBody" },
+  { title: "rules.transferTitle", body: "rules.transferBody" },
+  { title: "rules.endRoundTitle", body: "rules.endRoundBody" },
+  { title: "rules.winningTitle", body: "rules.winningBody" },
+  { title: "rules.abilitiesTitle", body: "rules.abilitiesBody" },
+] as const;
 
 export interface RulesModalProps {
   visible: boolean;
@@ -73,6 +47,7 @@ export interface RulesModalProps {
 }
 
 export function RulesModal({ visible, onClose }: RulesModalProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const sheetGradient = tableTheme.backgroundGradient ?? [
@@ -86,6 +61,11 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
     Math.round(screenH * 0.90),
     screenH - insets.top - lay.s(spacing.md),
   );
+
+  const sections = SECTION_KEYS.map((s) => ({
+    title: t(s.title),
+    body: t(s.body),
+  }));
 
   const [modalVisible, setModalVisible] = useState(false);
   const prevVisible = useRef(false);
@@ -176,9 +156,9 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
                 <View style={[styles.handle, { backgroundColor: ui.accentMuted }]} />
               </View>
               <View style={styles.header}>
-                <Text style={[styles.title, { color: ui.accent }]}>HOW TO PLAY</Text>
+                <Text style={[styles.title, { color: ui.accent }]}>{t("rules.title")}</Text>
                 <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
-                  Swipe down to close
+                  {t("common.swipeDownClose")}
                 </Text>
               </View>
             </View>
@@ -195,11 +175,10 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
             showsVerticalScrollIndicator={false}
           >
             <Text style={[styles.intro, { color: ui.textPrimary }]}>
-              Durak (Дурак) is one of Russia's most beloved card games. Simple to
-              learn, rich in strategy — the last player with cards is the fool.
+              {t("rules.intro")}
             </Text>
 
-            {SECTIONS.map((s) => (
+            {sections.map((s) => (
               <View key={s.title} style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <View style={[styles.dot, { backgroundColor: ui.accent }]} />
@@ -211,7 +190,7 @@ export function RulesModal({ visible, onClose }: RulesModalProps) {
 
             <View style={[styles.footer, { borderTopColor: ui.panelBorderSoft }]}>
               <Text style={[styles.footerText, { color: ui.textFaint }]}>
-                Good luck — and don't be the Durak!
+                {t("rules.footer")}
               </Text>
             </View>
           </ScrollView>

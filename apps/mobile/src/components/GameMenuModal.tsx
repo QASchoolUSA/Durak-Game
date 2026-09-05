@@ -17,6 +17,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 import { colors, radius, spacing, typography } from "../theme";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
@@ -39,6 +40,7 @@ export function GameMenuModal({
   onOpenSettings,
   onLeaveGame,
 }: GameMenuModalProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const { height: screenH } = useWindowDimensions();
@@ -143,9 +145,9 @@ export function GameMenuModal({
                 <View style={[styles.handle, { backgroundColor: ui.accentMuted }]} />
               </View>
               <View style={styles.header}>
-                <Text style={[styles.title, { color: ui.accent }]}>GAME MENU</Text>
+                <Text style={[styles.title, { color: ui.accent }]}>{t("game.menuTitle")}</Text>
                 <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
-                  Swipe down to close
+                  {t("common.swipeDownClose")}
                 </Text>
               </View>
             </View>
@@ -171,7 +173,7 @@ export function GameMenuModal({
               <View style={[styles.iconWrap, { backgroundColor: ui.accentMuted }]}>
                 <Text style={[styles.icon, { color: ui.accent }]}>⚙</Text>
               </View>
-              <Text style={[styles.btnText, { color: ui.textPrimary }]}>Settings</Text>
+              <Text style={[styles.btnText, { color: ui.textPrimary }]}>{t("game.menuSettings")}</Text>
             </Pressable>
 
             <Pressable
@@ -191,7 +193,7 @@ export function GameMenuModal({
               <View style={[styles.iconWrap, { backgroundColor: ui.accentMuted }]}>
                 <Text style={[styles.icon, { color: ui.accent }]}>✕</Text>
               </View>
-              <Text style={[styles.btnText, { color: ui.textPrimary }]}>Leave Game</Text>
+              <Text style={[styles.btnText, { color: ui.textPrimary }]}>{t("game.menuLeave")}</Text>
             </Pressable>
 
             <Pressable
@@ -205,7 +207,7 @@ export function GameMenuModal({
                 requestClose();
               }}
             >
-              <Text style={[styles.cancelText, { color: ui.textPrimary }]}>Cancel</Text>
+              <Text style={[styles.cancelText, { color: ui.textPrimary }]}>{t("common.cancel")}</Text>
             </Pressable>
           </View>
         </Animated.View>

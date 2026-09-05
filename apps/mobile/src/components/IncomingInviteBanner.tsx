@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useConvexAuth, useQuery } from "convex/react";
+import { useTranslation } from "react-i18next";
 import { api } from "../../convex/_generated/api";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { useGameStore } from "../game/store";
@@ -15,6 +16,7 @@ import { radius, spacing, typography } from "../theme";
  * the case where the app was opened from a push notification.
  */
 export function IncomingInviteBanner() {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useConvexAuth();
@@ -65,9 +67,9 @@ export function IncomingInviteBanner() {
     >
       <View style={[styles.card, { backgroundColor: ui.panelBg, borderColor: ui.accent }]}>
         <View style={styles.text}>
-          <Text style={[styles.title, { color: ui.accent }]}>GAME INVITE</Text>
+          <Text style={[styles.title, { color: ui.accent }]}>{t("home.invite.title")}</Text>
           <Text style={[styles.body, { color: ui.textPrimary }]} numberOfLines={1}>
-            {invite.fromDisplayName} (@{invite.fromHandle}) invited you to play
+            {t("home.invite.body", { handle: invite.fromHandle })}
           </Text>
         </View>
         <View style={styles.actions}>
@@ -80,7 +82,7 @@ export function IncomingInviteBanner() {
             style={[styles.join, { backgroundColor: ui.accent }, busy && styles.busy]}
           >
             <Text style={[styles.joinText, { color: ui.badgeText }]}>
-              {busy ? "…" : "JOIN"}
+              {busy ? "…" : t("home.invite.join")}
             </Text>
           </Pressable>
         </View>

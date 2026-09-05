@@ -4,11 +4,10 @@ import type { SeatIndication, SeatRole } from "../game/selectors";
 import { seatRoleTag } from "../game/selectors";
 import type { TurnClockConfig } from "../game/turnClockEngine";
 import { PlayerAvatar, indicationColor } from "./playerSeatShared";
-import { TakeSpeechBubble } from "./TakeSpeechBubble";
 import { SeatReactionBurst } from "./SeatReactionBurst";
 import { SeatTurnTimerRing } from "./SeatTurnTimerRing";
 import { useUiTheme } from "../theme/UiThemeContext";
-import { radius, typography } from "../theme";
+import { radius } from "../theme";
 
 const RING_FALLBACK = { width: 120, height: 38 };
 
@@ -43,7 +42,6 @@ function HumanPlayerChipComponent({
   onPress,
 }: HumanPlayerChipProps) {
   const ui = useUiTheme();
-  const isTaking = role === "taking";
   const ringColor = indication ? indicationColor(indication) : ui.accent;
   const tag = !finished ? seatRoleTag(role) : null;
   const tagColor = tag ? indicationColor(tag.indication) : ui.accent;
@@ -64,14 +62,12 @@ function HumanPlayerChipComponent({
     <View style={styles.frame}>
       <View style={styles.shell}>
         <SeatReactionBurst playerId={playerId} />
-        {isTaking && !finished && <TakeSpeechBubble />}
         <View style={styles.wrapper}>
           <View
             onLayout={onLayout}
             style={[
               styles.panel,
               { backgroundColor: ui.panelBg },
-              isTaking && !finished && styles.panelTaking,
               dimmed && !finished && styles.dimmed,
               finished && styles.finished,
             ]}
@@ -135,9 +131,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.panel,
     overflow: "hidden",
     minWidth: 100,
-  },
-  panelTaking: {
-    overflow: "visible",
   },
   finished: { opacity: 0.45 },
   dimmed: { opacity: 0.5 },

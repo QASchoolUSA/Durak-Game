@@ -105,7 +105,6 @@ interface GameStore {
   onlineRoomId: string | null;
   onlineDisplayName: string;
   playerNameHydrated: boolean;
-  hasCustomDisplayName: boolean;
   onlineRoomCode: string | null;
   onlineIsHost: boolean;
   turnDeadlineAt: number | null;
@@ -312,7 +311,6 @@ export const useGameStore = create<GameStore>((set, get) => {
     onlineRoomId: null,
     onlineDisplayName: "Player",
     playerNameHydrated: false,
-    hasCustomDisplayName: false,
     onlineRoomCode: null,
     onlineIsHost: false,
     turnDeadlineAt: null,
@@ -333,7 +331,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     cardDesign: "green",
 
     initializeStore: () => {
-      const { name, isCustom } = storage.getPlayerName();
+      const { name } = storage.getPlayerName();
       const onboarded = storage.getOnboarded();
       const credits = storage.getCreditBalance();
       const gold = storage.getGoldBalance();
@@ -342,7 +340,6 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       set({
         onlineDisplayName: name,
-        hasCustomDisplayName: isCustom,
         names: { [HUMAN_ID]: name },
         playerNameHydrated: true,
         onboarded,
@@ -384,10 +381,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       const { humanId, names, playMode, onlineRoomId } = get();
       set({
         onlineDisplayName: trimmed,
-        hasCustomDisplayName: true,
         names: { ...names, [humanId]: trimmed },
       });
-      storage.setPlayerName(trimmed, true);
+      storage.setPlayerName(trimmed);
       if (playMode === "online" && onlineRoomId) {
         submitUpdateDisplayName(trimmed);
       }
@@ -396,14 +392,12 @@ export const useGameStore = create<GameStore>((set, get) => {
     adoptHandleDisplayName: (handle) => {
       const trimmed = handle.trim().slice(0, MAX_DISPLAY_NAME_LENGTH);
       if (!trimmed) return;
-      const { humanId, names, playMode, onlineRoomId, hasCustomDisplayName } = get();
-      if (hasCustomDisplayName) return;
+      const { humanId, names, playMode, onlineRoomId } = get();
       set({
         onlineDisplayName: trimmed,
-        hasCustomDisplayName: false,
         names: { ...names, [humanId]: trimmed },
       });
-      storage.setPlayerName(trimmed, false);
+      storage.setPlayerName(trimmed);
       if (playMode === "online" && onlineRoomId) {
         submitUpdateDisplayName(trimmed);
       }

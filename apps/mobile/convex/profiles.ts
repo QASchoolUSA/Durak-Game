@@ -1,8 +1,7 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { requireRegisteredUserId, requireStableUserId } from "./lib/requireAuth";
-import { normalizeDisplayName } from "./lib/displayName";
 import {
   findFriendship,
   getProfileByUserId,
@@ -41,14 +40,13 @@ export const getMyProfile = query({
     return {
       userId: profile.userId,
       handle: profile.handle,
-      displayName: profile.displayName,
     };
   },
 });
 
 export const setHandle = mutation({
-  args: { handle: v.string(), displayName: v.optional(v.string()) },
-  handler: async (ctx, { handle, displayName }) => {
+  args: { handle: v.string() },
+  handler: async (ctx, { handle }) => {
     const userId = await requireRegisteredUserId(ctx);
     const { handle: nextHandle, handleLower } = normalizeHandle(handle);
 
@@ -62,15 +60,14 @@ export const setHandle = mutation({
 
     const existing = await getProfileByUserId(ctx, userId);
     const now = Date.now();
-    const resolvedName = normalizeDisplayName(
-      displayName?.trim() || existing?.displayName || nextHandle,
-    );
 
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      // Replace so a legacy displayName field is dropped from the document.
+      await ctx.db.replace(existing._id, {
+        userId: existing.userId,
         handle: nextHandle,
         handleLower,
-        displayName: resolvedName,
+        createdAt: existing.createdAt,
         updatedAt: now,
       });
     } else {
@@ -78,12 +75,11 @@ export const setHandle = mutation({
         userId,
         handle: nextHandle,
         handleLower,
-        displayName: resolvedName,
         createdAt: now,
         updatedAt: now,
       });
     }
-    return { handle: nextHandle, displayName: resolvedName };
+    return { handle: nextHandle };
   },
 });
 
@@ -104,25 +100,26 @@ export const checkHandle = query({
 });
 
 /**
- * Sync a custom display name onto the profile so friends/invites show it.
- * No-op when no profile exists — `setHandle` is the sole profile creator and
- * the rest of the code assumes `handle` is always present.
+ * One-shot: strip legacy `displayName` from profile documents so the
+ * handle-only schema validates. Safe to re-run.
  */
-export const updateMyDisplayName = mutation({
-  args: { displayName: v.string() },
-  handler: async (ctx, { displayName }) => {
-    const userId = await requireStableUserId(ctx);
-    const normalized = normalizeDisplayName(displayName.trim());
-    if (!normalized) throw new Error("Display name cannot be empty.");
-    const profile = await getProfileByUserId(ctx, userId);
-    if (!profile) return null;
-    if (profile.displayName !== normalized) {
-      await ctx.db.patch(profile._id, {
-        displayName: normalized,
-        updatedAt: Date.now(),
+export const stripLegacyDisplayNames = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const profiles = await ctx.db.query("profiles").collect();
+    let stripped = 0;
+    for (const profile of profiles) {
+      if (!("displayName" in profile)) continue;
+      await ctx.db.replace(profile._id, {
+        userId: profile.userId,
+        handle: profile.handle,
+        handleLower: profile.handleLower,
+        createdAt: profile.createdAt,
+        updatedAt: profile.updatedAt,
       });
+      stripped += 1;
     }
-    return { displayName: normalized };
+    return { stripped };
   },
 });
 

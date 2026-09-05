@@ -24,6 +24,7 @@ import { radius, spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
 import { InviteFriendsSheet } from "../components/InviteFriendsSheet";
 import { useAccountKind } from "../game/useAccountKind";
+import { useTranslation } from "react-i18next";
 
 type RoomMemberView = {
   displayName: string;
@@ -34,6 +35,7 @@ type RoomMemberView = {
 };
 
 export function LobbyScreen() {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const lay = useGameLayout();
 
@@ -71,7 +73,7 @@ export function LobbyScreen() {
   const roomDifficulty = roomView?.config.difficulty ?? "medium";
   const roomPlayStyle = roomView?.config.playStyle ?? "standard";
   const playStyleLabel =
-    roomPlayStyle === "abilities" ? "With Abilities" : "Standard";
+    roomPlayStyle === "abilities" ? t("lobby.playStyle.abilities") : t("lobby.playStyle.standard");
   const joinedCount = members.length;
 
   const seats = useMemo(() => {
@@ -120,12 +122,12 @@ export function LobbyScreen() {
     if (!code || code === "------") return;
     try {
       await Share.share({
-        message: `Join my Durak game! Room code: ${code}`,
+        message: t("lobby.shareMessage", { code }),
       });
     } catch {
       /* cancelled */
     }
-  }, [code]);
+  }, [code, t]);
 
   const handleStart = useCallback(async () => {
     if (!onlineRoomId || !isAuthenticated) return;
@@ -215,18 +217,18 @@ export function LobbyScreen() {
     <Background variant="home">
       <SafeAreaView style={styles.safe}>
         <View style={[styles.content, { paddingHorizontal: lay.hPad, maxWidth: lay.maxContent }]}>
-          <Text style={[styles.title, { color: ui.accent }]}>GAME LOBBY</Text>
+          <Text style={[styles.title, { color: ui.accent }]}>{t("lobby.title")}</Text>
           <Text style={[styles.subtitle, { color: ui.textPrimary }]}>
-            Share the code with friends · {playStyleLabel}
+            {t("lobby.subtitle", { playStyle: playStyleLabel })}
           </Text>
 
           <Pressable
             style={[styles.codeCard, { borderColor: ui.accent, backgroundColor: ui.panelBg }]}
             onPress={handleShare}
           >
-            <Text style={[styles.codeLabel, { color: ui.textMuted }]}>ROOM CODE</Text>
+            <Text style={[styles.codeLabel, { color: ui.textMuted }]}>{t("lobby.roomCode")}</Text>
             <Text style={[styles.codeValue, { color: ui.accent }]}>{code}</Text>
-            <Text style={[styles.codeHint, { color: ui.textMuted }]}>Tap to share</Text>
+            <Text style={[styles.codeHint, { color: ui.textMuted }]}>{t("lobby.tapToShare")}</Text>
           </Pressable>
 
           <View
@@ -236,7 +238,7 @@ export function LobbyScreen() {
             ]}
           >
             <Text style={[styles.listTitle, { color: ui.textMuted }]}>
-              SEATS ({joinedCount}/{maxSeats})
+              {t("lobby.seats", { joined: joinedCount, max: maxSeats })}
             </Text>
             {!roomView ? (
               <ActivityIndicator color={ui.accent} style={{ marginTop: spacing.md }} />
@@ -263,12 +265,12 @@ export function LobbyScreen() {
                 ))}
                 {onlineIsHost && humanCount === 1 && (
                   <Text style={[styles.aiHint, { color: ui.textPrimary }]}>
-                    Add AI to empty seats, or share the code with friends
+                    {t("lobby.hint.emptySeatsFriends")}
                   </Text>
                 )}
                 {onlineIsHost && humanCount >= 2 && hasEmptySeat && (
                   <Text style={[styles.aiHint, { color: ui.textPrimary }]}>
-                    Add AI to empty seats, or start with only joined players
+                    {t("lobby.hint.emptySeatsStart")}
                   </Text>
                 )}
               </ScrollView>
@@ -280,14 +282,14 @@ export function LobbyScreen() {
               canHostStart ? (
                 <>
                   <MenuButton
-                    label="START GAME"
+                    label={t("lobby.startGame")}
                     variant="primary"
                     icon="▶"
                     onPress={handleStart}
                   />
                   {showStartCompact && (
                     <MenuButton
-                      label={`START WITH ${joinedCount} PLAYERS`}
+                      label={t("lobby.startWithN", { n: joinedCount })}
                       variant="secondary"
                       icon="▶"
                       onPress={handleStartCompact}
@@ -298,8 +300,8 @@ export function LobbyScreen() {
                 <View style={[styles.waitPill, { backgroundColor: ui.accentSoft, borderColor: ui.panelBorderSoft }]}>
                   <Text style={[styles.waitText, { color: ui.textPrimary }]}>
                     {joinedCount < 2
-                      ? "Add AI to a seat or share the code"
-                      : `Waiting for players to ready up (${readyCount}/${humanCount})`}
+                      ? t("lobby.hint.addOrShare")
+                      : t("lobby.hint.waitingReady", { ready: readyCount, human: humanCount })}
                   </Text>
                 </View>
               )
@@ -307,20 +309,20 @@ export function LobbyScreen() {
               <View style={[styles.waitPill, { backgroundColor: ui.accentSoft, borderColor: ui.panelBorderSoft }]}>
                   <Text style={[styles.waitText, { color: ui.textPrimary }]}>
                     {allHumansReady
-                      ? "Waiting for host to start…"
-                      : `Ready up to play (${readyCount}/${humanCount})`}
+                      ? t("lobby.hint.waitingHost")
+                      : t("lobby.hint.readyUp", { ready: readyCount, human: humanCount })}
                   </Text>
               </View>
             )}
             {humanCount >= 2 && (
               <MenuButton
-                label={isLocalReady ? "NOT READY" : "READY"}
+                label={isLocalReady ? t("lobby.notReadyCta") : t("lobby.readyCta")}
                 variant={isLocalReady ? "ghost" : "secondary"}
                 icon={isLocalReady ? "✕" : "✓"}
                 onPress={handleToggleReady}
               />
             )}
-            <MenuButton label="LEAVE" variant="ghost" onPress={handleLeave} />
+            <MenuButton label={t("lobby.leave")} variant="ghost" onPress={handleLeave} />
           </View>
         </View>
       </SafeAreaView>
@@ -366,6 +368,7 @@ function SeatRow({
   onRemoveBot: () => void;
   onInviteFriend: () => void;
 }) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
 
   if (!member) {
@@ -384,7 +387,7 @@ function SeatRow({
           <Text style={[styles.avatarText, { color: ui.textMuted }]}>—</Text>
         </View>
         <Text style={[styles.playerName, { color: ui.textMuted }]}>
-          Seat {seatIndex + 1} · Empty
+          {t("lobby.seatEmpty", { n: seatIndex + 1 })}
         </Text>
         <View style={styles.seatActionsRow}>
           {canManageBots && (
@@ -392,7 +395,7 @@ function SeatRow({
               style={[styles.seatAction, { borderColor: ui.accent, backgroundColor: ui.accentSoft }]}
               onPress={onAddBot}
             >
-              <Text style={[styles.seatActionText, { color: ui.accent }]}>+ AI</Text>
+              <Text style={[styles.seatActionText, { color: ui.accent }]}>{t("lobby.addAi")}</Text>
             </Pressable>
           )}
           {canInviteFriends && (
@@ -400,7 +403,7 @@ function SeatRow({
               style={[styles.seatAction, { borderColor: ui.accent, backgroundColor: ui.accentSoft }]}
               onPress={onInviteFriend}
             >
-              <Text style={[styles.seatActionText, { color: ui.accent }]}>+ Invite</Text>
+              <Text style={[styles.seatActionText, { color: ui.accent }]}>{t("lobby.addInvite")}</Text>
             </Pressable>
           )}
         </View>
@@ -424,7 +427,7 @@ function SeatRow({
         </View>
         <Text style={[styles.playerName, { color: ui.textPrimary }]}>
           {member.displayName}
-          <Text style={{ color: ui.textMuted }}> · AI</Text>
+          <Text style={{ color: ui.textMuted }}> {t("common.ai")}</Text>
         </Text>
         {canManageBots && (
           <Pressable
@@ -432,7 +435,7 @@ function SeatRow({
             onPress={onRemoveBot}
           >
             <Text style={[styles.seatActionText, { color: ui.textMuted }]}>
-              Remove
+              {t("lobby.remove")}
             </Text>
           </Pressable>
         )}
@@ -459,7 +462,7 @@ function SeatRow({
       </View>
       <Text style={[styles.playerName, { color: ui.textPrimary }]}>
         {member.displayName}
-        {isYou ? " (you)" : ""}
+        {isYou ? ` ${t("common.you")}` : ""}
       </Text>
       {showReady && (
         <View
@@ -477,7 +480,7 @@ function SeatRow({
               { color: ready ? ui.accent : ui.textMuted },
             ]}
           >
-            {ready ? "Ready" : "Not ready"}
+            {ready ? t("lobby.ready") : t("lobby.notReady")}
           </Text>
         </View>
       )}

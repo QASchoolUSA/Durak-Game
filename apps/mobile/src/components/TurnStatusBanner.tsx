@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import type { TurnStatus, TurnTone } from "../game/selectors";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { useReduceMotion } from "../hooks/useReduceMotion";
@@ -9,6 +9,9 @@ import { colors, radius } from "../theme";
 export interface TurnStatusBannerProps {
   status: TurnStatus | null;
 }
+
+/** Fixed slot height so show/hide never shifts seats (wrap + pill + text line). */
+const SLOT_MIN_HEIGHT = 34;
 
 /** Whether this tone is a call to action for the local player (vs. waiting). */
 function isYourTurn(tone: TurnTone): boolean {
@@ -31,35 +34,45 @@ function TurnStatusBannerComponent({ status }: TurnStatusBannerProps) {
   const ui = useUiTheme();
   const reduceMotion = useReduceMotion();
 
-  if (!status) return null;
-
-  const yourTurn = isYourTurn(status.tone);
-  const accent = toneColor(status.tone, ui.textMuted);
-
   return (
-    <View pointerEvents="none" style={styles.wrap}>
-      <Animated.View
-        // Re-key on text so the pill cross-fades when the prompt changes.
-        key={status.text}
-        entering={reduceMotion ? undefined : FadeIn.duration(220)}
-        style={[
-          styles.pill,
-          {
-            backgroundColor: ui.panelBg,
-            borderColor: yourTurn ? accent : ui.panelBorderSoft,
-            borderWidth: yourTurn ? 1.5 : 1,
-          },
-        ]}
-      >
-        <View style={[styles.dot, { backgroundColor: accent }]} />
-        <Text
-          style={[styles.text, { color: yourTurn ? ui.textPrimary : ui.textMuted }]}
-          numberOfLines={1}
+    <Animated.View pointerEvents="none" style={styles.wrap}>
+      {status ? (
+        <Animated.View
+          // Re-key on text so the pill cross-fades when the prompt changes.
+          key={status.text}
+          entering={reduceMotion ? undefined : FadeIn.duration(220)}
+          exiting={reduceMotion ? undefined : FadeOut.duration(180)}
+          style={[
+            styles.pill,
+            {
+              backgroundColor: ui.panelBg,
+              borderColor: isYourTurn(status.tone)
+                ? toneColor(status.tone, ui.textMuted)
+                : ui.panelBorderSoft,
+              borderWidth: isYourTurn(status.tone) ? 1.5 : 1,
+            },
+          ]}
         >
-          {status.text}
-        </Text>
-      </Animated.View>
-    </View>
+          <View
+            style={[
+              styles.dot,
+              { backgroundColor: toneColor(status.tone, ui.textMuted) },
+            ]}
+          />
+          <Text
+            style={[
+              styles.text,
+              {
+                color: isYourTurn(status.tone) ? ui.textPrimary : ui.textMuted,
+              },
+            ]}
+            numberOfLines={1}
+          >
+            {status.text}
+          </Text>
+        </Animated.View>
+      ) : null}
+    </Animated.View>
   );
 }
 
@@ -67,7 +80,7 @@ const styles = StyleSheet.create({
   wrap: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 4,
+    minHeight: SLOT_MIN_HEIGHT,
   },
   pill: {
     flexDirection: "row",

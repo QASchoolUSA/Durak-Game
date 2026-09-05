@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useMutation } from "convex/react";
+import { useTranslation } from "react-i18next";
+import { api } from "../../convex/_generated/api";
 import { MenuButton } from "./MenuButton";
 import { AuthSheet } from "./AuthSheet";
 import { useUiTheme } from "../theme/UiThemeContext";
@@ -12,14 +15,17 @@ import { radius, spacing, typography } from "../theme";
 
 /** ACCOUNT section for the settings sheet. Rendered only when Convex is enabled. */
 export function AccountSection() {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const { signOut } = useAuthActions();
+  const deleteAccount = useMutation(api.account.deleteAccount);
   const { ensureGuestSession } = useOnlineAuth();
   const { isGuest, email, handle, markRegistered, markGuest } = useAccountKind();
   const setOnboarded = useGameStore((s) => s.setOnboarded);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"signIn" | "signUp">("signUp");
   const [signingOut, setSigningOut] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const performSignOut = async () => {
     setSigningOut(true);
@@ -42,12 +48,12 @@ export function AccountSection() {
 
   const handleSignOut = () => {
     Alert.alert(
-      "Sign out?",
-      "You'll return to the welcome screen. You can continue as a guest or sign in again.",
+      t("settings.account.signOutTitle"),
+      t("settings.account.signOutBody"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Sign out",
+          text: t("settings.account.signOutConfirm"),
           style: "destructive",
           onPress: () => void performSignOut(),
         },
@@ -55,18 +61,52 @@ export function AccountSection() {
     );
   };
 
+  const performDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      markGuest();
+      await signOut();
+      try {
+        await ensureGuestSession();
+      } catch {
+        /* Welcome can retry via Continue as Guest */
+      }
+      setOnboarded(false);
+      trigger("confirm");
+    } catch {
+      trigger("error");
+      Alert.alert(t("common.somethingWentWrong"), t("settings.account.deleteError"));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      t("settings.account.deleteTitle"),
+      t("settings.account.deleteBody"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("settings.account.deleteConfirm"),
+          style: "destructive",
+          onPress: () => void performDeleteAccount(),
+        },
+      ],
+    );
+  };
+
   return (
     <>
-      <Text style={[styles.sectionLabel, { color: ui.textPrimary }]}>ACCOUNT</Text>
-      <View style={[styles.card, { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft }]}>
+      <View style={styles.inner}>
         {isGuest ? (
           <>
             <Text style={[styles.hint, { color: ui.textMuted }]}>
-              You're playing as a guest. Create an account with an @handle to
-              add friends and get game invites.
+              {t("settings.account.guestHint")}
             </Text>
             <MenuButton
-              label="CREATE ACCOUNT"
+              label={t("welcome.createAccount")}
               variant="primary"
               onPress={() => {
                 setAuthMode("signUp");
@@ -74,7 +114,7 @@ export function AccountSection() {
               }}
             />
             <MenuButton
-              label="SIGN IN"
+              label={t("welcome.signIn")}
               variant="secondary"
               onPress={() => {
                 setAuthMode("signIn");
@@ -90,13 +130,21 @@ export function AccountSection() {
               </Text>
             ) : null}
             <Text style={[styles.hint, { color: ui.textMuted }]}>
-              Signed in{email ? ` as ${email}` : ""}.
+              {t("settings.account.signedIn", {
+                as: email ? t("settings.account.signedInAs", { identity: email }) : "",
+              })}
             </Text>
             <MenuButton
-              label={signingOut ? "SIGNING OUT…" : "SIGN OUT"}
+              label={signingOut ? t("settings.account.signingOut") : t("settings.account.signOut")}
               variant="ghost"
               onPress={handleSignOut}
-              disabled={signingOut}
+              disabled={signingOut || deleting}
+            />
+            <MenuButton
+              label={deleting ? t("settings.account.deletingAccount") : t("settings.account.deleteAccount")}
+              variant="danger"
+              onPress={handleDeleteAccount}
+              disabled={signingOut || deleting}
             />
           </>
         )}
@@ -112,15 +160,7 @@ export function AccountSection() {
 }
 
 const styles = StyleSheet.create({
-  sectionLabel: {
-    ...typography.label,
-    marginTop: spacing.xl,
-    marginBottom: spacing.sm,
-    marginLeft: 4,
-  },
-  card: {
-    borderRadius: radius.panel,
-    borderWidth: 1,
+  inner: {
     padding: spacing.md,
     gap: spacing.sm,
   },

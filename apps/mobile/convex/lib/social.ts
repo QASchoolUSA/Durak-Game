@@ -50,13 +50,11 @@ export function relationFor(
 export type PublicProfile = {
   userId: Id<"users">;
   handle: string;
-  displayName: string;
 };
 
 export function toPublicProfile(profile: Doc<"profiles">): PublicProfile {
   return {
     userId: profile.userId,
     handle: profile.handle,
-    displayName: profile.displayName,
   };
 }

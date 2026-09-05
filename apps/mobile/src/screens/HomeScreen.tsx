@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { Background } from "../components/Background";
 import { CardFan } from "../components/CardFan";
 import { FriendsDrawer } from "../components/FriendsDrawer";
@@ -34,20 +35,21 @@ type MenuItem = {
   action: string;
 };
 
-function buildMenuItems(showFriends: boolean): MenuItem[] {
+function buildMenuItems(showFriends: boolean, t: (key: string) => string): MenuItem[] {
   return [
-    { label: "PLAY",        variant: "primary",   icon: "▶", action: "play"     },
-    { label: "JOIN GAME",   variant: "secondary", icon: "⎘", action: "join"     },
+    { label: t("home.play"),        variant: "primary",   icon: "▶", action: "play"     },
+    { label: t("home.joinGame"),   variant: "secondary", icon: "⎘", action: "join"     },
     ...(showFriends
-      ? [{ label: "FRIENDS", variant: "secondary" as const, icon: "♣", action: "friends" }]
+      ? [{ label: t("home.friends"), variant: "secondary" as const, icon: "♣", action: "friends" }]
       : []),
-    { label: "SETTINGS",    variant: "secondary", icon: "⚙", action: "settings" },
-    { label: "HOW TO PLAY", variant: "secondary",     icon: "?", action: "rules"    },
+    { label: t("home.settings"),    variant: "secondary", icon: "⚙", action: "settings" },
+    { label: t("home.howToPlay"), variant: "secondary",     icon: "?", action: "rules"    },
   ];
 }
 
 /** Reactive badge for pending friend requests + game invites. */
 function FriendsMenuButton({ onPress }: { onPress: () => void }) {
+  const { t } = useTranslation();
   const { isAuthenticated } = useConvexAuth();
   const requests = useQuery(
     api.friends.incomingRequests,
@@ -60,7 +62,7 @@ function FriendsMenuButton({ onPress }: { onPress: () => void }) {
   const count = (requests?.length ?? 0) + (invites?.length ?? 0);
   return (
     <MenuButton
-      label="FRIENDS"
+      label={t("home.friends")}
       variant="secondary"
       icon="♣"
       onPress={onPress}
@@ -94,6 +96,7 @@ function IdentityChip({
 }
 
 export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
+  const { t } = useTranslation();
   const reduceMotion = useReduceMotion();
   const appActive = useAppActive();
   const lay = useGameLayout();
@@ -109,14 +112,14 @@ export function HomeScreen({ onOpenSettings, onOpenRules }: HomeScreenProps) {
 
   // Wait for account kind so FRIENDS does not flash for guests.
   const showFriends = convexEnabled && !accountLoading && !isGuest;
-  const menuItems = buildMenuItems(showFriends);
+  const menuItems = buildMenuItems(showFriends, t);
   const identityLabel =
     convexEnabled && !accountLoading
       ? isGuest
-        ? "Guest"
+        ? t("common.guest")
         : handle
           ? `@${handle}`
-          : "Account"
+          : t("common.account")
       : null;
 
   useEffect(() => {

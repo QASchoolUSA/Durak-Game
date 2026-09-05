@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useGameStore } from "../game/store";
 import {
   GRAVEYARD_GOLD_COST,
@@ -12,6 +13,7 @@ import { spacing } from "../theme";
 import { CoinIcon } from "./CoinIcon";
 
 export function ReturnPill() {
+  const { t } = useTranslation();
   const dockPillStyles = useDockPillStyles();
   const returnSnapshot = useGameStore((s) => s.returnSnapshot);
   const returnExpiresAt = useGameStore((s) => s.returnExpiresAt);
@@ -55,7 +57,7 @@ export function ReturnPill() {
     >
       <Text style={dockPillStyles.icon}>↩</Text>
       <Text style={[dockPillStyles.label, styles.label]} numberOfLines={1}>
-        Return
+        {t("game.ability.return")}
       </Text>
       <Text style={dockPillStyles.countdown}>{Math.ceil(remaining)}</Text>
     </Pressable>
@@ -84,6 +86,7 @@ export function RevealPill({
   onPress: () => void;
   chargeGold: boolean;
 }) {
+  const { t } = useTranslation();
   const dockPillStyles = useDockPillStyles();
 
   return (
@@ -105,7 +108,7 @@ export function RevealPill({
         style={[dockPillStyles.label, styles.label, !canReveal && dockPillStyles.labelDisabled]}
         numberOfLines={1}
       >
-        Reveal
+        {t("game.ability.reveal")}
       </Text>
       {chargeGold && <CostBadge cost={REVEAL_GOLD_COST} />}
     </Pressable>
@@ -123,6 +126,7 @@ export function GraveyardPill({
   onPress: () => void;
   chargeGold: boolean;
 }) {
+  const { t } = useTranslation();
   const dockPillStyles = useDockPillStyles();
 
   return (
@@ -138,7 +142,7 @@ export function GraveyardPill({
         style={[dockPillStyles.label, styles.label, !canOpen && dockPillStyles.labelDisabled]}
         numberOfLines={1}
       >
-        Grave
+        {t("game.ability.grave")}
       </Text>
       {chargeGold && <CostBadge cost={GRAVEYARD_GOLD_COST} />}
       {discardCount > 0 && (

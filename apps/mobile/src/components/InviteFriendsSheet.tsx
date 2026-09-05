@@ -17,6 +17,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -46,6 +47,7 @@ export function InviteFriendsSheet({
   seatIndex,
   onClose,
 }: InviteFriendsSheetProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const insets = useSafeAreaInsets();
@@ -188,9 +190,9 @@ export function InviteFriendsSheet({
           </GestureDetector>
 
           <View style={styles.header}>
-            <Text style={[styles.title, { color: ui.accent }]}>INVITE FRIENDS</Text>
+            <Text style={[styles.title, { color: ui.accent }]}>{t("lobby.inviteFriends.title")}</Text>
             <Text style={[styles.subtitle, { color: ui.textPrimary }]}>
-              Invite a friend to seat {seatIndex + 1}
+              {t("lobby.inviteFriends.subtitle", { n: seatIndex + 1 })}
             </Text>
           </View>
 
@@ -203,21 +205,20 @@ export function InviteFriendsSheet({
           >
             {friends.length === 0 ? (
               <Text style={[styles.emptyText, { color: ui.textMuted }]}>
-                No friends yet. Add friends on the Home Screen.
+                {t("lobby.inviteFriends.empty")}
               </Text>
             ) : (
               friends.map((friend) => {
                 const status = invitedStatus[friend.userId] ?? "idle";
                 const labelMap = {
-                  idle: "INVITE",
+                  idle: t("friends.action.invite"),
                   sending: "...",
-                  sent: "SENT ✓",
-                  error: "ERROR ✗",
+                  sent: t("lobby.inviteFriends.sent"),
+                  error: t("lobby.inviteFriends.error"),
                 };
                 return (
                   <FriendRow
                     key={friend.userId}
-                    displayName={friend.displayName}
                     handle={friend.handle}
                     actions={[
                       {
@@ -244,7 +245,7 @@ export function InviteFriendsSheet({
             ]}
           >
             <MenuButton
-              label="CLOSE"
+              label={t("common.close")}
               variant="ghost"
               onPress={closeSheet}
             />

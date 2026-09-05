@@ -1,36 +1,38 @@
 /** Map Convex mutation errors to user-facing status messages. */
+import { i18n } from "../i18n/i18n";
+
 export function formatOnlineMutationError(error: unknown): string {
   const message =
     error instanceof Error
       ? error.message
       : typeof error === "string"
         ? error
-        : "Something went wrong.";
+        : i18n.t("common.somethingWentWrong");
 
   const lower = message.toLowerCase();
   if (lower.includes("not allowed") || lower.includes("illegal")) {
-    return "That move is not allowed right now.";
+    return i18n.t("errors.moveNotAllowed");
   }
   if (lower.includes("not your turn") || lower.includes("move player mismatch")) {
-    return "It is not your turn.";
+    return i18n.t("errors.notYourTurn");
   }
   if (lower.includes("not in progress") || lower.includes("not playing")) {
-    return "The game is not in progress.";
+    return i18n.t("errors.notInProgress");
   }
   if (lower.includes("not authenticated")) {
-    return "Still signing in — wait a moment and try again.";
+    return i18n.t("errors.stillSigningIn");
   }
   if (lower.includes("not a member")) {
-    return "You are no longer in this room.";
+    return i18n.t("errors.notInRoom");
   }
   if (lower.includes("not enough gold") || lower.includes("wallet")) {
-    return "Not enough gold.";
+    return i18n.t("common.notEnoughGold");
   }
   if (lower.includes("return")) {
-    return "Return is not available right now.";
+    return i18n.t("errors.returnUnavailable");
   }
   if (lower.includes("reveal")) {
-    return "Reveal failed.";
+    return i18n.t("errors.revealFailed");
   }
   return message;
 }

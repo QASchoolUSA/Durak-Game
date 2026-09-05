@@ -53,23 +53,22 @@ export const storage = {
     }
   },
 
-  getPlayerName(): { name: string; isCustom: boolean } {
+  getPlayerName(): { name: string } {
     try {
       const name = localStorage.getItem(KEYS.playerName);
-      const isCustom = localStorage.getItem(KEYS.nameIsCustom) === "true";
-      if (name) return { name: normalizeDisplayName(name), isCustom };
+      if (name) return { name: normalizeDisplayName(name) };
     } catch (e) {
       console.warn("Storage failed", e);
     }
     const guestName = generateGuestDisplayName();
-    return { name: guestName, isCustom: false };
+    return { name: guestName };
   },
 
-  setPlayerName(name: string, isCustom: boolean) {
+  setPlayerName(name: string) {
     try {
       const clean = normalizeDisplayName(name);
       localStorage.setItem(KEYS.playerName, clean);
-      localStorage.setItem(KEYS.nameIsCustom, isCustom ? "true" : "false");
+      localStorage.removeItem(KEYS.nameIsCustom);
     } catch (e) {
       console.warn("Storage failed", e);
     }

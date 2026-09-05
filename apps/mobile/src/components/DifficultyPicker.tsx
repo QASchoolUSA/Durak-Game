@@ -1,42 +1,51 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import type { Difficulty } from "../game/store";
 import { colors, radius, spacing, typography } from "../theme";
 import { useUiTheme } from "../theme/UiThemeContext";
 
-export const DIFF_OPTIONS: {
+const DIFF_META: {
   id: Difficulty;
-  label: string;
-  desc: string;
+  labelKey: string;
+  descKey: string;
   pips: number;
   color: string;
   activeBg: string;
 }[] = [
   {
     id: "easy",
-    label: "Easy",
-    desc: "Relaxed",
+    labelKey: "config.difficulty.easy",
+    descKey: "config.difficulty.easyDesc",
     pips: 1,
     color: colors.success,
     activeBg: "rgba(70,167,88,0.14)",
   },
   {
     id: "medium",
-    label: "Medium",
-    desc: "Balanced",
+    labelKey: "config.difficulty.medium",
+    descKey: "config.difficulty.mediumDesc",
     pips: 3,
     color: colors.gold,
     activeBg: "rgba(231,192,103,0.14)",
   },
   {
     id: "hard",
-    label: "Hard",
-    desc: "Expert",
+    labelKey: "config.difficulty.hard",
+    descKey: "config.difficulty.hardDesc",
     pips: 5,
     color: colors.danger,
     activeBg: "rgba(229,72,77,0.14)",
   },
 ];
+
+/** Kept for pips/color lookups outside the picker. */
+export const DIFF_OPTIONS = DIFF_META.map((d) => ({
+  id: d.id,
+  pips: d.pips,
+  color: d.color,
+  activeBg: d.activeBg,
+}));
 
 export interface DifficultyPickerProps {
   value: Difficulty;
@@ -44,11 +53,12 @@ export interface DifficultyPickerProps {
 }
 
 export function DifficultyPicker({ value, onChange }: DifficultyPickerProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
 
   return (
     <View style={styles.row}>
-      {DIFF_OPTIONS.map((d) => {
+      {DIFF_META.map((d) => {
         const active = value === d.id;
         return (
           <Pressable
@@ -84,9 +94,9 @@ export function DifficultyPicker({ value, onChange }: DifficultyPickerProps) {
                 active && { color: d.color },
               ]}
             >
-              {d.label}
+              {t(d.labelKey)}
             </Text>
-            <Text style={[styles.desc, { color: ui.textMuted }, active && { color: ui.textPrimary }]}>{d.desc}</Text>
+            <Text style={[styles.desc, { color: ui.textMuted }, active && { color: ui.textPrimary }]}>{t(d.descKey)}</Text>
           </Pressable>
         );
       })}

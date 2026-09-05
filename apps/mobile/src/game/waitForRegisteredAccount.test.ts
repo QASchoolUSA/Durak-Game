@@ -27,6 +27,7 @@ describe("waitForRegisteredAccount", () => {
 
     const result = await waitForRegisteredAccount(fetchStatus, {
       intervalMs: 10,
+      maxIntervalMs: 40,
       timeoutMs: 500,
       sleep,
     });
@@ -34,6 +35,30 @@ describe("waitForRegisteredAccount", () => {
     expect(result).toEqual({ isAnonymous: false, email: "user@example.com" });
     expect(fetchStatus).toHaveBeenCalledTimes(3);
     expect(sleep).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses exponential backoff up to maxIntervalMs", async () => {
+    const fetchStatus = vi.fn().mockResolvedValue({
+      isAnonymous: true,
+      email: null,
+    });
+    const sleep = vi.fn().mockResolvedValue(undefined);
+
+    await waitForRegisteredAccount(fetchStatus, {
+      intervalMs: 10,
+      maxIntervalMs: 40,
+      timeoutMs: 100,
+      sleep,
+    });
+
+    const delays = sleep.mock.calls.map((c) => c[0] as number);
+    expect(delays.length).toBeGreaterThanOrEqual(2);
+    // First delay is initial interval; subsequent double until capped.
+    expect(delays[0]).toBe(10);
+    expect(delays[1]).toBe(20);
+    if (delays[2] !== undefined) {
+      expect(delays[2]).toBeLessThanOrEqual(40);
+    }
   });
 
   it("returns last snapshot on timeout", async () => {
@@ -45,6 +70,7 @@ describe("waitForRegisteredAccount", () => {
 
     const result = await waitForRegisteredAccount(fetchStatus, {
       intervalMs: 10,
+      maxIntervalMs: 10,
       timeoutMs: 35,
       sleep,
     });

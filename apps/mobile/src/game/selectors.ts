@@ -12,6 +12,7 @@ import {
   undefendedCount,
   undefendedPairs,
 } from "@durak/game-core";
+import { i18n } from "../i18n/i18n";
 
 export type SeatRole = "attacker" | "defender" | "taking" | null;
 
@@ -47,14 +48,14 @@ export function getSeatIndication(
 
 /**
  * Persistent role tag shown under a seat name so every player can see who is
- * attacking vs defending at a glance (independent of the turn clock). "taking"
- * is intentionally omitted — the take speech bubble already covers it.
+ * attacking, defending, or taking at a glance (independent of the turn clock).
  */
 export function seatRoleTag(
   role: SeatRole,
 ): { label: string; indication: SeatIndication } | null {
-  if (role === "attacker") return { label: "ATTACK", indication: "play" };
-  if (role === "defender") return { label: "DEFEND", indication: "defend" };
+  if (role === "attacker") return { label: i18n.t("game.role.attack"), indication: "play" };
+  if (role === "defender") return { label: i18n.t("game.role.defend"), indication: "defend" };
+  if (role === "taking") return { label: i18n.t("game.role.iTake"), indication: "defend" };
   return null;
 }
 
@@ -72,8 +73,7 @@ export interface TurnStatus {
 
 /**
  * Human-centric description of the current game state for the status banner:
- * what the local player should do, or who everyone is waiting on. Pure — reads
- * only the game state and the display-name map.
+ * what the local player should do, or who everyone is waiting on.
  */
 export function getTurnStatus(
   state: GameState,
@@ -82,25 +82,33 @@ export function getTurnStatus(
 ): TurnStatus | null {
   if (state.phase !== "playing") return null;
 
-  const nameOf = (id: PlayerId) => names[id] ?? "Opponent";
+  const nameOf = (id: PlayerId) => names[id] ?? i18n.t("common.opponent");
   const isDefender = state.defenderId === human;
   const undef = undefendedCount(state);
 
   if (state.takeInProgress) {
-    if (isDefender) return { text: "Taking the cards", tone: "neutral" };
+    if (isDefender) return { text: i18n.t("game.status.taking"), tone: "neutral" };
     if (canThrowIn(state, human)) {
-      return { text: "Throw in more cards or wait", tone: "you-throw" };
+      return { text: i18n.t("game.status.throwOrWait"), tone: "you-throw" };
     }
-    return { text: `${nameOf(state.defenderId)} is taking the cards`, tone: "waiting" };
+    return {
+      text: i18n.t("game.status.nameTaking", { name: nameOf(state.defenderId) }),
+      tone: "waiting",
+    };
   }
 
   if (undef > 0) {
-    const cards = undef === 1 ? "card" : "cards";
     if (isDefender) {
-      return { text: `Your turn — beat ${undef} ${cards}`, tone: "you-defend" };
+      return {
+        text: i18n.t("game.status.yourBeat", { count: undef }),
+        tone: "you-defend",
+      };
     }
     return {
-      text: `Waiting for ${nameOf(state.defenderId)} to beat ${undef} ${cards}`,
+      text: i18n.t("game.status.waitBeat", {
+        name: nameOf(state.defenderId),
+        count: undef,
+      }),
       tone: "waiting",
     };
   }
@@ -108,19 +116,22 @@ export function getTurnStatus(
   // Nothing unbeaten on the table.
   if (state.table.length === 0) {
     if (human === state.attackerId) {
-      return { text: "Your turn — attack", tone: "you-attack" };
+      return { text: i18n.t("game.status.yourAttack"), tone: "you-attack" };
     }
-    return { text: `Waiting for ${nameOf(state.attackerId)} to attack`, tone: "waiting" };
+    return {
+      text: i18n.t("game.status.waitAttack", { name: nameOf(state.attackerId) }),
+      tone: "waiting",
+    };
   }
 
   // Everything beaten — throw-in window before the bout ends.
   if (canThrowIn(state, human)) {
-    return { text: "Throw in a matching card or press DONE", tone: "you-throw" };
+    return { text: i18n.t("game.status.throwOrDone"), tone: "you-throw" };
   }
   if (isDefender) {
-    return { text: "Defended — waiting for attackers", tone: "neutral" };
+    return { text: i18n.t("game.status.defendedWait"), tone: "neutral" };
   }
-  return { text: "Waiting for attackers to throw in or pass", tone: "waiting" };
+  return { text: i18n.t("game.status.waitThrow"), tone: "waiting" };
 }
 
 export interface HumanView {
@@ -287,12 +298,20 @@ export function opponentOrder(state: GameState, human: PlayerId): PlayerId[] {
 }
 
 function formatThrowIn(scope: GameState["rules"]["throwInScope"], players: number): string {
-  if (players <= 2) return "All throw-in";
-  return scope === "all" ? "All throw-in" : "Neighbor throw-in";
+  if (players <= 2) return i18n.t("game.rulesLabel.allThrow");
+  return scope === "all"
+    ? i18n.t("game.rulesLabel.allThrow")
+    : i18n.t("game.rulesLabel.neighborThrow");
 }
 
 export function formatRulesLabel(state: GameState): string {
-  const mode = state.rules.variant === "podkidnoy" ? "Podkidnoy" : "Perevodnoy";
-  const style = state.rules.playStyle === "abilities" ? "Abilities" : "Standard";
+  const mode =
+    state.rules.variant === "podkidnoy"
+      ? i18n.t("config.podkidnoy")
+      : i18n.t("config.perevodnoy");
+  const style =
+    state.rules.playStyle === "abilities"
+      ? i18n.t("lobby.playStyle.abilities")
+      : i18n.t("lobby.playStyle.standard");
   return `${mode} · ${formatThrowIn(state.rules.throwInScope, state.players.length)} · ${style}`;
 }

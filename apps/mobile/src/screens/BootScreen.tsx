@@ -3,6 +3,7 @@ import { ActivityIndicator, Linking, Platform, StyleSheet, Text, View } from "re
 import * as SplashScreen from "expo-splash-screen";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { MenuButton } from "../components/MenuButton";
 import { useBootReadiness } from "../hooks/useBootReadiness";
 import { useTableTheme } from "../theme/TableThemeContext";
@@ -22,6 +23,7 @@ export interface BootScreenProps {
 }
 
 export function BootScreen({ onReady }: BootScreenProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const lay = useGameLayout();
@@ -105,21 +107,21 @@ export function BootScreen({ onReady }: BootScreenProps) {
                 ⚠
               </Text>
               <Text style={[styles.errorTitle, { color: colors.danger, ...lay.typography.heading }]}>
-                Could not connect
+                {t("boot.connectTitle")}
               </Text>
               <Text style={[styles.errorBody, { color: ui.textMuted, ...lay.typography.body, lineHeight: lay.s(20), marginBottom: lay.s(spacing.sm) }]}>
-                Check your connection and try again.
+                {t("boot.connectBody")}
               </Text>
               <View style={[styles.actions, { gap: lay.s(spacing.sm) }]}>
                 <MenuButton
-                  label="RETRY"
+                  label={t("common.retry")}
                   variant="primary"
                   icon="↻"
                   onPress={handleRetry}
                 />
                 {APP_STORE_URL ? (
                   <MenuButton
-                    label="UPDATE GAME"
+                    label={t("boot.updateCta")}
                     variant="secondary"
                     icon="⬆"
                     onPress={handleUpdate}
@@ -147,20 +149,20 @@ export function BootScreen({ onReady }: BootScreenProps) {
                 🔄
               </Text>
               <Text style={[styles.errorTitle, { color: ui.accent, ...lay.typography.heading }]}>
-                Update required
+                {t("boot.updateTitle")}
               </Text>
               <Text style={[styles.errorBody, { color: ui.textMuted, ...lay.typography.body, lineHeight: lay.s(20), marginBottom: lay.s(spacing.sm) }]}>
-                A new version of Durak is available.
+                {t("boot.updateBody")}
               </Text>
               <View style={[styles.actions, { gap: lay.s(spacing.sm) }]}>
                 <MenuButton
-                  label="UPDATE GAME"
+                  label={t("boot.updateCta")}
                   variant="primary"
                   icon="⬆"
                   onPress={handleUpdate}
                 />
                 <MenuButton
-                  label="RETRY"
+                  label={t("common.retry")}
                   variant="secondary"
                   icon="↻"
                   onPress={handleRetry}

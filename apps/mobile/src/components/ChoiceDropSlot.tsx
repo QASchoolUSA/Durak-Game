@@ -13,6 +13,7 @@ import Animated, {
 import { useAppActive } from "../hooks/useAppActive";
 import { useSharedBool } from "../hooks/useSharedBool";
 import { colors, radius } from "../theme";
+import { useTranslation } from "react-i18next";
 
 export type ChoiceDropVariant = "beat" | "transfer";
 
@@ -24,7 +25,7 @@ const SPRING_SETTLE = { damping: 20, stiffness: 220, mass: 0.7 };
 
 const CFG = {
   beat: {
-    label: "BEAT",
+    labelKey: "game.choice.beat" as const,
     glow: colors.success,
     border: colors.success,
     borderAvail: "rgba(70, 167, 88, 0.60)",
@@ -35,7 +36,7 @@ const CFG = {
     labelColor: "#72D084",
   },
   transfer: {
-    label: "TRANSFER",
+    labelKey: "game.choice.transfer" as const,
     glow: colors.gold,
     border: colors.gold,
     borderAvail: "rgba(231, 192, 103, 0.55)",
@@ -77,6 +78,7 @@ function ChoiceDropSlotComponent({
   disabled = false,
   children,
 }: ChoiceDropSlotProps) {
+  const { t } = useTranslation();
   const cfg = CFG[variant];
   const dragAvailable = useSharedBool(availableSV, available);
   const appActive = useAppActive();
@@ -231,7 +233,7 @@ function ChoiceDropSlotComponent({
       <Animated.View pointerEvents="none" style={[styles.labelWrap, aLabelOpacity]}>
         <Animated.View style={aLabelShift}>
           <Text style={[styles.labelText, { color: cfg.labelColor }]}>
-            {cfg.label}
+            {t(cfg.labelKey)}
           </Text>
         </Animated.View>
       </Animated.View>

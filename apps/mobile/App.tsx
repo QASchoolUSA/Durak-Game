@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import "./src/i18n/i18n";
 import { usePreferencesStore, loadPreferences } from "./src/game/preferencesStore";
 import {
   loadCredits,

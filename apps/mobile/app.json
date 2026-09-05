@@ -2,12 +2,13 @@
   "expo": {
     "name": "Durak",
     "slug": "durak",
-    "version": "0.1.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "durak",
     "ios": {
+      "buildNumber": "3",
       "supportsTablet": true,
       "bundleIdentifier": "com.kedrov.durakgame",
       "icon": {
@@ -44,7 +45,24 @@
     },
     "owner": "kedrov",
     "plugins": [
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false,
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": ["en", "ru", "uk"],
+            "android": ["en", "ru", "uk"]
+          }
+        }
+      ],
       [
         "expo-notifications",
         {

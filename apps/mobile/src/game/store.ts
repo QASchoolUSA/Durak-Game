@@ -42,12 +42,10 @@ import { getStoredOnboarded, setStoredOnboarded } from "./onboardingStorage";
 import { submitOnlineReturn } from "./onlineBridge";
 import {
   generateGuestDisplayName,
-  getStoredNameIsCustom,
   getStoredPlayerName,
   isLegacyGuestName,
   normalizeDisplayName,
-  setStoredCustomName,
-  setStoredGuestName,
+  setStoredPlayerName,
 } from "./playerNameStorage";
 import { usePreferencesStore } from "./preferencesStore";
 import type { TurnSecondsOption } from "./turnTimerStorage";
@@ -122,7 +120,6 @@ interface GameStore {
   onlineRoomId: string | null;
   onlineDisplayName: string;
   playerNameHydrated: boolean;
-  hasCustomDisplayName: boolean;
   onlineRoomCode: string | null;
   onlineIsHost: boolean;
   turnDeadlineAt: number | null;
@@ -322,7 +319,6 @@ export const useGameStore = create<GameStore>((set, get) => {
     onlineRoomId: null,
     onlineDisplayName: "Player",
     playerNameHydrated: false,
-    hasCustomDisplayName: false,
     onlineRoomCode: null,
     onlineIsHost: false,
     turnDeadlineAt: null,
@@ -359,28 +355,24 @@ export const useGameStore = create<GameStore>((set, get) => {
       const { humanId, names, playMode, onlineRoomId } = get();
       set({
         onlineDisplayName: trimmed,
-        hasCustomDisplayName: true,
         names: { ...names, [humanId]: trimmed },
       });
-      void setStoredCustomName(trimmed);
+      void setStoredPlayerName(trimmed);
       if (playMode === "online" && onlineRoomId) {
         submitUpdateDisplayName(trimmed);
       }
     },
 
-    // Handle-derived names are persisted as non-custom so a later handle
-    // change (or custom name) can replace them; never overrides a custom name.
+    // Always adopt handle as the seat name for registered users.
     adoptHandleDisplayName: (handle) => {
       const trimmed = normalizeDisplayName(handle);
       if (!trimmed) return;
-      const { humanId, names, playMode, onlineRoomId, hasCustomDisplayName } = get();
-      if (hasCustomDisplayName) return;
+      const { humanId, names, playMode, onlineRoomId } = get();
       set({
         onlineDisplayName: trimmed,
-        hasCustomDisplayName: false,
         names: { ...names, [humanId]: trimmed },
       });
-      void setStoredGuestName(trimmed);
+      void setStoredPlayerName(trimmed);
       if (playMode === "online" && onlineRoomId) {
         submitUpdateDisplayName(trimmed);
       }
@@ -816,30 +808,26 @@ export async function loadPlayerName(): Promise<void> {
   try {
     const stored = await getStoredPlayerName();
     if (stored) {
-      const isCustom = await getStoredNameIsCustom();
       // Migrate old pool-generated guest names ("Olga342") to Guest### once.
-      if (!isCustom && isLegacyGuestName(stored)) {
+      if (isLegacyGuestName(stored)) {
         const fresh = generateGuestDisplayName();
-        await setStoredGuestName(fresh);
+        await setStoredPlayerName(fresh);
         useGameStore.setState({
           onlineDisplayName: fresh,
-          hasCustomDisplayName: false,
           playerNameHydrated: true,
         });
         return;
       }
       useGameStore.setState({
         onlineDisplayName: stored,
-        hasCustomDisplayName: isCustom,
         playerNameHydrated: true,
       });
       return;
     }
     const guest = generateGuestDisplayName();
-    await setStoredGuestName(guest);
+    await setStoredPlayerName(guest);
     useGameStore.setState({
       onlineDisplayName: guest,
-      hasCustomDisplayName: false,
       playerNameHydrated: true,
     });
   } catch {

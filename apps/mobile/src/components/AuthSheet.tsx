@@ -23,8 +23,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useConvex, useMutation } from "convex/react";
+import { useConvex, useConvexAuth, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { MenuButton } from "./MenuButton";
 import { useTableTheme } from "../theme/TableThemeContext";
@@ -79,6 +80,7 @@ export function AuthSheet({
   onAuthenticated,
   initialMode = "signUp",
 }: AuthSheetProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const sheetGradient = tableTheme.backgroundGradient ?? [
@@ -94,9 +96,10 @@ export function AuthSheet({
   );
 
   const { signIn } = useAuthActions();
-  const { beginCredentialAuth, endCredentialAuth, ensureGuestSession } =
+  const { isAuthenticated } = useConvexAuth();
+  const { beginCredentialAuth, claimCredentialSession, endCredentialAuth } =
     useOnlineAuth();
-  const { markRegistered } = useAccountKind();
+  const { markRegistered, isGuest } = useAccountKind();
   const beginGuestUpgrade = useMutation(api.account.beginGuestUpgrade);
   const completeGuestUpgrade = useMutation(api.account.completeGuestUpgrade);
   const setHandleMut = useMutation(api.profiles.setHandle);
@@ -338,7 +341,7 @@ export function AuthSheet({
       }
     });
 
-  // ── Auth logic (guest upgrade preserved) ───────────────────────────────────
+  // ── Auth logic (guest upgrade preserved when already anonymous) ────────────
 
   // Mint a migration token while still signed in as the guest (if anonymous).
   const captureGuestToken = async (): Promise<string | null> => {
@@ -351,29 +354,19 @@ export function AuthSheet({
   };
 
   const finishAuth = async (guestToken: string | null) => {
-    if (mode === "signUp" && handle) {
-      const trimmedHandle = handle.trim();
-      let handleSet = false;
-      for (let attempt = 0; attempt < 5; attempt++) {
-        try {
-          const res = await setHandleMut({
-            handle: trimmedHandle,
-            displayName: trimmedHandle,
-          });
-          useGameStore.getState().adoptHandleDisplayName(res.handle);
-          handleSet = true;
-          break;
-        } catch {
-          await new Promise((r) => setTimeout(r, 500));
-        }
-      }
-      if (!handleSet) {
-        throw new Error(
-          "Account created, but we could not save your handle. Please try again.",
-        );
-      }
+    // Wait for registered JWT before any work that requires requireRegisteredUserId.
+    const status = await waitForRegisteredAccount(
+      () => convex.query(api.account.getAccountStatus, {}),
+      { timeoutMs: 15_000 },
+    );
+
+    if (!status || status.isAnonymous) {
+      throw new Error(
+        t("auth.error.syncing"),
+      );
     }
 
+    // Redeem guest migration only after identity has switched to registered.
     if (guestToken) {
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
@@ -386,15 +379,26 @@ export function AuthSheet({
       }
     }
 
-    const status = await waitForRegisteredAccount(
-      () => convex.query(api.account.getAccountStatus, {}),
-      { timeoutMs: 12_000 },
-    );
-
-    if (!status || status.isAnonymous) {
-      throw new Error(
-        "Signed in, but your account is still syncing. Please try again.",
-      );
+    if (mode === "signUp" && handle) {
+      const trimmedHandle = handle.trim();
+      let handleSet = false;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          const res = await setHandleMut({
+            handle: trimmedHandle,
+          });
+          useGameStore.getState().adoptHandleDisplayName(res.handle);
+          handleSet = true;
+          break;
+        } catch {
+          await new Promise((r) => setTimeout(r, 500));
+        }
+      }
+      if (!handleSet) {
+        throw new Error(
+          t("auth.error.handleSave"),
+        );
+      }
     }
 
     // Sign-in: adopt existing profile handle as display name when available.
@@ -419,28 +423,28 @@ export function AuthSheet({
     setOnboarded(true);
     setSuccessMessage(
       signedInHandle
-        ? `Signed in as @${signedInHandle}`
+        ? t("auth.success.signedInAsHandle", { handle: signedInHandle })
         : status.email
-          ? `Signed in as ${status.email}`
-          : "Signed in",
+          ? t("auth.success.signedInAsEmail", { email: status.email })
+          : t("auth.success.signedIn"),
     );
     trigger("confirm");
-    await new Promise((r) => setTimeout(r, 900));
+    await new Promise((r) => setTimeout(r, 300));
     handleClose();
   };
 
   const validate = (): string | null => {
     if (mode === "signUp") {
       const trimmedHandle = handle.trim();
-      if (!trimmedHandle) return "Choose a handle.";
-      if (trimmedHandle.length < 3) return "Handle must be at least 3 characters.";
-      if (trimmedHandle.length > 20) return "Handle must be at most 20 characters.";
+      if (!trimmedHandle) return t("auth.error.chooseHandle");
+      if (trimmedHandle.length < 3) return t("auth.error.handleMin");
+      if (trimmedHandle.length > 20) return t("auth.error.handleMax");
     }
     const trimmedEmail = email.trim();
-    if (!trimmedEmail) return "Enter your email address.";
-    if (!EMAIL_RE.test(trimmedEmail)) return "That doesn't look like a valid email.";
+    if (!trimmedEmail) return t("auth.error.emailRequired");
+    if (!EMAIL_RE.test(trimmedEmail)) return t("auth.error.emailInvalid");
     if (password.length < MIN_PASSWORD_LENGTH) {
-      return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+      return t("auth.error.passwordMin", { n: MIN_PASSWORD_LENGTH });
     }
     return null;
   };
@@ -463,19 +467,19 @@ export function AuthSheet({
           handle: handle.trim(),
         });
         if (!checkRes.ok) {
-          setError(checkRes.error ?? "Invalid handle.");
+          setError(checkRes.error ?? t("auth.error.invalidHandle"));
           trigger("error");
           setBusy(false);
           return;
         }
         if (!checkRes.available) {
-          setError("That handle is already taken.");
+          setError(t("auth.error.handleTaken"));
           trigger("error");
           setBusy(false);
           return;
         }
       } catch {
-        setError("Could not verify handle availability.");
+        setError(t("auth.error.handleVerify"));
         trigger("error");
         setBusy(false);
         return;
@@ -483,14 +487,13 @@ export function AuthSheet({
     }
 
     try {
-      // Prefer a guest session so wallet/gold can migrate on upgrade.
-      try {
-        await ensureGuestSession();
-      } catch {
-        /* proceed — signup/sign-in still works without migration */
+      // Only migrate when already a guest — never mint a throwaway anonymous
+      // session on cold Welcome sign-in / sign-up (that races password auth).
+      let guestToken: string | null = null;
+      if (isAuthenticated && isGuest) {
+        guestToken = await captureGuestToken();
       }
 
-      const guestToken = await captureGuestToken();
       beginCredentialAuth();
       try {
         await signIn("password", {
@@ -498,6 +501,7 @@ export function AuthSheet({
           password,
           flow: mode,
         });
+        claimCredentialSession();
         await finishAuth(guestToken);
       } finally {
         endCredentialAuth();
@@ -510,8 +514,8 @@ export function AuthSheet({
           err.message.includes("guest session"))
           ? err.message
           : mode === "signUp"
-            ? "Could not create the account. That email may already be in use — try signing in instead."
-            : "Could not sign in. Check your email and password.";
+            ? t("auth.error.createFailed")
+            : t("auth.error.signInFailed");
       setError(message);
       trigger("error");
     } finally {
@@ -570,12 +574,12 @@ export function AuthSheet({
               </View>
               <View style={styles.header}>
                 <Text style={[styles.headerTitle, { color: ui.accent }]}>
-                  {mode === "signUp" ? "CREATE ACCOUNT" : "WELCOME BACK"}
+                  {mode === "signUp" ? t("auth.createTitle") : t("auth.welcomeBack")}
                 </Text>
                 <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
                   {mode === "signUp"
-                    ? "Keep your progress, gold and friends across devices"
-                    : "Sign in to pick up where you left off"}
+                    ? t("auth.signUpSub")
+                    : t("auth.signInSub")}
                 </Text>
               </View>
             </View>
@@ -601,8 +605,8 @@ export function AuthSheet({
                 <View style={styles.modeTabs}>
                   {(
                     [
-                      { key: "signUp" as const, label: "CREATE ACCOUNT" },
-                      { key: "signIn" as const, label: "SIGN IN" },
+                      { key: "signUp" as const, label: t("auth.tabCreate") },
+                      { key: "signIn" as const, label: t("auth.tabSignIn") },
                     ]
                   ).map((t) => {
                     const active = mode === t.key;
@@ -641,12 +645,12 @@ export function AuthSheet({
                       ref={handleRef}
                       style={[styles.input, { color: ui.textPrimary }]}
                       value={handle}
-                      onChangeText={(t) => {
-                        const clean = t.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20);
+                      onChangeText={(value) => {
+                        const clean = value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20);
                         setHandle(clean);
                         if (error) setError(null);
                       }}
-                      placeholder="Handle (letters, numbers, _)"
+                      placeholder={t("auth.placeholderHandle")}
                       placeholderTextColor={ui.textFaint}
                       autoCapitalize="none"
                       autoCorrect={false}
@@ -672,11 +676,11 @@ export function AuthSheet({
                     ref={emailRef}
                     style={[styles.input, { color: ui.textPrimary }]}
                     value={email}
-                    onChangeText={(t) => {
-                      setEmail(t);
+                    onChangeText={(value) => {
+                      setEmail(value);
                       if (error) setError(null);
                     }}
-                    placeholder="Email"
+                    placeholder={t("auth.placeholderEmail")}
                     placeholderTextColor={ui.textFaint}
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -704,14 +708,14 @@ export function AuthSheet({
                     ref={passwordRef}
                     style={[styles.input, { color: ui.textPrimary }]}
                     value={password}
-                    onChangeText={(t) => {
-                      setPassword(t);
+                    onChangeText={(value) => {
+                      setPassword(value);
                       if (error) setError(null);
                     }}
                     placeholder={
                       mode === "signUp"
-                        ? `Password (min ${MIN_PASSWORD_LENGTH} characters)`
-                        : "Password"
+                        ? t("auth.placeholderPasswordMin", { n: MIN_PASSWORD_LENGTH })
+                        : t("auth.placeholderPassword")
                     }
                     placeholderTextColor={ui.textFaint}
                     secureTextEntry={!showPassword}
@@ -731,7 +735,7 @@ export function AuthSheet({
                       hitSlop={10}
                     >
                       <Text style={[styles.showToggle, { color: ui.textMuted }]}>
-                        {showPassword ? "HIDE" : "SHOW"}
+                        {showPassword ? t("auth.hide") : t("auth.show")}
                       </Text>
                     </Pressable>
                   ) : null}
@@ -748,12 +752,12 @@ export function AuthSheet({
                   <MenuButton
                     label={
                       successMessage
-                        ? "CONTINUING…"
+                        ? t("auth.continuing")
                         : busy
-                          ? "PLEASE WAIT…"
+                          ? t("auth.pleaseWait")
                           : mode === "signUp"
-                            ? "CREATE ACCOUNT"
-                            : "SIGN IN"
+                            ? t("auth.tabCreate")
+                            : t("auth.tabSignIn")
                     }
                     variant="primary"
                     icon={busy || successMessage ? undefined : "➤"}
@@ -767,8 +771,7 @@ export function AuthSheet({
 
                 {mode === "signUp" ? (
                   <Text style={[styles.hint, { color: ui.textFaint }]}>
-                    Your guest progress — gold, credits and friends — moves to
-                    the new account automatically.
+                    {t("auth.guestProgressHint")}
                   </Text>
                 ) : null}
           </ScrollView>
@@ -791,7 +794,7 @@ export function AuthSheet({
                   onPress={dismissKeyboard}
                   hitSlop={8}
                 >
-                  <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>Done</Text>
+                  <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>{t("common.done")}</Text>
                 </Pressable>
               </View>
             </InputAccessoryView>
@@ -811,7 +814,7 @@ export function AuthSheet({
                   onPress={dismissKeyboard}
                   hitSlop={8}
                 >
-                  <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>Done</Text>
+                  <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>{t("common.done")}</Text>
                 </Pressable>
               </View>
             </InputAccessoryView>
@@ -831,7 +834,7 @@ export function AuthSheet({
                   onPress={dismissKeyboard}
                   hitSlop={8}
                 >
-                  <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>Done</Text>
+                  <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>{t("common.done")}</Text>
                 </Pressable>
               </View>
             </InputAccessoryView>

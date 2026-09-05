@@ -32,16 +32,17 @@ import { useGameLayout } from "../theme/useGameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
+import { useTranslation } from "react-i18next";
 
 const REACTIONS = [
-  { emoji: "\u{1F44D}", label: "Nice" },
-  { emoji: "\u23F0", label: "Hurry up" },
-  { emoji: "\u{1F602}", label: "LOL" },
-  { emoji: "\u{1F44F}", label: "Clap" },
-  { emoji: "\u{1F62E}", label: "Wow" },
-  { emoji: "\u{1F914}", label: "Hmm" },
-  { emoji: "\u{1F624}", label: "Angry" },
-  { emoji: "\u{1F44E}", label: "Nope" },
+  { emoji: "\u{1F44D}", labelKey: "game.reaction.nice" },
+  { emoji: "\u23F0", labelKey: "game.reaction.hurry" },
+  { emoji: "\u{1F602}", labelKey: "game.reaction.lol" },
+  { emoji: "\u{1F44F}", labelKey: "game.reaction.clap" },
+  { emoji: "\u{1F62E}", labelKey: "game.reaction.wow" },
+  { emoji: "\u{1F914}", labelKey: "game.reaction.hmm" },
+  { emoji: "\u{1F624}", labelKey: "game.reaction.angry" },
+  { emoji: "\u{1F44E}", labelKey: "game.reaction.nope" },
 ];
 
 const SHEET_HEIGHT = 220;
@@ -61,6 +62,7 @@ const ReactionsHostComponent = forwardRef<ReactionsHostRef>(function ReactionsHo
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
   const triggerLocalReaction = useGameStore((s) => s.triggerLocalReaction);
   const sendReactionMut = useMutation(api.rooms.sendReaction);
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const insets = useSafeAreaInsets();
@@ -201,16 +203,16 @@ const ReactionsHostComponent = forwardRef<ReactionsHostRef>(function ReactionsHo
               <View style={styles.handleZone}>
                 <View style={[styles.handle, { backgroundColor: ui.accentMuted }]} />
                 <Text style={[styles.handleHint, { color: ui.textMuted }]}>
-                  Swipe down to close
+                  {t("common.swipeDownClose")}
                 </Text>
               </View>
             </GestureDetector>
 
             <Text style={[styles.sheetTitle, { color: ui.textPrimary }]}>
-              Pick a reaction
+              {t("game.reaction.pickTitle")}
             </Text>
             <View style={[styles.grid, { paddingBottom: Math.max(insets.bottom, lay.s(spacing.lg)) }]}>
-              {REACTIONS.map(({ emoji, label }) => (
+              {REACTIONS.map(({ emoji, labelKey }) => (
                 <Pressable
                   key={emoji}
                   style={[
@@ -223,7 +225,7 @@ const ReactionsHostComponent = forwardRef<ReactionsHostRef>(function ReactionsHo
                   onPress={() => pickReaction(emoji)}
                 >
                   <Text style={styles.optionEmoji}>{emoji}</Text>
-                  <Text style={[styles.optionLabel, { color: ui.textMuted }]}>{label}</Text>
+                  <Text style={[styles.optionLabel, { color: ui.textMuted }]}>{t(labelKey)}</Text>
                 </Pressable>
               ))}
             </View>

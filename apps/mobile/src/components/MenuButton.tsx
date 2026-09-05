@@ -1,11 +1,11 @@
 import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { radius } from "../theme";
+import { colors, radius } from "../theme";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { useGameLayout } from "../theme/useGameLayout";
 import { trigger } from "../feedback/haptics";
 
-export type MenuButtonVariant = "primary" | "secondary" | "ghost";
+export type MenuButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 export interface MenuButtonProps {
   label: string;
@@ -70,17 +70,25 @@ function MenuButtonComponent({
       ? ui.accent
       : variant === "secondary"
         ? ui.panelBg
-        : "transparent";
+        : variant === "danger"
+          ? "rgba(229, 72, 77, 0.08)"
+          : "transparent";
 
   const borderColor =
     variant === "primary"
       ? "transparent"
       : variant === "secondary"
         ? ui.panelBorder
-        : ui.panelBorderSoft;
+        : variant === "danger"
+          ? "rgba(229, 72, 77, 0.45)"
+          : ui.panelBorderSoft;
 
   const textColor =
-    variant === "primary" ? ui.badgeText : ui.textPrimary;
+    variant === "primary"
+      ? ui.badgeText
+      : variant === "danger"
+        ? colors.danger
+        : ui.textPrimary;
 
   const extraShadow =
     variant === "primary"

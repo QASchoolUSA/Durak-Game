@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -21,9 +20,10 @@ import Animated, {
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMutation } from "convex/react";
+import { useTranslation } from "react-i18next";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { colors, radius, spacing, typography } from "../theme";
+import { radius, spacing, typography } from "../theme";
 import { useGameLayout } from "../theme/useGameLayout";
 import { sheetHorizontalFrame } from "../theme/gameLayout";
 import { useTableTheme } from "../theme/TableThemeContext";
@@ -39,7 +39,10 @@ import { clearAllAppStorage } from "../game/devStorage";
 import { formatOnlineMutationError } from "../game/onlineMutationErrors";
 import { usePreferencesStore } from "../game/preferencesStore";
 import { useGameStore } from "../game/store";
-import { MAX_DISPLAY_NAME_LENGTH } from "../game/playerNameStorage";
+import {
+  LANGUAGE_PREFERENCE_OPTIONS,
+  type LanguagePreference,
+} from "../i18n/languageStorage";
 import {
   TURN_SECONDS_OPTIONS,
   turnSecondsLabel,
@@ -57,6 +60,7 @@ export interface SettingsModalProps {
 }
 
 export function SettingsModal({ visible, onClose }: SettingsModalProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const { height: screenH } = useWindowDimensions();
@@ -78,6 +82,8 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const soundEnabled = usePreferencesStore((s) => s.soundEnabled);
   const setSoundEnabled = usePreferencesStore((s) => s.setSoundEnabled);
   const turnSeconds = usePreferencesStore((s) => s.turnSeconds);
+  const language = usePreferencesStore((s) => s.language);
+  const setLanguage = usePreferencesStore((s) => s.setLanguage);
   const screen = useGameStore((s) => s.screen);
   const playMode = useGameStore((s) => s.playMode);
   const onlineRoomId = useGameStore((s) => s.onlineRoomId);
@@ -85,11 +91,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   const serverTurnSeconds = useGameStore((s) => s.turnTimerSeconds);
   const setOnlineStatusMessage = useGameStore((s) => s.setOnlineStatusMessage);
   const applyTurnTimerMidGame = useGameStore((s) => s.applyTurnTimerMidGame);
-  const onlineDisplayName = useGameStore((s) => s.onlineDisplayName);
-  const setOnlineDisplayName = useGameStore((s) => s.setOnlineDisplayName);
   const setRoomTurnTimer = useMutation(api.rooms.setRoomTurnTimerSeconds);
-  const [nameDraft, setNameDraft] = useState("");
-  const [nameError, setNameError] = useState<string | null>(null);
   const [wipeConfirmVisible, setWipeConfirmVisible] = useState(false);
   const [wiping, setWiping] = useState(false);
 
@@ -97,47 +99,17 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     setSound(soundEnabled);
   }, [soundEnabled]);
 
-  const commitDisplayName = useCallback((): boolean => {
-    const trimmed = nameDraft.trim();
-    if (trimmed) {
-      setOnlineDisplayName(trimmed);
-      setNameDraft(trimmed);
-      setNameError(null);
-      return true;
-    }
-    setNameDraft(onlineDisplayName);
-    setNameError("Name cannot be empty");
-    return false;
-  }, [nameDraft, onlineDisplayName, setOnlineDisplayName]);
-
-  const trimmedNameDraft = nameDraft.trim();
-  const nameDirty = trimmedNameDraft !== onlineDisplayName;
-  const canSaveName = nameDirty && trimmedNameDraft.length > 0;
-
-  const revertNameDraft = useCallback(() => {
-    setNameDraft(onlineDisplayName);
-    setNameError(null);
-  }, [onlineDisplayName]);
-
-  const handleSaveDisplayName = useCallback(() => {
-    if (commitDisplayName()) {
-      trigger("confirm");
-    } else {
-      trigger("error");
-    }
-  }, [commitDisplayName]);
-
   const onlineInRoom = playMode === "online" && onlineRoomId != null;
   const canEditTurnTimer = !onlineInRoom || onlineIsHost;
   const effectiveTurnSeconds =
     onlineInRoom ? serverTurnSeconds : turnSeconds;
   const turnTimerHint = !onlineInRoom
     ? screen === "game"
-      ? "Applies immediately to the current turn."
-      : "Used in solo games and rooms you host."
+      ? t("settings.turnTimerHintLive")
+      : t("settings.turnTimerHintSolo")
     : onlineIsHost
-      ? "Updates the room timer for everyone."
-      : "Only the host can change the timer in online games.";
+      ? t("settings.turnTimerHintHost")
+      : t("settings.turnTimerHintGuest");
 
   const handleTurnTimerPress = useCallback(
     (option: TurnSecondsOption) => {
@@ -191,13 +163,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     setWiping(true);
     try {
       await clearAllAppStorage();
-      const { onlineDisplayName: name, soundEnabled: soundOn } = {
-        onlineDisplayName: useGameStore.getState().onlineDisplayName,
-        soundEnabled: usePreferencesStore.getState().soundEnabled,
-      };
-      setNameDraft(name);
-      setNameError(null);
-      setSound(soundOn);
+      setSound(usePreferencesStore.getState().soundEnabled);
       trigger("confirm");
     } catch {
       trigger("error");
@@ -223,10 +189,9 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
   );
 
   const finishClose = useCallback(() => {
-    revertNameDraft();
     setModalVisible(false);
     onClose();
-  }, [revertNameDraft, onClose]);
+  }, [onClose]);
 
   const requestClose = useCallback(() => {
     animateOut(finishClose);
@@ -236,18 +201,14 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
     if (visible && !prevVisible.current) {
       ty.value = drawerH; backdropO.value = 0;
       setModalVisible(true);
-      setNameDraft(onlineDisplayName);
-      setNameError(null);
     }
     if (!visible && prevVisible.current && modalVisible) {
       animateOut(() => {
-        setNameDraft(onlineDisplayName);
-        setNameError(null);
         setModalVisible(false);
       });
     }
     prevVisible.current = visible;
-  }, [visible, drawerH, modalVisible, ty, backdropO, animateOut, onlineDisplayName]);
+  }, [visible, drawerH, modalVisible, ty, backdropO, animateOut]);
 
   const onModalShow = useCallback(() => {
     ty.value        = withSpring(0, SPRING_IN);
@@ -306,9 +267,9 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                 <View style={[styles.handle, { backgroundColor: ui.accentMuted }]} />
               </View>
               <View style={styles.header}>
-                <Text style={[styles.title, { color: ui.accent }]}>SETTINGS</Text>
+                <Text style={[styles.title, { color: ui.accent }]}>{t("settings.title")}</Text>
                 <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
-                  Swipe down to close
+                  {t("common.swipeDownClose")}
                 </Text>
               </View>
             </View>
@@ -325,87 +286,21 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             showsVerticalScrollIndicator={false}
           >
             <Text style={[styles.sectionLabel, { color: ui.textPrimary }]}>
-              PROFILE
+              {t("settings.section.account")}
             </Text>
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
-              ]}
-            >
-              <Text style={[styles.profileLabel, { color: ui.textPrimary }]}>
-                Display name
-              </Text>
-              <Text style={[styles.profileHint, { color: ui.textMuted }]}>
-                Used in online games. Tap ✓ to save changes.
-              </Text>
-              <View style={styles.profileInputRow}>
-                <TextInput
-                  style={[
-                    styles.profileInput,
-                    {
-                      color: ui.textPrimary,
-                      borderColor: ui.panelBorderSoft,
-                      backgroundColor: ui.feltEdge,
-                    },
-                  ]}
-                  value={nameDraft}
-                  onChangeText={(t) => {
-                    setNameDraft(t.slice(0, MAX_DISPLAY_NAME_LENGTH));
-                    if (nameError) setNameError(null);
-                  }}
-                  placeholder="Your nickname"
-                  placeholderTextColor={ui.textFaint}
-                  maxLength={MAX_DISPLAY_NAME_LENGTH}
-                  autoCapitalize="words"
-                  returnKeyType="done"
-                  blurOnSubmit={false}
-                  onSubmitEditing={() => {
-                    if (canSaveName) {
-                      handleSaveDisplayName();
-                    }
-                  }}
-                />
-                <Pressable
-                  style={[
-                    styles.nameConfirmBtn,
-                    canSaveName
-                      ? { backgroundColor: ui.accent, borderColor: ui.accent }
-                      : [
-                          styles.nameConfirmBtnDisabled,
-                          {
-                            backgroundColor: ui.feltEdge,
-                            borderColor: ui.panelBorderSoft,
-                          },
-                        ],
-                  ]}
-                  onPress={handleSaveDisplayName}
-                  disabled={!canSaveName}
-                  accessibilityRole="button"
-                  accessibilityLabel="Save display name"
-                  accessibilityState={{ disabled: !canSaveName }}
-                >
-                  <Text
-                    style={[
-                      styles.nameConfirmText,
-                      { color: canSaveName ? ui.badgeText : ui.textFaint },
-                    ]}
-                  >
-                    ✓
-                  </Text>
-                </Pressable>
+            {convexEnabled && (
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
+                ]}
+              >
+                <AccountSection />
               </View>
-              {nameError && (
-                <Text style={[styles.nameError, { color: colors.danger }]}>
-                  {nameError}
-                </Text>
-              )}
-            </View>
-
-            {convexEnabled && <AccountSection />}
+            )}
 
             <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textPrimary }]}>
-              AUDIO & FEEDBACK
+              {t("settings.section.language")}
             </Text>
             <View
               style={[
@@ -413,13 +308,66 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                 { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
               ]}
             >
-              <Row label="Sound Effects" value={sound} onToggle={handleSoundToggle} />
+              <Text style={[styles.optionLabel, { color: ui.textPrimary }]}>
+                {t("settings.language")}
+              </Text>
+              <View style={styles.turnRow}>
+                {LANGUAGE_PREFERENCE_OPTIONS.map((option) => {
+                  const active = language === option;
+                  const label =
+                    option === "system"
+                      ? t("settings.languageSystem")
+                      : option === "en"
+                        ? t("settings.languageEn")
+                        : option === "ru"
+                          ? t("settings.languageRu")
+                          : t("settings.languageUk");
+                  return (
+                    <Pressable
+                      key={option}
+                      style={[
+                        styles.turnChip,
+                        {
+                          borderColor: active ? ui.accent : ui.panelBorderSoft,
+                          backgroundColor: active ? ui.accentSoft : ui.feltEdge,
+                        },
+                      ]}
+                      onPress={() => {
+                        if (option === language) return;
+                        trigger("selection");
+                        setLanguage(option as LanguagePreference);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.turnChipText,
+                          { color: active ? ui.accent : ui.textPrimary },
+                        ]}
+                      >
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textPrimary }]}>
+              {t("settings.section.audio")}
+            </Text>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
+              ]}
+            >
+              <Row label={t("settings.sound")} value={sound} onToggle={handleSoundToggle} />
               <View style={[styles.rowDivider, { backgroundColor: ui.panelBorderSoft }]} />
-              <Row label="Haptic Feedback" value={hapticsEnabled} onToggle={handleHapticsToggle} />
+              <Row label={t("settings.haptics")} value={hapticsEnabled} onToggle={handleHapticsToggle} />
             </View>
 
             <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textPrimary }]}>
-              GAMEPLAY
+              {t("settings.section.gameplay")}
             </Text>
             <View
               style={[
@@ -427,7 +375,9 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
                 { backgroundColor: ui.panelBg, borderColor: ui.panelBorderSoft },
               ]}
             >
-              <Text style={[styles.optionLabel, { color: ui.textPrimary }]}>Turn timer</Text>
+              <Text style={[styles.optionLabel, { color: ui.textPrimary }]}>
+                {t("settings.turnTimer")}
+              </Text>
               <Text style={[styles.optionHint, { color: ui.textMuted }]}>
                 {turnTimerHint}
               </Text>
@@ -463,7 +413,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             </View>
 
             <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textPrimary }]}>
-              APPEARANCE
+              {t("settings.section.appearance")}
             </Text>
             <View
               style={[
@@ -477,7 +427,7 @@ export function SettingsModal({ visible, onClose }: SettingsModalProps) {
             {isAppIconSupported && (
               <>
                 <Text style={[styles.sectionLabel, { marginTop: spacing.xl, color: ui.textPrimary }]}>
-                  APP ICON
+                  {t("settings.section.appIcon")}
                 </Text>
                 <View
                   style={[
@@ -601,18 +551,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: "hidden",
   },
-  profileLabel: {
-    ...typography.heading,
-    fontWeight: "800",
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xs,
-  },
-  profileHint: {
-    ...typography.caption,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-  },
   devCard: {
     padding: spacing.md,
     gap: spacing.sm,
@@ -621,42 +559,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     textAlign: "center",
     color: "rgba(255, 255, 255, 0.6)",
-  },
-  profileInputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  profileInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: radius.panel,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontSize: 16,
-  },
-  nameConfirmBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.panel,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  nameConfirmBtnDisabled: {
-    opacity: 0.55,
-  },
-  nameConfirmText: {
-    fontSize: 18,
-    fontWeight: "800",
-    lineHeight: 20,
-  },
-  nameError: {
-    ...typography.caption,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.md,
   },
   cardDesignPanel: {
     borderRadius: radius.panel,

@@ -169,6 +169,9 @@ export function GlowTitle() {
   const ui = useUiTheme();
   const { s } = useGameLayout();
   const titleSize = s(62);
+  // Precompute on JS thread — `s` is not a worklet and cannot run in useAnimatedStyle.
+  const lineMinW = s(32);
+  const lineMaxW = s(56);
   const glow = useSharedValue(0);
   const ornament = useSharedValue(0);
   const wave = useSharedValue(0);
@@ -201,7 +204,7 @@ export function GlowTitle() {
   }, [glow, ornament, wave]);
 
   const lineStyle = useAnimatedStyle(() => ({
-    width: interpolate(ornament.value, [0, 1], [s(32), s(56)]),
+    width: interpolate(ornament.value, [0, 1], [lineMinW, lineMaxW]),
     opacity: interpolate(ornament.value, [0, 1], [0.45, 1]),
   }));
 

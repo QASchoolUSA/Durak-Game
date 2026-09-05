@@ -2,8 +2,9 @@ import { Platform } from "react-native";
 import { getNativeStorage } from "./nativeAsyncStorage";
 
 const STORAGE_KEY = "@durak/playerDisplayName";
+/** Legacy custom-name flag — cleared on write; ignored on read. */
 const CUSTOM_FLAG_KEY = "@durak/displayNameIsCustom";
-export const MAX_DISPLAY_NAME_LENGTH = 12;
+export const MAX_DISPLAY_NAME_LENGTH = 20;
 
 function normalizeName(name: string): string {
   return name.trim().slice(0, MAX_DISPLAY_NAME_LENGTH);
@@ -14,9 +15,7 @@ export function normalizeDisplayName(name: string): string {
 }
 
 // Shape of names produced by the old pool-based guest generator; used to
-// migrate them to Guest### on load. (A handle that happens to match this
-// pattern gets transiently regenerated on cold start, then re-adopted by
-// ProfileNameSync once the profile query resolves — self-healing.)
+// migrate them to Guest### on load.
 const LEGACY_GUEST_NAME_RE = /^(Olga|Ivan|Dmitri|Maria|Sergey)\d{3}$/;
 
 export function isLegacyGuestName(name: string): boolean {
@@ -24,14 +23,10 @@ export function isLegacyGuestName(name: string): boolean {
 }
 
 let memoryValue: string | null = null;
-let memoryIsCustom: boolean | null = null;
 
 function webGet(key: string): string | null {
   if (typeof localStorage === "undefined") {
     if (key === STORAGE_KEY) return memoryValue;
-    if (key === CUSTOM_FLAG_KEY) {
-      return memoryIsCustom === null ? null : memoryIsCustom ? "true" : "false";
-    }
     return null;
   }
   try {
@@ -44,7 +39,6 @@ function webGet(key: string): string | null {
 
 function webSet(key: string, value: string): void {
   if (key === STORAGE_KEY) memoryValue = value;
-  if (key === CUSTOM_FLAG_KEY) memoryIsCustom = value === "true";
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.setItem(key, value);
@@ -58,9 +52,6 @@ async function readItem(key: string): Promise<string | null> {
   const storage = await getNativeStorage();
   if (!storage) {
     if (key === STORAGE_KEY) return memoryValue;
-    if (key === CUSTOM_FLAG_KEY) {
-      return memoryIsCustom === null ? null : memoryIsCustom ? "true" : "false";
-    }
     return null;
   }
   try {
@@ -73,7 +64,6 @@ async function readItem(key: string): Promise<string | null> {
 
 async function writeItem(key: string, value: string): Promise<void> {
   if (key === STORAGE_KEY) memoryValue = value;
-  if (key === CUSTOM_FLAG_KEY) memoryIsCustom = value === "true";
   if (Platform.OS === "web") {
     webSet(key, value);
     return;
@@ -99,37 +89,39 @@ export async function getStoredPlayerName(): Promise<string | null> {
   return normalized.length > 0 ? normalized : null;
 }
 
-/** Default true when a name exists but the flag was never written (migration). */
-export async function getStoredNameIsCustom(): Promise<boolean> {
-  const stored = await getStoredPlayerName();
-  const raw = await readItem(CUSTOM_FLAG_KEY);
-  if (raw === "true") return true;
-  if (raw === "false") return false;
-  return stored != null;
-}
-
-async function persistDisplayName(name: string, isCustom: boolean): Promise<void> {
+/** Persist seat name (handle for registered users, Guest### for guests). */
+export async function setStoredPlayerName(name: string): Promise<void> {
   const normalized = normalizeName(name);
   if (normalized.length === 0) return;
   await writeItem(STORAGE_KEY, normalized);
-  await writeItem(CUSTOM_FLAG_KEY, isCustom ? "true" : "false");
+  // Drop legacy custom flag so old Settings nicknames don't stick.
+  if (Platform.OS === "web") {
+    try {
+      localStorage.removeItem(CUSTOM_FLAG_KEY);
+    } catch {
+      /* ignore */
+    }
+  } else {
+    const storage = await getNativeStorage();
+    try {
+      await storage?.removeItem(CUSTOM_FLAG_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
+/** @deprecated Use setStoredPlayerName */
 export async function setStoredGuestName(name: string): Promise<void> {
-  await persistDisplayName(name, false);
+  await setStoredPlayerName(name);
 }
 
+/** @deprecated Use setStoredPlayerName */
 export async function setStoredCustomName(name: string): Promise<void> {
-  await persistDisplayName(name, true);
+  await setStoredPlayerName(name);
 }
 
 /** Clears in-memory cache after a full storage wipe (dev/testing). */
 export function resetPlayerNameStorageCache(): void {
   memoryValue = null;
-  memoryIsCustom = null;
-}
-
-/** @deprecated Use setStoredGuestName or setStoredCustomName */
-export async function setStoredPlayerName(name: string): Promise<void> {
-  await setStoredCustomName(name);
 }

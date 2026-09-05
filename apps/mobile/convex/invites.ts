@@ -51,7 +51,7 @@ export const sendInvite = mutation({
     });
 
     const mine = await getProfileByUserId(ctx, me);
-    const name = mine?.displayName ?? mine?.handle ?? "A friend";
+    const name = mine?.handle ? `@${mine.handle}` : "A friend";
     await notifyUser(ctx, toUserId, {
       title: "Game invite",
       body: `${name} invited you to play Durak`,
@@ -114,7 +114,6 @@ export type IncomingInvite = {
   roomStatus: string;
   fromUserId: Id<"users">;
   fromHandle: string;
-  fromDisplayName: string;
   createdAt: number;
   expiresAt: number;
 };
@@ -146,7 +145,6 @@ export const incomingInvites = query({
         roomStatus: room.status,
         fromUserId: invite.fromUserId,
         fromHandle: fromProfile?.handle ?? "player",
-        fromDisplayName: fromProfile?.displayName ?? "A friend",
         createdAt: invite.createdAt,
         expiresAt: invite.expiresAt,
       });
@@ -219,7 +217,7 @@ export const inviteFriendToRoom = mutation({
     });
 
     const mine = await getProfileByUserId(ctx, me);
-    const name = mine?.displayName ?? mine?.handle ?? "A friend";
+    const name = mine?.handle ? `@${mine.handle}` : "A friend";
     await notifyUser(ctx, toUserId, {
       title: "Game invite",
       body: `${name} invited you to play Durak`,

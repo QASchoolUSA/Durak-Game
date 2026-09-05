@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { Easing, FadeIn, FadeInDown } from "react-native-reanimated";
+import { useTranslation } from "react-i18next";
 import { Background } from "../components/Background";
 import { CardFan } from "../components/CardFan";
 import { GlowTitle, HeroPanel, StaticTitle } from "../components/HomeHero";
@@ -25,6 +26,7 @@ type AuthMode = "signIn" | "signUp";
  * Continue as Guest mints an anonymous session then enters the home screen.
  */
 export function WelcomeScreen() {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const lay = useGameLayout();
   const reduceMotion = useReduceMotion();
@@ -53,7 +55,7 @@ export function WelcomeScreen() {
       setOnboarded(true);
       trigger("confirm");
     } catch {
-      setGuestError("Could not start a guest session. Check your connection.");
+      setGuestError(t("welcome.guestError"));
       trigger("error");
     } finally {
       setGuestBusy(false);
@@ -72,7 +74,7 @@ export function WelcomeScreen() {
       </View>
       {animate ? <GlowTitle /> : <StaticTitle />}
       <Text style={[styles.tagline, { color: ui.textMuted }]}>
-        The classic Russian card game
+        {t("welcome.tagline")}
       </Text>
     </HeroPanel>
   );
@@ -80,19 +82,19 @@ export function WelcomeScreen() {
   const menu = (
     <>
       <MenuButton
-        label="CREATE ACCOUNT"
+        label={t("welcome.createAccount")}
         variant="primary"
         icon="➤"
         onPress={() => openAuth("signUp")}
       />
       <MenuButton
-        label="SIGN IN"
+        label={t("welcome.signIn")}
         variant="secondary"
         icon="✉"
         onPress={() => openAuth("signIn")}
       />
       <MenuButton
-        label={guestBusy ? "STARTING…" : "CONTINUE AS GUEST"}
+        label={guestBusy ? t("welcome.starting") : t("welcome.continueAsGuest")}
         variant="ghost"
         icon="♠"
         onPress={() => void continueAsGuest()}

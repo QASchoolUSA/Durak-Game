@@ -24,6 +24,7 @@ import { useTableTheme } from "../theme/TableThemeContext";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { DifficultyPicker } from "./DifficultyPicker";
 import { MenuButton } from "./MenuButton";
+import { useTranslation } from "react-i18next";
 
 const SHEET_BODY_HEIGHT = 320;
 const SPRING_IN = { damping: 26, stiffness: 290, mass: 0.85 };
@@ -45,6 +46,7 @@ export function AddAiSeatSheet({
   onClose,
   onConfirm,
 }: AddAiSeatSheetProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const insets = useSafeAreaInsets();
@@ -196,9 +198,9 @@ export function AddAiSeatSheet({
           </GestureDetector>
 
           <View style={styles.header}>
-            <Text style={[styles.title, { color: ui.accent }]}>ADD AI</Text>
+            <Text style={[styles.title, { color: ui.accent }]}>{t("lobby.addAiSheet.title")}</Text>
             <Text style={[styles.subtitle, { color: ui.textFaint }]}>
-              Seat {seatIndex + 1}
+              {t("lobby.seatLabel", { n: seatIndex + 1 })}
             </Text>
           </View>
 
@@ -206,7 +208,7 @@ export function AddAiSeatSheet({
 
           <View style={styles.body}>
             <Text style={[styles.sectionLabel, { color: ui.textFaint }]}>
-              DIFFICULTY
+              {t("lobby.addAiSheet.difficulty")}
             </Text>
             <DifficultyPicker
               value={draftDifficulty}
@@ -227,13 +229,13 @@ export function AddAiSeatSheet({
             ]}
           >
             <MenuButton
-              label={confirming ? "ADDING…" : "ADD TO SEAT"}
+              label={confirming ? t("lobby.addAiSheet.adding") : t("lobby.addAiSheet.confirm")}
               variant="primary"
               icon="🤖"
               onPress={handleConfirm}
             />
             <MenuButton
-              label="CANCEL"
+              label={t("common.cancel")}
               variant="ghost"
               onPress={closeSheet}
             />

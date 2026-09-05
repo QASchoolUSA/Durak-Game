@@ -40,6 +40,7 @@ import { useInviteActions } from "../game/useInviteActions";
 import { useGameStore } from "../game/store";
 import { saveRoomSession } from "../game/onlineSessionStorage";
 import { trigger } from "../feedback/haptics";
+import { useTranslation } from "react-i18next";
 
 // ── Animation springs (match GameConfigDrawer) ───────────────────────────────
 
@@ -55,19 +56,20 @@ type Tab = "friends" | "requests" | "invites";
 
 type Relation = "none" | "friends" | "incoming" | "outgoing";
 
-const RELATION_LABEL: Record<Relation, string> = {
-  none: "ADD",
-  friends: "FRIENDS",
-  incoming: "ACCEPT",
-  outgoing: "REQUESTED",
-};
-
 export interface FriendsDrawerProps {
   visible: boolean;
   onClose: () => void;
 }
 
 export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
+  const { t } = useTranslation();
+  const relationLabel: Record<Relation, string> = {
+    none: t("friends.action.add"),
+    friends: t("friends.tabFriends"),
+    incoming: t("friends.action.accept"),
+    outgoing: t("friends.action.requested"),
+  };
+
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const sheetGradient = tableTheme.backgroundGradient ?? [
@@ -210,7 +212,7 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
   const resumeGame = useCallback(
     (room: { roomId: string; code: string }) => {
       const displayName =
-        useGameStore.getState().onlineDisplayName.trim() || "Player";
+        useGameStore.getState().onlineDisplayName.trim() || t("common.player");
       void saveRoomSession({ roomId: room.roomId, displayName });
       trigger("gameStart");
       enterOnlineLobby({
@@ -273,9 +275,9 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
   const invitesBadge = invites.length;
 
   const tabs: { key: Tab; label: string; badge: number }[] = [
-    { key: "friends", label: "FRIENDS", badge: 0 },
-    { key: "requests", label: "REQUESTS", badge: requestsBadge },
-    { key: "invites", label: "INVITES", badge: invitesBadge },
+    { key: "friends", label: t("friends.tabFriends"), badge: 0 },
+    { key: "requests", label: t("friends.tabRequests"), badge: requestsBadge },
+    { key: "invites", label: t("friends.tabInvites"), badge: invitesBadge },
   ];
 
   // ── Animated styles ────────────────────────────────────────────────────────
@@ -321,24 +323,24 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
               <View style={styles.header}>
                 {searchOpen ? (
                   <Animated.View key="search-title" entering={FadeIn.duration(180)}>
-                    <Text style={[styles.headerTitle, { color: ui.accent }]}>ADD FRIEND</Text>
+                    <Text style={[styles.headerTitle, { color: ui.accent }]}>{t("friends.addTitle")}</Text>
                     <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
-                      Search players by their @handle
+                      {t("friends.searchByHandle")}
                     </Text>
                   </Animated.View>
                 ) : (
                   <Animated.View key="friends-title" entering={FadeIn.duration(180)}>
-                    <Text style={[styles.headerTitle, { color: ui.accent }]}>FRIENDS</Text>
+                    <Text style={[styles.headerTitle, { color: ui.accent }]}>{t("friends.title")}</Text>
                     <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
                       {expanded
-                        ? "Swipe down to close"
-                        : "Pull up for more · swipe down to close"}
+                        ? t("common.swipeDownClose")
+                        : t("friends.pullHint")}
                     </Text>
                   </Animated.View>
                 )}
                 <Pressable onPress={toggleSearch} hitSlop={12}>
                   <Text style={[styles.addBtnText, { color: ui.accent }]}>
-                    {searchOpen ? "✕ CLOSE" : "+ ADD"}
+                    {searchOpen ? t("friends.closeSearch") : t("friends.add")}
                   </Text>
                 </Pressable>
               </View>
@@ -364,7 +366,7 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
                     style={[styles.input, { color: ui.textPrimary }]}
                     value={searchText}
                     onChangeText={setSearchText}
-                    placeholder="handle"
+                    placeholder={t("friends.placeholderHandle")}
                     placeholderTextColor={ui.textFaint}
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -386,22 +388,18 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
               <>
                 {profile ? (
                   <Text style={[styles.myHandle, { color: ui.textMuted }]}>
-                    You are{" "}
-                    <Text style={{ color: ui.textPrimary, fontWeight: "800" }}>
-                      @{profile.handle}
-                    </Text>
+                    {t("friends.youAre", { handle: profile.handle })}
                     {"  "}
                     <Text onPress={() => setHandleOpen(true)} style={{ color: ui.accent }}>
-                      (edit)
+                      {t("friends.edit")}
                     </Text>
                   </Text>
                 ) : (
-                  <Text style={[styles.myHandle, { color: ui.textMuted }]}>
-                    Set your{" "}
-                    <Text onPress={() => setHandleOpen(true)} style={{ color: ui.accent }}>
-                      @handle
-                    </Text>{" "}
-                    to find friends
+                  <Text
+                    style={[styles.myHandle, { color: ui.accent }]}
+                    onPress={() => setHandleOpen(true)}
+                  >
+                    {t("friends.setHandle")}
                   </Text>
                 )}
 
@@ -450,14 +448,14 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
                   {query.length === 0 ? (
                     <Animated.View entering={FadeIn.duration(200)}>
                       <Text style={[styles.searchHint, { color: ui.textFaint }]}>
-                        Friends can invite each other straight into a game.
+                        {t("friends.searchHint")}
                       </Text>
                     </Animated.View>
                   ) : searchResults === undefined ? (
                     <ActivityIndicator color={ui.accent} style={{ marginTop: spacing.lg }} />
                   ) : searchResults.length === 0 ? (
                     <Text style={[styles.empty, { color: ui.textMuted }]}>
-                      No players found for “{query}”.
+                      {t("friends.noneFound", { query })}
                     </Text>
                   ) : (
                     searchResults.map((item, i) => {
@@ -476,12 +474,6 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
                           <View style={{ flex: 1 }}>
                             <Text
                               style={[styles.resultName, { color: ui.textPrimary }]}
-                              numberOfLines={1}
-                            >
-                              {item.displayName}
-                            </Text>
-                            <Text
-                              style={[styles.resultHandle, { color: ui.textMuted }]}
                               numberOfLines={1}
                             >
                               @{item.handle}
@@ -505,7 +497,7 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
                                 { color: actionable ? ui.badgeText : ui.textMuted },
                               ]}
                             >
-                              {busy ? "…" : RELATION_LABEL[relation]}
+                              {busy ? "…" : relationLabel[relation]}
                             </Text>
                           </Pressable>
                         </Animated.View>
@@ -518,19 +510,18 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
                   {tab === "friends" &&
                     (friends.length === 0 ? (
                       <Empty
-                        text="No friends yet. Tap + ADD to find players by handle."
+                        text={t("friends.empty")}
                         color={ui.textMuted}
                       />
                     ) : (
                       friends.map((f) => (
                         <FriendRow
                           key={f.friendshipId}
-                          displayName={f.displayName}
                           handle={f.handle}
                           actions={[
                             {
                               key: "invite",
-                              label: "INVITE",
+                              label: t("friends.action.invite"),
                               kind: "primary",
                               onPress: () =>
                                 void sendInvite(f.userId)
@@ -539,7 +530,7 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
                             },
                             {
                               key: "remove",
-                              label: "REMOVE",
+                              label: t("friends.action.remove"),
                               kind: "danger",
                               onPress: () => void removeFriend({ friendshipId: f.friendshipId }),
                             },
@@ -551,26 +542,25 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
                   {tab === "requests" && (
                     <>
                       {incoming.length === 0 && outgoing.length === 0 ? (
-                        <Empty text="No pending requests." color={ui.textMuted} />
+                        <Empty text={t("friends.noRequests")} color={ui.textMuted} />
                       ) : null}
                       {incoming.length > 0 ? (
-                        <Text style={[styles.section, { color: ui.textFaint }]}>INCOMING</Text>
+                        <Text style={[styles.section, { color: ui.textFaint }]}>{t("friends.incoming")}</Text>
                       ) : null}
                       {incoming.map((r) => (
                         <FriendRow
                           key={r.friendshipId}
-                          displayName={r.displayName}
                           handle={r.handle}
                           actions={[
                             {
                               key: "accept",
-                              label: "ACCEPT",
+                              label: t("friends.action.accept"),
                               kind: "primary",
                               onPress: () => void acceptRequest({ friendshipId: r.friendshipId }),
                             },
                             {
                               key: "decline",
-                              label: "DECLINE",
+                              label: t("friends.action.decline"),
                               kind: "danger",
                               onPress: () => void declineRequest({ friendshipId: r.friendshipId }),
                             },
@@ -578,18 +568,17 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
                         />
                       ))}
                       {outgoing.length > 0 ? (
-                        <Text style={[styles.section, { color: ui.textFaint }]}>SENT</Text>
+                        <Text style={[styles.section, { color: ui.textFaint }]}>{t("friends.sent")}</Text>
                       ) : null}
                       {outgoing.map((r) => (
                         <FriendRow
                           key={r.friendshipId}
-                          displayName={r.displayName}
                           handle={r.handle}
-                          subtitle={`@${r.handle} · pending`}
+                          subtitle={t("friends.subtitle.pending")}
                           actions={[
                             {
                               key: "cancel",
-                              label: "CANCEL",
+                              label: t("friends.action.cancel"),
                               kind: "danger",
                               onPress: () => void cancelRequest({ friendshipId: r.friendshipId }),
                             },
@@ -603,19 +592,20 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
                     resumable.map((room) => (
                       <FriendRow
                         key={room.roomId}
-                        displayName={
-                          room.opponents.filter(Boolean).join(", ") || "Game in progress"
-                        }
                         handle="game"
                         subtitle={
                           room.isYourTurn
-                            ? "Your turn — game in progress"
-                            : "Game in progress"
+                            ? t("friends.subtitle.yourTurn", {
+                                opponents: room.opponents.filter(Boolean).join(", ") || t("friends.game"),
+                              })
+                            : t("friends.subtitle.inProgress", {
+                                opponents: room.opponents.filter(Boolean).join(", ") || t("friends.game"),
+                              })
                         }
                         actions={[
                           {
                             key: "resume",
-                            label: "RESUME",
+                            label: t("friends.action.resume"),
                             kind: "primary",
                             onPress: () => resumeGame(room),
                           },
@@ -625,18 +615,17 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
 
                   {tab === "invites" &&
                     (invites.length === 0 && resumable.length === 0 ? (
-                      <Empty text="No game invites right now." color={ui.textMuted} />
+                      <Empty text={t("friends.noInvites")} color={ui.textMuted} />
                     ) : invites.length === 0 ? null : (
                       invites.map((inv) => (
                         <FriendRow
                           key={inv.inviteId}
-                          displayName={inv.fromDisplayName}
                           handle={inv.fromHandle}
-                          subtitle={`@${inv.fromHandle} invited you`}
+                          subtitle={t("friends.subtitle.invited")}
                           actions={[
                             {
                               key: "join",
-                              label: "JOIN",
+                              label: t("friends.action.join"),
                               kind: "primary",
                               onPress: () =>
                                 void acceptInvite(inv.inviteId)
@@ -645,7 +634,7 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
                             },
                             {
                               key: "decline",
-                              label: "DECLINE",
+                              label: t("friends.action.decline"),
                               kind: "danger",
                               onPress: () => void declineInvite(inv.inviteId),
                             },
@@ -682,7 +671,7 @@ export function FriendsDrawer({ visible, onClose }: FriendsDrawerProps) {
               onPress={() => Keyboard.dismiss()}
               hitSlop={8}
             >
-              <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>Done</Text>
+              <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>{t("common.done")}</Text>
             </Pressable>
           </View>
         </InputAccessoryView>

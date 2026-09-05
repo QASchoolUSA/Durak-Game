@@ -37,35 +37,30 @@ import { saveRoomSession } from "../game/onlineSessionStorage";
 import { useOnlineAuth } from "../game/useAuthBootstrap";
 import { usePreferencesStore } from "../game/preferencesStore";
 import { CoinIcon } from "./CoinIcon";
+import { useTranslation } from "react-i18next";
 
 // ── Static config ─────────────────────────────────────────────────────────────
 
-const PLAY_MODE_OPTIONS: { id: PlayMode; label: string; desc: string }[] = [
-  { id: "solo", label: "Vs AI", desc: "Play locally against bots" },
-  { id: "online", label: "With friends", desc: "Wait in lobby for a friend, or fill with AI" },
+const PLAY_MODE_OPTIONS: { id: PlayMode; labelKey: string; descKey: string }[] = [
+  { id: "solo", labelKey: "config.vsAi", descKey: "config.vsAiDesc" },
+  { id: "online", labelKey: "config.withFriends", descKey: "config.withFriendsDesc" },
 ];
 
-const PLAYER_OPTIONS = [
-  { count: 2, hint: "1 vs 1"  },
-  { count: 3, hint: "vs 2 AI" },
-  { count: 4, hint: "vs 3 AI" },
-  { count: 5, hint: "vs 4 AI" },
-  { count: 6, hint: "vs 5 AI" },
+const PLAYER_COUNTS = [2, 3, 4, 5, 6];
+
+const VARIANTS: { id: GameVariant; icon: string; labelKey: string }[] = [
+  { id: "podkidnoy", icon: "♠", labelKey: "config.podkidnoy" },
+  { id: "perevodnoy", icon: "↻", labelKey: "config.perevodnoy" },
 ];
 
-const VARIANTS: { id: GameVariant; icon: string; label: string }[] = [
-  { id: "podkidnoy", icon: "♠", label: "Podkidnoy" },
-  { id: "perevodnoy", icon: "↻", label: "Perevodnoy" },
+const THROW_OPTIONS: { id: ThrowInScope; labelKey: string; descKey: string }[] = [
+  { id: "all",      labelKey: "config.throwInAll",       descKey: "config.throwInAllDesc" },
+  { id: "neighbor", labelKey: "config.throwInNeighbors", descKey: "config.throwInNeighborsDesc" },
 ];
 
-const THROW_OPTIONS: { id: ThrowInScope; label: string; desc: string }[] = [
-  { id: "all",      label: "All",       desc: "Any attacker can add" },
-  { id: "neighbor", label: "Neighbors", desc: "Adjacent only"        },
-];
-
-const PLAY_STYLE_OPTIONS: { id: PlayStyle; label: string; desc: string }[] = [
-  { id: "standard",  label: "Standard",       desc: "Classic Durak — no special powers" },
-  { id: "abilities", label: "With Abilities", desc: "Return, graveyard & reveal a card" },
+const PLAY_STYLE_OPTIONS: { id: PlayStyle; labelKey: string; descKey: string }[] = [
+  { id: "standard",  labelKey: "lobby.playStyle.standard",  descKey: "config.standardDesc" },
+  { id: "abilities", labelKey: "lobby.playStyle.abilities", descKey: "config.abilitiesDesc" },
 ];
 
 const BUY_IN_OPTIONS = [100, 250, 500, 1000, 5000, 10000, 20000];
@@ -84,6 +79,7 @@ export interface GameConfigDrawerProps {
 }
 
 export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const sheetGradient = tableTheme.backgroundGradient ?? [
@@ -197,7 +193,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
 
   const handleStart = useCallback(async () => {
     if (playMode === "online" && !convexConfigured) {
-      setCreateError("Online play is not configured on this build.");
+      setCreateError(t("config.onlineNotConfigured"));
       return;
     }
     if (playMode === "solo") {
@@ -211,7 +207,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
         deductCreditsLocal,
       });
       if (!charged) {
-        setCreateError("Not enough credits.");
+        setCreateError(t("common.notEnoughCredits"));
         return;
       }
       trigger("gameStart");
@@ -221,7 +217,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
       return;
     }
 
-    const name = useGameStore.getState().onlineDisplayName.trim() || "Host";
+    const name = useGameStore.getState().onlineDisplayName.trim() || t("common.host");
     setCreating(true);
     setCreateError(null);
     try {
@@ -252,10 +248,10 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
       setModalVisible(false);
       onClose();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Could not create room";
+      const msg = e instanceof Error ? e.message : t("config.createFailed");
       setCreateError(
         msg.toLowerCase().includes("not authenticated")
-          ? "Could not sign in for online play. Check your connection and try again."
+          ? t("config.authFailed")
           : msg,
       );
       trigger("error");
@@ -280,6 +276,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
     startGame,
     enterOnlineLobby,
     turnSeconds,
+    t,
   ]);
 
   // ── Animated styles ────────────────────────────────────────────────────────
@@ -323,9 +320,9 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                 <View style={[styles.handle, { backgroundColor: ui.accentMuted }]} />
               </View>
               <View style={styles.header}>
-                <Text style={[styles.headerTitle, { color: ui.accent }]}>NEW GAME</Text>
+                <Text style={[styles.headerTitle, { color: ui.accent }]}>{t("config.title")}</Text>
                 <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
-                  Swipe down to cancel
+                  {t("common.swipeDownCancel")}
                 </Text>
               </View>
             </View>
@@ -342,13 +339,13 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
 
               {/* Play mode */}
               <View style={styles.section}>
-                <SectionLabel label="PLAY MODE" />
+                <SectionLabel label={t("config.playMode")} />
                 <View style={styles.toggleRow}>
                   {PLAY_MODE_OPTIONS.map((opt) => (
                     <ToggleBtn
                       key={opt.id}
-                      label={opt.label}
-                      desc={opt.desc}
+                      label={t(opt.labelKey)}
+                      desc={t(opt.descKey)}
                       active={playMode === opt.id}
                       onPress={() => {
                         trigger("selection");
@@ -364,8 +361,8 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
               {/* Players */}
               <View style={styles.section}>
                 <SectionLabel
-                  label="PLAYERS"
-                  badge={playMode === "online" ? "Max seats" : undefined}
+                  label={t("config.players")}
+                  badge={playMode === "online" ? t("config.maxSeats") : undefined}
                 />
                 <PlayerCountStrip
                   value={numPlayers}
@@ -383,7 +380,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
               {playMode === "online" && (
                 <>
                   <View style={styles.section}>
-                    <SectionLabel label="BUY IN" />
+                    <SectionLabel label={t("config.buyIn")} />
                     <BuyInStrip
                       value={buyIn}
                       onChange={(val) => {
@@ -398,13 +395,13 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
 
               {/* Game Mode */}
               <View style={styles.section}>
-                <SectionLabel label="GAME MODE" />
+                <SectionLabel label={t("config.gameMode")} />
                 <View style={styles.toggleRow}>
                   {VARIANTS.map((v) => (
                     <ToggleBtn
                       key={v.id}
                       icon={v.icon}
-                      label={v.label}
+                      label={t(v.labelKey)}
                       active={variant === v.id}
                       onPress={() => {
                         trigger("selection");
@@ -419,13 +416,13 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
 
               {/* Play Style */}
               <View style={styles.section}>
-                <SectionLabel label="PLAY STYLE" />
+                <SectionLabel label={t("config.playStyle")} />
                 <View style={styles.toggleRow}>
                   {PLAY_STYLE_OPTIONS.map((opt) => (
                     <ToggleBtn
                       key={opt.id}
-                      label={opt.label}
-                      desc={opt.desc}
+                      label={t(opt.labelKey)}
+                      desc={t(opt.descKey)}
                       active={playStyle === opt.id}
                       onPress={() => {
                         trigger("selection");
@@ -441,20 +438,20 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
               {/* Throw-in */}
               <View style={[styles.section, numPlayers <= 2 && styles.sectionLocked]}>
                 <SectionLabel
-                  label="THROW-IN"
-                  badge={numPlayers <= 2 ? "3–6 players only" : undefined}
+                  label={t("config.throwIn")}
+                  badge={numPlayers <= 2 ? t("config.throwInLocked") : undefined}
                 />
                 <View style={styles.toggleRow}>
-                  {THROW_OPTIONS.map((t) => (
+                  {THROW_OPTIONS.map((opt) => (
                     <ToggleBtn
-                      key={t.id}
-                      label={t.label}
-                      desc={t.desc}
-                      active={throwIn === t.id}
+                      key={opt.id}
+                      label={t(opt.labelKey)}
+                      desc={t(opt.descKey)}
+                      active={throwIn === opt.id}
                       disabled={numPlayers <= 2}
                       onPress={() => {
                         trigger("selection");
-                        setThrowIn(t.id);
+                        setThrowIn(opt.id);
                       }}
                     />
                   ))}
@@ -467,7 +464,7 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
 
                   {/* AI Difficulty */}
                   <View style={styles.section}>
-                    <SectionLabel label="AI DIFFICULTY" />
+                    <SectionLabel label={t("config.aiDifficulty")} />
                     <DifficultyPicker
                       value={difficulty}
                       onChange={(d) => {
@@ -499,11 +496,11 @@ export function GameConfigDrawer({ visible, onClose }: GameConfigDrawerProps) {
                 label={
                   playMode === "online"
                     ? creating
-                      ? "CREATING…"
+                      ? t("config.creating")
                       : authLoading && !authReady
-                        ? "SIGNING IN…"
-                        : "CREATE ROOM"
-                    : "START GAME"
+                        ? t("config.signingIn")
+                        : t("config.createRoom")
+                    : t("lobby.startGame")
                 }
                 variant="primary"
                 onPress={handleStart}
@@ -543,11 +540,16 @@ function SectionLabel({ label, badge }: { label: string; badge?: string }) {
   );
 }
 
-function playerCountHint(count: number, playMode: PlayMode): string {
+function playerCountHint(
+  count: number,
+  playMode: PlayMode,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
   if (playMode === "online") {
-    return `${count} seats at the table · manage AI in the lobby`;
+    return t("config.onlineSeatsHint", { count });
   }
-  return PLAYER_OPTIONS.find((p) => p.count === count)?.hint ?? "";
+  if (count === 2) return t("config.oneVsOne");
+  return t("config.vsAiHint", { n: count - 1 });
 }
 
 function PlayerCountStrip({
@@ -559,15 +561,16 @@ function PlayerCountStrip({
   playMode: PlayMode;
   onChange: (n: number) => void;
 }) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   return (
     <View>
       <View style={styles.playerStripRow}>
-        {PLAYER_OPTIONS.map((p) => {
-          const active = value === p.count;
+        {PLAYER_COUNTS.map((count) => {
+          const active = value === count;
           return (
             <Pressable
-              key={p.count}
+              key={count}
               style={[
                 styles.playerChip,
                 {
@@ -579,7 +582,7 @@ function PlayerCountStrip({
                   backgroundColor: ui.accentSoft,
                 },
               ]}
-              onPress={() => onChange(p.count)}
+              onPress={() => onChange(count)}
             >
               <Text
                 style={[
@@ -588,7 +591,7 @@ function PlayerCountStrip({
                   active && { color: ui.accent },
                 ]}
               >
-                {p.count}
+                {count}
               </Text>
               {active && (
                 <View style={[styles.playerChipDot, { backgroundColor: ui.accent }]} />
@@ -598,7 +601,7 @@ function PlayerCountStrip({
         })}
       </View>
       <Text style={[styles.playerHintLine, { color: ui.textMuted }]}>
-        {playerCountHint(value, playMode)}
+        {playerCountHint(value, playMode, t)}
       </Text>
     </View>
   );

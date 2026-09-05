@@ -9,7 +9,6 @@ type FriendEntry = {
   friendshipId: Id<"friendships">;
   userId: Id<"users">;
   handle: string;
-  displayName: string;
   createdAt: number;
 };
 
@@ -24,7 +23,6 @@ async function toEntry(
     friendshipId: friendship._id,
     userId: otherId,
     handle: profile.handle,
-    displayName: profile.displayName,
     createdAt: friendship.createdAt,
   };
 }
@@ -69,7 +67,7 @@ async function notifyMyProfileTo(
   kind: "request" | "accepted",
 ): Promise<void> {
   const mine = await getProfileByUserId(ctx, me);
-  const name = mine?.displayName ?? mine?.handle ?? "Someone";
+  const name = mine?.handle ? `@${mine.handle}` : "Someone";
   if (kind === "request") {
     await notifyUser(ctx, to, {
       title: "New friend request",
@@ -161,7 +159,7 @@ export const listFriends = query({
       const entry = await toEntry(ctx, f, otherId);
       if (entry) entries.push(entry);
     }
-    entries.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    entries.sort((a, b) => a.handle.localeCompare(b.handle));
     return entries;
   },
 });

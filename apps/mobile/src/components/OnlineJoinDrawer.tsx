@@ -27,6 +27,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { MenuButton } from "./MenuButton";
 import { trigger } from "../feedback/haptics";
+import { useTranslation } from "react-i18next";
 import { saveRoomSession } from "../game/onlineSessionStorage";
 import { useOnlineAuth } from "../game/useAuthBootstrap";
 import { useGameStore } from "../game/store";
@@ -64,6 +65,7 @@ export interface OnlineJoinDrawerProps {
 }
 
 export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const sheetGradient = tableTheme.backgroundGradient ?? [
@@ -304,9 +306,9 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
 
   const handleJoin = useCallback(async () => {
     const trimmedCode = code.replace(/\D/g, "").slice(0, 6);
-    const name = useGameStore.getState().onlineDisplayName.trim() || "Player";
+    const name = useGameStore.getState().onlineDisplayName.trim() || t("common.player");
     if (trimmedCode.length !== 6) {
-      setError("Enter a 6-digit room code");
+      setError(t("join.enterCode"));
       return;
     }
     Keyboard.dismiss();
@@ -330,17 +332,17 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
       setModalVisible(false);
       onClose();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Could not join room";
+      const msg = e instanceof Error ? e.message : t("join.failed");
       setError(
         msg.toLowerCase().includes("not authenticated")
-          ? "Could not sign in for online play. Check your connection and try again."
+          ? t("config.authFailed")
           : msg,
       );
       trigger("error");
     } finally {
       setJoining(false);
     }
-  }, [code, ensureAuthenticated, joinRoom, enterOnlineLobby, onClose, resetKeyboardLift]);
+  }, [code, ensureAuthenticated, joinRoom, enterOnlineLobby, onClose, resetKeyboardLift, t]);
 
   const aBackdrop = useAnimatedStyle(() => ({ opacity: backdropO.value }));
   const aSheet = useAnimatedStyle(() => ({
@@ -378,9 +380,9 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
                 <View style={[styles.handle, { backgroundColor: ui.accentMuted }]} />
               </View>
               <View style={styles.header}>
-                <Text style={[styles.title, { color: ui.accent }]}>JOIN GAME</Text>
+                <Text style={[styles.title, { color: ui.accent }]}>{t("join.title")}</Text>
                 <Text style={[styles.headerSub, { color: ui.textPrimary }]}>
-                  Swipe down to close
+                  {t("common.swipeDownClose")}
                 </Text>
               </View>
             </View>
@@ -403,19 +405,19 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
             scrollEventThrottle={16}
           >
             <Text style={[styles.sub, { color: ui.textPrimary }]}>
-              Enter the room code from your friend
+              {t("join.subtitle")}
             </Text>
             {trimmedCode.length === 6 && (
               <Text style={[styles.previewHint, { color: ui.textMuted }]}>
                 {roomPreview === undefined
-                  ? "Looking up room…"
+                  ? t("join.lookingUp")
                   : roomPreview
-                    ? `${roomPreview.humanCount} / ${roomPreview.maxPlayers} players in lobby`
-                    : "No open lobby with this code"}
+                    ? t("join.lobbyPreview", { n: roomPreview.humanCount, max: roomPreview.maxPlayers })
+                    : t("join.noLobby")}
               </Text>
             )}
 
-            <Text style={[styles.label, { color: ui.textMuted }]}>ROOM CODE</Text>
+            <Text style={[styles.label, { color: ui.textMuted }]}>{t("lobby.roomCode")}</Text>
             <TextInput
               ref={codeInputRef}
               style={[
@@ -447,10 +449,10 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
               <MenuButton
                 label={
                   joining
-                    ? "JOINING…"
+                    ? t("join.joining")
                     : authLoading && !authReady
-                      ? "SIGNING IN…"
-                      : "JOIN ROOM"
+                      ? t("config.signingIn")
+                      : t("join.joinRoom")
                 }
                 variant="primary"
                 icon="▶"
@@ -478,7 +480,7 @@ export function OnlineJoinDrawer({ visible, onClose }: OnlineJoinDrawerProps) {
               onPress={dismissKeyboard}
               hitSlop={8}
             >
-              <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>Done</Text>
+              <Text style={[styles.accessoryDoneText, { color: ui.accent }]}>{t("common.done")}</Text>
             </Pressable>
           </View>
         </InputAccessoryView>

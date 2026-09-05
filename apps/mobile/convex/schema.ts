@@ -102,11 +102,12 @@ export default defineSchema({
   }).index("by_userId", ["userId"]),
 
   // Public-facing player profile, keyed by the canonical users._id.
+  // Identity is handle-only (no separate display name).
   profiles: defineTable({
     userId: v.id("users"),
     handle: v.string(),
     handleLower: v.string(),
-    displayName: v.string(),
+    displayName: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

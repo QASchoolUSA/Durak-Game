@@ -92,30 +92,12 @@ import { useGameLayout } from "../theme/useGameLayout";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { trigger } from "../feedback/haptics";
 import { useReduceMotion } from "../hooks/useReduceMotion";
+import { useTranslation } from "react-i18next";
 
 const TABLE_EXIT_RESET_MS = 620;
 const ROUND_CLEAR_DELAY_MS = 120;
 const ONLINE_TIMER_DEFER_MS = 0;
 
-const STANDARD_COACH_STEPS: CoachStep[] = [
-  {
-    title: "Play your cards",
-    body: "When it's your turn, your seat glows and the timer ring counts down. Drag or tap a highlighted card to attack or defend.",
-  },
-  {
-    title: "Take or pass",
-    body: "As defender, beat every attack or press TAKE. Attackers press DONE when finished throwing in.",
-  },
-  {
-    title: "Beat the clock",
-    body: "Each turn is timed. If time runs out, you automatically Take (as defender) or press Done (as attacker). When opening the attack, your lowest card is played. Otherwise you must still play manually.",
-  },
-];
-
-const ABILITIES_COACH_STEP: CoachStep = {
-  title: "Abilities",
-  body: "Return undoes your last play for 3 seconds. Graveyard shows discarded cards; Reveal lets you peek at an opponent's hand.",
-};
 
 function seatRoleForFinished(
   game: GameState,
@@ -233,6 +215,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const forfeit = useMutation(api.rooms.forfeit);
   const useGraveyardAbility = useMutation(api.rooms.useGraveyardAbility);
   const useRevealAbility = useMutation(api.rooms.useRevealAbility);
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const insets = useSafeAreaInsets();
   const lay = useGameLayout();
@@ -247,11 +230,21 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const skipInitialTurnStartRef = useRef(playMode === "online");
 
   const coachSteps = useMemo(
-    () =>
-      game?.rules.playStyle === "abilities"
-        ? [...STANDARD_COACH_STEPS, ABILITIES_COACH_STEP]
-        : STANDARD_COACH_STEPS,
-    [game?.rules.playStyle],
+    () => {
+      const standard: CoachStep[] = [
+        { title: t("game.coach.playTitle"), body: t("game.coach.playBody") },
+        { title: t("game.coach.takePassTitle"), body: t("game.coach.takePassBody") },
+        { title: t("game.coach.clockTitle"), body: t("game.coach.clockBody") },
+      ];
+      if (game?.rules.playStyle === "abilities") {
+        return [
+          ...standard,
+          { title: t("game.coach.abilitiesTitle"), body: t("game.coach.abilitiesBody") },
+        ];
+      }
+      return standard;
+    },
+    [game?.rules.playStyle, t],
   );
   const [coachVisible, setCoachVisible] = useState(false);
   const [coachStepIndex, setCoachStepIndex] = useState(0);
@@ -942,7 +935,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const openGraveyard = useCallback(async () => {
     if (!abilitiesMode) {
       if (!canAffordGold(goldBalance, GRAVEYARD_GOLD_COST)) {
-        setOnlineStatusMessage("Not enough gold.");
+        setOnlineStatusMessage(t("common.notEnoughGold"));
         trigger("error");
         return;
       }
@@ -956,12 +949,12 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
           syncGoldBalance(result.goldBalance);
         } catch {
           trigger("error");
-          setOnlineStatusMessage("Not enough gold.");
+          setOnlineStatusMessage(t("common.notEnoughGold"));
           return;
         }
       } else if (!trySpendGold(GRAVEYARD_GOLD_COST)) {
         trigger("error");
-        setOnlineStatusMessage("Not enough gold.");
+        setOnlineStatusMessage(t("common.notEnoughGold"));
         return;
       }
     }
@@ -978,6 +971,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     trySpendGold,
     pauseForOverlay,
     setOnlineStatusMessage,
+    t,
   ]);
 
   const handleGraveyardPress = useCallback(() => {
@@ -991,7 +985,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       !abilitiesMode &&
       !canAffordGold(goldBalance, REVEAL_GOLD_COST)
     ) {
-      setOnlineStatusMessage("Not enough gold.");
+      setOnlineStatusMessage(t("common.notEnoughGold"));
       return;
     }
     pauseForOverlay();
@@ -1002,6 +996,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
     goldBalance,
     pauseForOverlay,
     setOnlineStatusMessage,
+    t,
   ]);
 
   const handleRevealCard = useCallback(
@@ -1018,7 +1013,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
           return result.card;
         } catch {
           trigger("error");
-          setOnlineStatusMessage("Reveal failed.");
+          setOnlineStatusMessage(t("errors.revealFailed"));
           return null;
         }
       }
@@ -1028,7 +1023,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         !trySpendGold(REVEAL_GOLD_COST)
       ) {
         trigger("error");
-        setOnlineStatusMessage("Not enough gold.");
+        setOnlineStatusMessage(t("common.notEnoughGold"));
         return null;
       }
 
@@ -1053,6 +1048,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       rollbackGoldSpend,
       game,
       setOnlineStatusMessage,
+      t,
     ],
   );
 
@@ -1197,9 +1193,15 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
               hitSlop={10}
             >
               <Text style={[styles.headerBtnText, { color: ui.textPrimary, fontSize: lay.s(13) }]}>☰</Text>
-              <Text style={[styles.headerBtnText, { color: ui.textPrimary, fontSize: lay.s(13), fontWeight: "700" }]}>Menu</Text>
+              <Text style={[styles.headerBtnText, { color: ui.textPrimary, fontSize: lay.s(13), fontWeight: "700" }]}>{t("game.menu")}</Text>
             </Pressable>
           </View>
+        </View>
+
+        <View style={[styles.turnStatusSlot, { paddingVertical: lay.s(spacing.sm) }]}>
+          <TurnStatusBanner
+            status={!dealingInProgress && !takeInProgress ? turnStatus : null}
+          />
         </View>
 
         <View
@@ -1207,7 +1209,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
             styles.opponents,
             {
               paddingHorizontal: 0,
-              paddingTop: lay.s(spacing.lg),
+              paddingTop: 0,
               paddingBottom: lay.s(spacing.sm),
               gap: lay.s(spacing.sm),
             },
@@ -1250,12 +1252,6 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
         </View>
 
         <View style={styles.playArea}>
-          <View style={styles.turnBannerSlot} pointerEvents="none">
-            {!dealingInProgress && !takeInProgress && (
-              <TurnStatusBanner status={turnStatus} />
-            )}
-          </View>
-
           <View style={styles.tableSlot} onLayout={handleTableSlotLayout}>
             <TableArea
               ref={tableAreaRef}
@@ -1317,7 +1313,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
                     setTakeConfirmOpen(true);
                   }}
                 >
-                  <Text style={styles.actionText}>TAKE</Text>
+                  <Text style={styles.actionText}>{t("game.action.take")}</Text>
                 </Pressable>
               )}
 
@@ -1332,7 +1328,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
                   disabled={submittingMove || dealingInProgress || takeInProgress}
                   onPress={() => submitHuman({ type: "PASS", player: humanId })}
                 >
-                  <Text style={[styles.actionText, styles.doneText]}>DONE</Text>
+                  <Text style={[styles.actionText, styles.doneText]}>{t("game.action.done")}</Text>
                 </Pressable>
               )}
             </View>
@@ -1384,7 +1380,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
 
             <HumanPlayerChip
               playerId={humanId}
-              name={names[humanId] ?? onlineDisplayName ?? "Player"}
+              name={names[humanId] ?? onlineDisplayName ?? t("common.player")}
               role={seatRoleForFinished(game, humanId)}
               indication={humanIndication}
               onClock={humanOnClock}
@@ -1445,10 +1441,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
 
       <ConfirmDialog
         visible={takeConfirmOpen}
-        title="Take all cards?"
-        message="You couldn't beat the attack. Are you sure you want to pick up every card on the table?"
-        confirmLabel="Take"
-        cancelLabel="Cancel"
+        title={t("game.confirm.takeTitle")}
+        message={t("game.confirm.takeMessage")}
+        confirmLabel={t("game.confirm.take")}
+        cancelLabel={t("common.cancel")}
         onConfirm={confirmTake}
         onCancel={() => setTakeConfirmOpen(false)}
       />
@@ -1544,6 +1540,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   headerBtnText: { fontWeight: "700" },
+  turnStatusSlot: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
   opponents: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1559,14 +1559,6 @@ const styles = StyleSheet.create({
     flex: 1,
     position: "relative",
     minHeight: 0,
-  },
-  turnBannerSlot: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 6,
-    alignItems: "center",
   },
   tableSlot: {
     flex: 1,

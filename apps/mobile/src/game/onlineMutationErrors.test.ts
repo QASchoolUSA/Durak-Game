@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { formatOnlineMutationError } from "./onlineMutationErrors";
+import { i18n } from "../i18n/i18n";
+
+beforeAll(async () => {
+  await i18n.changeLanguage("en");
+});
 
 describe("formatOnlineMutationError", () => {
   it("maps not your turn errors", () => {

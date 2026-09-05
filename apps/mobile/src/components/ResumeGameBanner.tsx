@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useConvexAuth, useQuery } from "convex/react";
+import { useTranslation } from "react-i18next";
 import { api } from "../../convex/_generated/api";
 import { useUiTheme } from "../theme/UiThemeContext";
 import { useGameStore } from "../game/store";
@@ -15,6 +16,7 @@ import { radius, spacing, typography } from "../theme";
  * memory is gone — the core of the "rejoin after leaving/closing" feature.
  */
 export function ResumeGameBanner() {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const insets = useSafeAreaInsets();
   const { isAuthenticated } = useConvexAuth();
@@ -41,11 +43,13 @@ export function ResumeGameBanner() {
 
   const opponents = room.opponents.filter(Boolean);
   const subtitle =
-    opponents.length > 0 ? `with ${opponents.join(", ")}` : "Tap to rejoin";
+    opponents.length > 0
+      ? t("home.resume.with", { names: opponents.join(", ") })
+      : t("home.resume.tap");
 
   const onResume = () => {
     const displayName =
-      useGameStore.getState().onlineDisplayName.trim() || "Player";
+      useGameStore.getState().onlineDisplayName.trim() || t("common.player");
     void saveRoomSession({ roomId: room.roomId, displayName });
     trigger("gameStart");
     enterOnlineLobby({
@@ -67,14 +71,14 @@ export function ResumeGameBanner() {
       >
         <View style={styles.text}>
           <Text style={[styles.title, { color: ui.accent }]}>
-            {room.isYourTurn ? "YOUR TURN — GAME IN PROGRESS" : "GAME IN PROGRESS"}
+            {room.isYourTurn ? t("home.resume.yourTurn") : t("home.resume.inProgress")}
           </Text>
           <Text style={[styles.body, { color: ui.textPrimary }]} numberOfLines={1}>
             {subtitle}
           </Text>
         </View>
         <View style={[styles.resume, { backgroundColor: ui.accent }]}>
-          <Text style={[styles.resumeText, { color: ui.badgeText }]}>RESUME</Text>
+          <Text style={[styles.resumeText, { color: ui.badgeText }]}>{t("home.resume.cta")}</Text>
         </View>
       </Pressable>
     </View>

@@ -22,6 +22,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 import type { Card as CardModel, Suit } from "@durak/game-core";
 import { Card } from "./Card";
 import { sortHandForDisplay } from "../game/handSort";
@@ -159,6 +160,7 @@ function FlippableRevealCard({
 }
 
 export function RevealSheet({ visible, onClose, trumpSuit, opponents, onRevealCard }: RevealSheetProps) {
+  const { t } = useTranslation();
   const ui = useUiTheme();
   const tableTheme = useTableTheme();
   const sheetGradient = tableTheme.backgroundGradient ?? [
@@ -372,17 +374,17 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents, onRevealCa
 
   const headerTitle =
     step === "pickPlayer"
-      ? "CHOOSE PLAYER"
+      ? t("game.reveal.choosePlayer")
       : step === "pickCard"
-        ? `REVEAL — ${selectedOpponent?.name ?? ""}`
-        : "REVEALED";
+        ? t("game.reveal.title", { name: selectedOpponent?.name ?? "" })
+        : t("game.reveal.revealed");
 
   const headerSub =
     step === "revealing"
-      ? "Memorize this card…"
+      ? t("game.reveal.memorize")
       : step === "pickCard"
-        ? "Tap a card to peek · Swipe down to close"
-        : "Pick an opponent with 2+ cards · Swipe down to close";
+        ? t("game.reveal.tapCard")
+        : t("game.reveal.pickOpponent");
 
   const bodyPaddingBottom = Math.max(insets.bottom, lay.s(spacing.lg)) + lay.s(spacing.lg);
 
@@ -417,7 +419,7 @@ export function RevealSheet({ visible, onClose, trumpSuit, opponents, onRevealCa
               <View style={styles.header}>
                 {step === "pickCard" && snapshotOpponents.length > 1 && (
                   <Pressable onPress={handleBackToPlayers} hitSlop={12} style={styles.backBtn}>
-                    <Text style={[styles.backBtnText, { color: ui.accent }]}>← Players</Text>
+                    <Text style={[styles.backBtnText, { color: ui.accent }]}>{t("game.reveal.backPlayers")}</Text>
                   </Pressable>
                 )}
                 <Text style={[styles.title, { color: ui.accent }]}>{headerTitle}</Text>
