@@ -181,9 +181,11 @@ describe("attack / throw-in limits", () => {
     expect(legalAttacks(s, "A")).toHaveLength(2);
     s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "clubs") });
     expect(legalAttacks(s, "A")).toHaveLength(1);
+    expect(s.table).toHaveLength(2);
+    // Last throw-in empties A → take resolves immediately (no deadlock).
     s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "diamonds") });
-    expect(legalAttacks(s, "A")).toHaveLength(0);
-    expect(s.table).toHaveLength(3);
+    expect(s.takeInProgress).toBe(false);
+    expect(s.table).toHaveLength(0);
   });
 
   it("rejects throw-in past defender hand size during take", () => {
@@ -451,6 +453,52 @@ describe("game over", () => {
     expect(s.loserId).toBeNull();
     expect(s.table).toHaveLength(0);
     expect(s.discard.map((c) => c.id)).toContain(cardId(9, "hearts"));
+  });
+
+  it("2p last throw-in during take completes bout (no deadlock)", () => {
+    // Defender must hold ≥2 cards so one throw-in is legal (capacity rule).
+    let s = baseState({
+      hands: {
+        A: [makeCard(6, "clubs")],
+        B: [makeCard(7, "diamonds"), makeCard(8, "diamonds")],
+      },
+      deck: [],
+      table: [{ attack: makeCard(6, "hearts") }],
+      takeInProgress: true,
+    });
+    expect(legalAttacks(s, "A")).toHaveLength(1);
+    s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(6, "clubs") });
+    expect(s.takeInProgress).toBe(false);
+    expect(s.table).toHaveLength(0);
+    expect(isGameOver(s)).toBe(true);
+    expect(s.loserId).toBe("B");
+  });
+
+  it("3p last co-attacker throw-in during take completes bout", () => {
+    let s = baseState({
+      players: ["A", "B", "C"],
+      hands: {
+        A: [],
+        B: [makeCard(7, "diamonds"), makeCard(8, "diamonds")],
+        C: [makeCard(6, "clubs")],
+      },
+      deck: [],
+      table: [{ attack: makeCard(6, "hearts") }],
+      attackerId: "A",
+      defenderId: "B",
+      takeInProgress: true,
+      finishedOrder: ["A"],
+    });
+    expect(legalAttacks(s, "C")).toHaveLength(1);
+    s = applyMove(s, { type: "ATTACK", player: "C", card: makeCard(6, "clubs") });
+    expect(s.takeInProgress).toBe(false);
+    expect(s.table).toHaveLength(0);
+    if (s.phase === "playing") {
+      expect(s.hands["B"]!.map((c) => c.id)).toContain(cardId(6, "hearts"));
+      expect(s.hands["B"]!.map((c) => c.id)).toContain(cardId(6, "clubs"));
+    } else {
+      expect(s.phase).toBe("gameOver");
+    }
   });
 });
 

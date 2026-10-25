@@ -340,7 +340,20 @@ function assignNextRoles(state: GameState, defenderTook: boolean): void {
 function tryResolveZeroAttackers(state: GameState): void {
   if (state.phase !== "playing") return;
   const atk = attackers(state);
-  if (atk.length > 0 || state.takeInProgress) return;
+  if (atk.length > 0) return;
+
+  // Last throw-in during TAKE emptied every attacker — complete the take
+  // so the bout cannot stall with takeInProgress and nobody left to pass.
+  if (state.takeInProgress) {
+    const taken: Card[] = [];
+    for (const pair of state.table) {
+      taken.push(pair.attack);
+      if (pair.defense) taken.push(pair.defense);
+    }
+    state.hands[state.defenderId] = [...handOf(state, state.defenderId), ...taken];
+    endRound(state, true);
+    return;
+  }
 
   if (state.table.length > 0 && undefendedCount(state) === 0) {
     for (const pair of state.table) {

@@ -340,7 +340,12 @@ function generateCandidates(
   difficulty: AiDifficulty,
 ): ScoredMove[] {
   if (state.phase !== "playing") return [];
-  if (handOf(state, player).length === 0) return [];
+
+  // Empty primary attacker may still PASS after throwing their last card.
+  if (handOf(state, player).length === 0) {
+    if (!canPass(state, player)) return [];
+    return [{ move: { type: "PASS", player }, heuristic: 0 }];
+  }
 
   const raw =
     player === state.defenderId
@@ -515,7 +520,6 @@ export function pickMove(
   difficulty: AiDifficulty = "medium",
 ): Move | null {
   if (state.phase !== "playing") return null;
-  if (handOf(state, player).length === 0) return null;
 
   const candidates = generateCandidates(state, player, difficulty);
   if (candidates.length === 0) return null;

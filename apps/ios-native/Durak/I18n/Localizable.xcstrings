@@ -1,0 +1,528 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "(You)" : {
+
+    },
+    "%@" : {
+
+    },
+    "%@ (You)" : {
+
+    },
+    "%@ • %@ Players" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ • %2$@ Players"
+          }
+        }
+      }
+    },
+    "%@ Players" : {
+
+    },
+    "• %@" : {
+
+    },
+    "+10 GOLD COINS" : {
+
+    },
+    "🃏" : {
+
+    },
+    "👑" : {
+
+    },
+    "🤖" : {
+
+    },
+    "🪙" : {
+
+    },
+    "10s" : {
+
+    },
+    "12s" : {
+
+    },
+    "15s" : {
+
+    },
+    "30s" : {
+
+    },
+    "ACTIVE" : {
+
+    },
+    "Add AI" : {
+
+    },
+    "AI BOT" : {
+
+    },
+    "Ask your friend for the room code or check your match invite." : {
+
+    },
+    "Both players cleared their hands simultaneously." : {
+
+    },
+    "CARD GAME" : {
+
+    },
+    "Close" : {
+
+    },
+    "Credits (Stakes)" : {
+
+    },
+    "Done" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Бито"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Бито"
+          }
+        }
+      }
+    },
+    "DRAW" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DRAW"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "НИЧЬЯ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "НІЧИЯ"
+          }
+        }
+      }
+    },
+    "DURAK" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DURAK"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ДУРАК"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ДУРАК"
+          }
+        }
+      }
+    },
+    "Durak (Left with cards)" : {
+
+    },
+    "DURAK!" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DURAK!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ДУРАК!"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ДУРАК!"
+          }
+        }
+      }
+    },
+    "ENTER ROOM CODE" : {
+
+    },
+    "GET STARTED" : {
+
+    },
+    "Gold (Skills)" : {
+
+    },
+    "Graveyard is empty" : {
+
+    },
+    "HOME" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HOME"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ГЛАВНАЯ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ГОЛОВНА"
+          }
+        }
+      }
+    },
+    "HOST" : {
+
+    },
+    "HOW TO PLAY" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HOW TO PLAY"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПРАВИЛА ИГРЫ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ЯК ГРАТИ"
+          }
+        }
+      }
+    },
+    "Invite" : {
+
+    },
+    "JOIN GAME" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JOIN GAME"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ВОЙТИ В ИГРУ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПРИЄДНАТИСЯ"
+          }
+        }
+      }
+    },
+    "JOINED" : {
+
+    },
+    "Leave" : {
+
+    },
+    "Leaving now returns you to the main menu." : {
+
+    },
+    "LOSER" : {
+
+    },
+    "MAIN MENU" : {
+
+    },
+    "MATCH STANDINGS" : {
+
+    },
+    "ONLINE LOBBY" : {
+
+    },
+    "Peeking into %@'s hand" : {
+
+    },
+    "Perevodnoy" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perevodnoy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переводной"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевідний"
+          }
+        }
+      }
+    },
+    "PLAY" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PLAY"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ИГРАТЬ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ГРАТИ"
+          }
+        }
+      }
+    },
+    "PLAY AGAIN" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PLAY AGAIN"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ИГРАТЬ СНОВА"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ГРАТИ ЗНОВУ"
+          }
+        }
+      }
+    },
+    "Play as Guest or sign in to preserve your Gold, Credits, and match statistics across devices." : {
+
+    },
+    "Podkidnoy" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podkidnoy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подкидной"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підкидний"
+          }
+        }
+      }
+    },
+    "Progress & economy safely backed up" : {
+
+    },
+    "READY" : {
+
+    },
+    "Remove" : {
+
+    },
+    "Seat %@ — Open" : {
+
+    },
+    "SETTINGS" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SETTINGS"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "НАСТРОЙКИ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "НАЛАШТУВАННЯ"
+          }
+        }
+      }
+    },
+    "Share with friends" : {
+
+    },
+    "START" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "START"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "НАЧАТЬ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПОЧАТИ"
+          }
+        }
+      }
+    },
+    "Table Creator" : {
+
+    },
+    "Take" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Take"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Взять"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Взяти"
+          }
+        }
+      }
+    },
+    "Total: %@" : {
+
+    },
+    "Undo" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вернуть"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повернути"
+          }
+        }
+      }
+    },
+    "Victory Match Bonus" : {
+
+    },
+    "VICTORY!" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VICTORY!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПОБЕДА!"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПЕРЕМОГА!"
+          }
+        }
+      }
+    },
+    "Waiting for host to start the match..." : {
+
+    },
+    "Welcome to Durak — the classic Russian card game." : {
+
+    },
+    "YOUR DISPLAY NAME" : {
+
+    },
+    "ДУРАК" : {
+
+    }
+  },
+  "version" : "1.0"
+}

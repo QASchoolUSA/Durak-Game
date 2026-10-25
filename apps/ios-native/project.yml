@@ -1,0 +1,33 @@
+name: Durak
+options:
+  bundleIdPrefix: com.qaschoolusa
+  deploymentTarget:
+    iOS: "18.0"
+packages:
+  DurakGameCore:
+    path: ./DurakGameCore
+targets:
+  Durak:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: Durak
+    dependencies:
+      - package: DurakGameCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.qaschoolusa.durak
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        DEVELOPMENT_TEAM: 6MM44B6ZYT
+        CODE_SIGN_STYLE: Automatic
+        INFOPLIST_KEY_CFBundleDisplayName: "Durak"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
+        INFOPLIST_KEY_UIRequiresFullScreen: YES
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        SWIFT_VERSION: "5.10"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_PREVIEWS: YES
