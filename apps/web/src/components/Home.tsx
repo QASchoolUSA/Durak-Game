@@ -5,6 +5,7 @@ import { useOnlineAuth } from "../auth/AuthGateProvider";
 import { useGameStore } from "../store/gameStore";
 import { SettingsModal } from "./SettingsModal";
 import { RulesModal } from "./RulesModal";
+import { ResumeGameBanner } from "./ResumeGameBanner";
 import { Card } from "./Card";
 
 export const Home: React.FC = () => {
@@ -95,8 +96,15 @@ export const Home: React.FC = () => {
     }
   };
 
+  const turnTimerSeconds = useGameStore((s) => s.turnTimerSeconds);
+  const goldBalance = useGameStore((s) => s.goldBalance);
+  const creditBalance = useGameStore((s) => s.creditBalance);
+
   return (
     <div className="home-container">
+      <div className="home-top-strip">
+        <ResumeGameBanner />
+      </div>
       <div className="hero-panel" style={{ maxWidth: "520px" }}>
         <div className="card-fan">
           <div className="deco-card"><Card faceDown style={{ width: "100%", height: "100%", boxShadow: "none" }} /></div>
@@ -106,6 +114,12 @@ export const Home: React.FC = () => {
         </div>
 
         <h1 className="glow-title">DURAK</h1>
+        <p className="tagline">Classic Durak for desktop — drag cards to play</p>
+
+        <div className="home-wallet-row">
+          <span>🪙 {goldBalance} gold</span>
+          <span>💰 {creditBalance} credits</span>
+        </div>
 
         {/* Player name edit */}
         <div className="form-group" style={{ margin: "10px 0" }}>
@@ -142,6 +156,13 @@ export const Home: React.FC = () => {
             >
               Join Online Game
             </button>
+            <div className="home-config-pills">
+              <span>{numPlayers}p</span>
+              <span>{variant === "perevodnoy" ? "Passing" : "Classic"}</span>
+              <span>{playStyle === "abilities" ? "Skills" : "Standard"}</span>
+              <span>{turnTimerSeconds}s</span>
+              <span>{difficulty}</span>
+            </div>
             <button className="btn btn-secondary btn-md" onClick={() => setSettingsOpen(true)}>
               Settings
             </button>
@@ -156,6 +177,9 @@ export const Home: React.FC = () => {
             <div style={{ fontSize: "18px", fontWeight: "700", color: "var(--gold-bright)" }}>
               CREATE GAME ROOM
             </div>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>
+              Uses your Settings: {numPlayers} players · {variant} · {throwInScope} throw-in · {playStyle} · {turnTimerSeconds}s timer
+            </p>
             <div className="form-group">
               <label className="form-label">Buy-In Amount (Credits)</label>
               <select

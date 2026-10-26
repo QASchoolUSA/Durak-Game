@@ -15,12 +15,15 @@ export interface CardProps {
   dimmed?: boolean;
   highlighted?: boolean;
   selected?: boolean;
+  dragging?: boolean;
+  grabCursor?: boolean;
   onClick?: () => void;
+  onPointerDown?: (e: React.PointerEvent) => void;
+  onPointerMove?: (e: React.PointerEvent) => void;
+  onPointerUp?: (e: React.PointerEvent) => void;
+  onPointerCancel?: (e: React.PointerEvent) => void;
   style?: React.CSSProperties;
   themeOverride?: CardTheme;
-  draggable?: boolean;
-  onDragStart?: (e: React.DragEvent) => void;
-  onDragEnd?: (e: React.DragEvent) => void;
 }
 
 const BackCrest: React.FC<{ accent: string; accentSoft: string }> = ({ accent, accentSoft }) => (
@@ -123,12 +126,15 @@ export const Card: React.FC<CardProps> = React.memo(({
   dimmed,
   highlighted,
   selected,
+  dragging,
+  grabCursor,
   onClick,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
   style,
   themeOverride,
-  draggable,
-  onDragStart,
-  onDragEnd,
 }) => {
   const cardDesign = useGameStore((s) => s.cardDesign);
   const theme = themeOverride ?? getCardTheme(cardDesign);
@@ -141,6 +147,13 @@ export const Card: React.FC<CardProps> = React.memo(({
     }
   };
 
+  const pointerProps = {
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onPointerCancel,
+  };
+
   if (isCardFaceDown) {
     const startColor = theme.backLight ?? theme.back;
     const endColor = theme.back;
@@ -149,12 +162,16 @@ export const Card: React.FC<CardProps> = React.memo(({
 
     return (
       <div
-        className={`card card-back ${dimmed ? "dimmed" : ""} ${highlighted ? "highlighted" : ""}`}
+        className={`card card-back ${dimmed ? "dimmed" : ""} ${highlighted ? "highlighted" : ""} ${dragging ? "dragging" : ""}`}
         onClick={handleCardClick}
+        {...pointerProps}
         style={{
           backgroundColor: theme.back,
           borderColor: theme.backAccent,
           "--card-font-scale": scale,
+          cursor: grabCursor ? (dragging ? "grabbing" : "grab") : undefined,
+          opacity: dragging ? 0.35 : undefined,
+          touchAction: grabCursor ? "none" : undefined,
           ...style,
         } as React.CSSProperties}
       >
@@ -194,17 +211,18 @@ export const Card: React.FC<CardProps> = React.memo(({
     <div
       className={`card ${dimmed ? "dimmed" : ""} ${
         highlighted ? "highlighted" : ""
-      } ${selected ? "selected" : ""} ${trump ? "trump-highlight" : ""}`}
+      } ${selected ? "selected" : ""} ${trump ? "trump-highlight" : ""} ${dragging ? "dragging" : ""}`}
       onClick={handleCardClick}
-      draggable={draggable}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
+      {...pointerProps}
       style={{
         background: faceGradient,
         borderColor: trump ? "var(--gold-bright)" : theme.faceEdge,
         color: color,
         borderWidth: trump ? "2px" : "1.5px",
         "--card-font-scale": scale,
+        cursor: grabCursor ? (dragging ? "grabbing" : "grab") : undefined,
+        opacity: dragging ? 0.35 : undefined,
+        touchAction: grabCursor ? "none" : undefined,
         ...style,
       } as React.CSSProperties}
     >

@@ -116,6 +116,8 @@ interface GameStore {
   lastConsumedReactionAt: number;
   pendingReveal: { card: Card; expiresAt: number } | null;
   submittingMove: boolean;
+  /** Clock owner looks reconnecting (from server turnClockConnection). */
+  opponentReconnecting: boolean;
   goldBalance: number;
   goldHydrated: boolean;
   creditBalance: number;
@@ -322,6 +324,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     lastConsumedReactionAt: 0,
     pendingReveal: null,
     submittingMove: false,
+    opponentReconnecting: false,
     goldBalance: 10,
     goldHydrated: false,
     creditBalance: 1000,
@@ -448,6 +451,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         game: null,
         pendingReveal: null,
         submittingMove: false,
+        opponentReconnecting: false,
       });
     },
 
@@ -455,6 +459,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!view) return;
       const prev = get();
       const nextPendingReveal = view.pendingReveal ?? null;
+      const yourId = view.yourPlayerId as string | null;
+      const opponentReconnecting =
+        view.turnClockConnection === "reconnecting" &&
+        view.turnClockPlayerId != null &&
+        view.turnClockPlayerId !== yourId;
 
       const baseWithoutPlayer = {
         onlineRoomCode: view.code,
@@ -472,6 +481,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         pot: (view.buyIn ?? 100) * view.config.numPlayers,
         pendingReveal: nextPendingReveal,
         submittingMove: false,
+        opponentReconnecting,
         ...(view.recentReaction && view.recentReaction.at !== prev.remoteReaction?.at
           ? { remoteReaction: view.recentReaction }
           : {}),
@@ -496,11 +506,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         return;
       }
 
-      const yourId = view.yourPlayerId;
       if (!yourId) return;
 
       const names = { ...view.names };
-      if (yourId && !names[yourId]) {
+      if (!names[yourId]) {
         names[yourId] = get().onlineDisplayName.trim() || "Player";
       }
 
@@ -683,6 +692,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         lastConsumedReactionAt: 0,
         pendingReveal: null,
         submittingMove: false,
+        opponentReconnecting: false,
         pot: 0,
         humanId: HUMAN_ID,
         names: { [HUMAN_ID]: get().onlineDisplayName.trim() || "Player" },

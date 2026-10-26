@@ -32,6 +32,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
   const setCardDesign = useGameStore((s) => s.setCardDesign);
   const turnTimerSeconds = useGameStore((s) => s.turnTimerSeconds);
   const applyTurnTimerMidGame = useGameStore((s) => s.applyTurnTimerMidGame);
+  const goldBalance = useGameStore((s) => s.goldBalance);
+  const creditBalance = useGameStore((s) => s.creditBalance);
+  const onlineDisplayName = useGameStore((s) => s.onlineDisplayName);
+  const setOnlineDisplayName = useGameStore((s) => s.setOnlineDisplayName);
 
   const [sound, setSound] = React.useState(isSoundEnabled());
   const [haptics, setHaptics] = React.useState(isHapticsEnabled());
@@ -46,7 +50,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         </button>
         <h3>GAME SETTINGS</h3>
         <div className="settings-list">
-          
+          <div className="settings-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+            <div className="settings-label">ACCOUNT</div>
+            <input
+              className="form-input"
+              type="text"
+              value={onlineDisplayName}
+              onChange={(e) => setOnlineDisplayName(e.target.value.slice(0, 12))}
+              placeholder="Display name"
+            />
+            <div className="home-wallet-row" style={{ justifyContent: "flex-start" }}>
+              <span>🪙 {goldBalance} gold</span>
+              <span>💰 {creditBalance} credits</span>
+            </div>
+          </div>
+
           <div className="settings-row">
             <div className="settings-label">BOT DIFFICULTY</div>
             <div className="settings-options">

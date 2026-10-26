@@ -277,11 +277,27 @@ export function useOnlineGame() {
     const tick = () => {
       void touchRoom({
         roomId: onlineRoomId as Id<"rooms">,
+        active: true,
       });
     };
 
     tick();
     const id = setInterval(tick, 30_000);
     return () => clearInterval(id);
+  }, [playMode, onlineRoomId, isAuthenticated, touchRoom]);
+
+  // Tab hide → away presence; visible → recover (matches iOS/RN).
+  useEffect(() => {
+    if (playMode !== "online" || !onlineRoomId || !isAuthenticated) return;
+
+    const onVis = () => {
+      const active = document.visibilityState === "visible";
+      void touchRoom({
+        roomId: onlineRoomId as Id<"rooms">,
+        active,
+      });
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
   }, [playMode, onlineRoomId, isAuthenticated, touchRoom]);
 }
