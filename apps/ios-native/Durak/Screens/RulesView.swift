@@ -8,75 +8,99 @@ struct RulesView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                // Background matching active table theme
-                LinearGradient(
-                    colors: theme.tablePalette.gradient ?? [theme.tablePalette.backgroundColor],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+        ZStack {
+            // Background matching active table theme
+            LinearGradient(
+                colors: theme.tablePalette.gradient ?? [theme.tablePalette.backgroundColor],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.xl) {
-                    ruleSection(
-                        title: "Objective",
-                        body: "Get rid of all your cards. The last player holding cards is the Durak (fool)."
-                    )
+            VStack(spacing: 0) {
+                sheetHeader
 
-                    ruleSection(
-                        title: "Setup",
-                        body: "A 36-card deck (6 through Ace) is used. Each player is dealt 6 cards. The bottom card of the deck determines the trump suit."
-                    )
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: DesignTokens.Spacing.md) {
+                        ruleSection(
+                            title: "Objective",
+                            body: String(localized: "Get rid of all your cards. The last player holding cards is the Durak (fool).")
+                        )
 
-                    ruleSection(
-                        title: "Attacking",
-                        body: "The attacker plays any card from their hand. Other players may throw in cards of matching ranks. The defender must beat each attack card."
-                    )
+                        ruleSection(
+                            title: "Setup",
+                            body: String(localized: "A 36-card deck (6–Ace). Each player is dealt 6 cards. The bottom card sets the trump suit. The holder of the lowest trump attacks first.")
+                        )
 
-                    ruleSection(
-                        title: "Defending",
-                        body: "To beat an attack, play a higher card of the same suit, or any trump card against a non-trump attack. Higher trumps beat lower trumps."
-                    )
+                        ruleSection(
+                            title: "Attacking",
+                            body: String(localized: "Play any card to open. Others (except the defender) may throw in cards matching any rank already on the table — attack or defense.\n\nCaps: at most 5 attacking cards until the first successful discard, then 6. Never more attacking cards than the defender held when the bout began.")
+                        )
 
-                    ruleSection(
-                        title: "Taking",
-                        body: "If you can't beat all attacks, press TAKE to collect all table cards into your hand. The attacker may throw in more cards before you take."
-                    )
+                        ruleSection(
+                            title: "Defending",
+                            body: String(localized: "Beat each attack with a higher card of the same suit, or any trump vs a non-trump. A trump is beaten only by a higher trump.")
+                        )
 
-                    ruleSection(
-                        title: "Perevodnoy (Transfer)",
-                        body: "In Perevodnoy variant, the defender may play a card of the same rank as the attack to transfer the defense to the next player."
-                    )
+                        ruleSection(
+                            title: "Taking",
+                            body: String(localized: "Press TAKE when you will not (or cannot) cover every attack. Attackers may still throw in matching ranks afterward (вдогонку), within the same caps. Then you pick up the whole table and skip the next attack — the player to your left attacks.")
+                        )
 
-                    ruleSection(
-                        title: "Drawing",
-                        body: "After each round, players draw from the deck (attacker first, defender last) until everyone has 6 cards or the deck is empty."
-                    )
+                        ruleSection(
+                            title: "Perevodnoy (Transfer)",
+                            body: String(localized: "Before covering anything, you may add a card of the same rank and pass the whole uncovered pile to the next player. They may transfer again the same way.\n\nSame-rank adds from attackers keep the transfer window open. Any defense closes it.\n\nYou cannot transfer more cards than the next player holds. By default, transfers are off until the first successful discard (первый ход не переводят).")
+                        )
 
-                    ruleSection(
-                        title: "Winning",
-                        body: "Once the deck is empty, players who empty their hand are safe. The last player holding cards loses — they are the Durak!"
-                    )
-                }
-                .padding(DesignTokens.Spacing.xl)
-            }
-        }
-        .navigationTitle("How to Play")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                        .fontWeight(.semibold)
-                        .foregroundStyle(theme.ui.accent)
+                        ruleSection(
+                            title: "Drawing",
+                            body: String(localized: "After each bout, refill to 6: attacker first, then others clockwise, defender last. If the defender took, they skip the draw.")
+                        )
+
+                        ruleSection(
+                            title: "Winning",
+                            body: String(localized: "Once the deck is empty, emptying your hand takes you out. Last player with cards is the Durak. If nobody holds cards, it is a draw.")
+                        )
+
+                        ruleSection(
+                            title: "House rules in this app",
+                            body: String(localized: "Throw-in scope can be All players or Neighbors only. Trump-6 ↔ face-up trump swap is not used. Partnership teams are not supported.")
+                        )
+                    }
+                    .frame(maxWidth: DesignTokens.Layout.maxContentWidth)
+                    .padding(.horizontal, DesignTokens.Spacing.lg)
+                    .padding(.top, DesignTokens.Spacing.xs)
+                    .padding(.bottom, DesignTokens.Spacing.xl)
+                    .frame(maxWidth: .infinity)
                 }
             }
         }
     }
 
+    private var sheetHeader: some View {
+        HStack {
+            Color.clear.frame(width: 50, height: 32)
+            Spacer()
+            Text("How to Play")
+                .font(DesignTokens.Typography.heading)
+                .foregroundStyle(DesignTokens.Colors.textLight)
+            Spacer()
+            Button("Done") {
+                dismiss()
+            }
+            .font(DesignTokens.Typography.body)
+            .fontWeight(.semibold)
+            .foregroundStyle(theme.ui.accent)
+            .frame(width: 50, alignment: .trailing)
+            .buttonStyle(.springPressable(scale: 0.94, feedback: .uiTap))
+        }
+        .padding(.horizontal, DesignTokens.Spacing.lg)
+        .padding(.top, DesignTokens.Spacing.md)
+        .padding(.bottom, DesignTokens.Spacing.sm)
+    }
+
     @ViewBuilder
-    private func ruleSection(title: String, body: String) -> some View {
+    private func ruleSection(title: LocalizedStringKey, body: String) -> some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.xs) {
             Text(title)
                 .font(DesignTokens.Typography.heading)

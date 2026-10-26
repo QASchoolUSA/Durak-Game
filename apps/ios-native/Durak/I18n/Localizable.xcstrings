@@ -1,81 +1,1618 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "…" : {
+
+    },
     "(You)" : {
-
-    },
-    "%@" : {
-
-    },
-    "%@ (You)" : {
-
-    },
-    "%@ • %@ Players" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
+            "value" : "(You)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(Вы)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(Ви)"
+          }
+        }
+      }
+    },
+    "%@ (You)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (You)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (Вы)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (Ви)"
+          }
+        }
+      }
+    },
+    "%@ • %@ Players" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "%1$@ • %2$@ Players"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ • %2$@ игроков"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ • %2$@ гравців"
+          }
+        }
+      }
+    },
+    "%@ • %lld Players" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ • %2$lld Players"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ • %2$lld игроков"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ • %2$lld гравців"
+          }
+        }
+      }
+    },
+    "%@ Credits" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Credits"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ кредитов"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ кредитів"
+          }
+        }
+      }
+    },
+    "%@ Gold" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Gold"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ золота"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ золота"
+          }
+        }
+      }
+    },
+    "%@ is taking cards" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is taking cards"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ забирает карты"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ забирає карти"
           }
         }
       }
     },
     "%@ Players" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Players"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ игроков"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ гравців"
+          }
+        }
+      }
+    },
+    "%@ was left as the Durak!" : {
 
+    },
+    "%@s" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@s"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@с"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@с"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld Credits" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Credits"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld кредитов"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld кредитів"
+          }
+        }
+      }
+    },
+    "%lld Gold" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Gold"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld золота"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld золота"
+          }
+        }
+      }
+    },
+    "%lld Players" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Players"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld игроков"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld гравців"
+          }
+        }
+      }
+    },
+    "%llds" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%llds"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldс"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldс"
+          }
+        }
+      }
     },
     "• %@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• %@"
+          }
+        }
+      }
     },
-    "+10 GOLD COINS" : {
-
+    "+%@ CREDITS" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%@ CREDITS"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%@ КРЕДИТОВ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%@ КРЕДИТІВ"
+          }
+        }
+      }
+    },
+    "+%lld CREDITS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%lld CREDITS"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%lld КРЕДИТОВ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%lld КРЕДИТІВ"
+          }
+        }
+      }
+    },
+    "−%@ CREDITS" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−%@ CREDITS"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−%@ КРЕДИТОВ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−%@ КРЕДИТІВ"
+          }
+        }
+      }
+    },
+    "−%lld CREDITS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−%lld CREDITS"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−%lld КРЕДИТОВ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "−%lld КРЕДИТІВ"
+          }
+        }
+      }
     },
     "🃏" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🃏"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🃏"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🃏"
+          }
+        }
+      }
     },
     "👑" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "👑"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "👑"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "👑"
+          }
+        }
+      }
     },
     "🤖" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🤖"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🤖"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🤖"
+          }
+        }
+      }
     },
     "🪙" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🪙"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🪙"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🪙"
+          }
+        }
+      }
+    },
+    "A 36-card deck (6–Ace). Each player is dealt 6 cards. The bottom card sets the trump suit. The holder of the lowest trump attacks first." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A 36-card deck (6–Ace). Each player is dealt 6 cards. The bottom card sets the trump suit. The holder of the lowest trump attacks first."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Колода из 36 карт (от 6 до туза). Каждому раздают по 6 карт. Нижняя карта определяет козырь. Владелец младшего козыря ходит первым."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Колода з 36 карт (від 6 до туза). Кожному роздають по 6 карт. Нижня карта визначає козир. Власник молодшого козиря ходить першим."
+          }
+        }
+      }
+    },
+    "ABOUT" : {
 
     },
-    "10s" : {
-
-    },
-    "12s" : {
-
-    },
-    "15s" : {
-
-    },
-    "30s" : {
-
+    "ACCOUNT & PROGRESS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ACCOUNT & PROGRESS"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "АККАУНТ И ПРОГРЕСС"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "АКАУНТ І ПРОГРЕС"
+          }
+        }
+      }
     },
     "ACTIVE" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ACTIVE"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "АКТИВНА"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "АКТИВНА"
+          }
+        }
+      }
+    },
+    "Active: Take back your recently played card" : {
 
     },
     "Add AI" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add AI"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить ИИ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Додати ШІ"
+          }
+        }
+      }
+    },
+    "Add AI Player" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add AI Player"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить ИИ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Додати ШІ"
+          }
+        }
+      }
+    },
+    "Add at least one AI or wait for a player to join." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add at least one AI or wait for a player to join."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавьте хотя бы одно ИИ или дождитесь игрока."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Додайте хоча б одне ШІ або зачекайте на гравця."
+          }
+        }
+      }
+    },
+    "Add at least one AI or wait for a player." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add at least one AI or wait for a player."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавьте хотя бы одно ИИ или дождитесь игрока."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Додайте хоча б одне ШІ або зачекайте на гравця."
+          }
+        }
+      }
+    },
+    "After each bout, refill to 6: attacker first, then others clockwise, defender last. If the defender took, they skip the draw." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After each bout, refill to 6: attacker first, then others clockwise, defender last. If the defender took, they skip the draw."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "После каждого захода добирают до 6: сначала атакующий, затем по часовой, защитник последним. Если защитник взял — он не добирает."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Після кожного заходу добирають до 6: спочатку атакувальний, далі за годинниковою, захисник останнім. Якщо захисник взяв — він не добирає."
+          }
+        }
+      }
     },
     "AI BOT" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI BOT"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ИИ-БОТ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ШІ-БОТ"
+          }
+        }
+      }
+    },
+    "All Players" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Players"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все игроки"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Усі гравці"
+          }
+        }
+      }
+    },
+    "Already have an account?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already have an account?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уже есть аккаунт?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вже є акаунт?"
+          }
+        }
+      }
+    },
+    "Analyze board and get best card recommendation" : {
 
     },
-    "Ask your friend for the room code or check your match invite." : {
+    "Animated emoji by Google Noto Color Emoji (CC BY 4.0)." : {
 
+    },
+    "APPEARANCE THEME" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "APPEARANCE THEME"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ТЕМА ОФОРМЛЕНИЯ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ТЕМА ОФОРМЛЕННЯ"
+          }
+        }
+      }
+    },
+    "Apple didn't share a name this time. Pick a display name for the table — you can change it later in Settings." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple didn't share a name this time. Pick a display name for the table — you can change it later in Settings."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple не передал имя. Выберите имя для стола — позже можно изменить в Настройках."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple не передав ім’я. Оберіть ім’я для столу — пізніше можна змінити в Налаштуваннях."
+          }
+        }
+      }
+    },
+    "Ask everyone to tap I’m Ready, then start the match." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask everyone to tap I’m Ready, then start the match."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Попросите всех нажать «Готов», затем начните матч."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Попросіть усіх натиснути «Готовий», потім почніть матч."
+          }
+        }
+      }
+    },
+    "Ask the host to free a seat or start a new room." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask the host to free a seat or start a new room."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Попросите хоста освободить место или создать новую комнату."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Попросіть хоста звільнити місце або створити нову кімнату."
+          }
+        }
+      }
+    },
+    "Ask your friend for the room code, tap their invite link, or paste from the clipboard." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask your friend for the room code, tap their invite link, or paste from the clipboard."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Попросите у друга код комнаты, откройте ссылку-приглашение или вставьте из буфера."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Попросіть у друга код кімнати, відкрийте посилання-запрошення або вставте з буфера."
+          }
+        }
+      }
+    },
+    "Attackers throw in matching card ranks to overwhelm the defender." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attackers throw in matching card ranks to overwhelm the defender."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Атакующие подкидывают карты того же ранга, чтобы засыпать защитника."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Атакувальні підкидають карти того самого рангу, щоб засипати захисника."
+          }
+        }
+      }
+    },
+    "Attacking" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attacking"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Атака"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Атака"
+          }
+        }
+      }
+    },
+    "Available in solo games only" : {
+
+    },
+    "Available shortly after playing a card" : {
+
+    },
+    "Back up your Gold, Credits, and online profile across all your Apple devices." : {
+
+    },
+    "Beat each attack with a higher card of the same suit, or any trump vs a non-trump. A trump is beaten only by a higher trump." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beat each attack with a higher card of the same suit, or any trump vs a non-trump. A trump is beaten only by a higher trump."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отбейте каждую атаку более старшей картой той же масти или любым козырем против некозыря. Козырь бьётся только старшим козырем."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відбийте кожну атаку старшою картою тієї ж масті або будь-яким козирем проти некозиря. Козир б’ється лише старшим козирем."
+          }
+        }
+      }
+    },
+    "Before covering anything, you may add a card of the same rank and pass the whole uncovered pile to the next player. They may transfer again the same way.\n\nSame-rank adds from attackers keep the transfer window open. Any defense closes it.\n\nYou cannot transfer more cards than the next player holds. By default, transfers are off until the first successful discard (первый ход не переводят)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Before covering anything, you may add a card of the same rank and pass the whole uncovered pile to the next player. They may transfer again the same way.\n\nSame-rank adds from attackers keep the transfer window open. Any defense closes it.\n\nYou cannot transfer more cards than the next player holds. By default, transfers are off until the first successful discard (первый ход не переводят)."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пока ничего не отбито, можно добавить карту того же ранга и перевести весь непокрытый стол следующему игроку. Он может перевести так же.\n\nПодкиды того же ранга от атакующих оставляют окно перевода открытым. Любая защита его закрывает.\n\nНельзя перевести больше карт, чем у следующего игрока. По умолчанию перевод запрещён до первого успешного сброса (первый ход не переводят)."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поки нічого не відбито, можна додати карту того самого рангу і перевести весь непокритий стіл наступному гравцеві. Він може перевести так само.\n\nПідкиди того самого рангу від атакувальних лишають вікно переводу відкритим. Будь-який захист його закриває.\n\nНе можна перевести більше карт, ніж у наступного гравця. За замовчуванням перевід заборонений до першого успішного скидання (перший хід не переводять)."
+          }
+        }
+      }
     },
     "Both players cleared their hands simultaneously." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Both players cleared their hands simultaneously."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оба игрока сбросили карты одновременно."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обидва гравці скинули карти одночасно."
+          }
+        }
+      }
+    },
+    "Browse played cards to track remaining trumps" : {
 
+    },
+    "Buy-in lost" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buy-in lost"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ставка потеряна"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ставку втрачено"
+          }
+        }
+      }
+    },
+    "Buy-in refunded" : {
+
+    },
+    "Cancel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отмена"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скасувати"
+          }
+        }
+      }
     },
     "CARD GAME" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CARD GAME"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "КАРТОЧНАЯ ИГРА"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "КАРТКОВА ГРА"
+          }
+        }
+      }
+    },
+    "Change Difficulty" : {
 
     },
+    "Classic" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classic"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Классика"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Класика"
+          }
+        }
+      }
+    },
+    "Classic Durak" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classic Durak"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Классический дурак"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Класичний дурак"
+          }
+        }
+      }
+    },
+    "Classic Throw-In" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classic Throw-In"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Классический подкидной"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Класичний підкидний"
+          }
+        }
+      }
+    },
     "Close" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрити"
+          }
+        }
+      }
+    },
+    "Cloud Synced" : {
+
+    },
+    "Continue" : {
+
+    },
+    "CONTINUE AS GUEST" : {
+
+    },
+    "Continue with Apple" : {
+
+    },
+    "CONTINUE WITH EMAIL" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CONTINUE WITH EMAIL"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПРОДОЛЖИТЬ С EMAIL"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПРОДОВЖИТИ З EMAIL"
+          }
+        }
+      }
+    },
+    "Copied!" : {
+
+    },
+    "Copy Code" : {
+
+    },
+    "Could not create account. This email may already be registered." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not create account. This email may already be registered."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось создать аккаунт. Этот email, возможно, уже зарегистрирован."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося створити акаунт. Цей email, можливо, вже зареєстровано."
+          }
+        }
+      }
+    },
+    "Could not sign in. Check your email and password." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not sign in. Check your email and password."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось войти. Проверьте email и пароль."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося увійти. Перевірте email і пароль."
+          }
+        }
+      }
+    },
+    "Could not sign in. Please check your email and password." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not sign in. Please check your email and password."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось войти. Проверьте email и пароль."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося увійти. Перевірте email і пароль."
+          }
+        }
+      }
+    },
+    "Couldn’t add AI" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t add AI"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось добавить ИИ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося додати ШІ"
+          }
+        }
+      }
+    },
+    "Couldn’t create room" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t create room"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось создать комнату"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося створити кімнату"
+          }
+        }
+      }
+    },
+    "Couldn’t join" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t join"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось войти"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося приєднатися"
+          }
+        }
+      }
+    },
+    "Couldn’t remove AI" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t remove AI"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось удалить ИИ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося видалити ШІ"
+          }
+        }
+      }
+    },
+    "Couldn’t start the match" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t start the match"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось начать матч"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося почати матч"
+          }
+        }
+      }
+    },
+    "Couldn’t update difficulty" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t update difficulty"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось изменить сложность"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося змінити складність"
+          }
+        }
+      }
+    },
+    "Create Account" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Account"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создать аккаунт"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Створити акаунт"
+          }
+        }
+      }
+    },
+    "CREATE ACCOUNT" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CREATE ACCOUNT"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "СОЗДАТЬ АККАУНТ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "СТВОРИТИ АКАУНТ"
+          }
+        }
+      }
+    },
+    "CREATE ONLINE ROOM & INVITE" : {
+
+    },
+    "CREATING ACCOUNT..." : {
+
+    },
+    "CREATING ROOM..." : {
 
     },
     "Credits (Stakes)" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Credits (Stakes)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кредиты (ставки)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кредити (ставки)"
+          }
+        }
+      }
+    },
+    "Defended — waiting on throw-ins" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Defended — waiting on throw-ins"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отбито — ждём подкида"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відбито — чекаємо підкид"
+          }
+        }
+      }
+    },
+    "Defender can transfer attack to the next player with matching rank." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Defender can transfer attack to the next player with matching rank."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Защитник может перевести атаку следующему игроку картой того же ранга."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Захисник може перевести атаку наступному гравцеві картою того самого рангу."
+          }
+        }
+      }
+    },
+    "Defending" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Defending"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Защита"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Захист"
+          }
+        }
+      }
+    },
+    "DELETE" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DELETE"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "УДАЛИТЬ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ВИДАЛИТИ"
+          }
+        }
+      }
+    },
+    "Delete Account?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Account?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить аккаунт?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалити акаунт?"
+          }
+        }
+      }
+    },
+    "Delete Permanently" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Permanently"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить навсегда"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалити назавжди"
+          }
+        }
+      }
+    },
+    "DISPLAY NAME" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DISPLAY NAME"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ИМЯ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ІМ’Я"
+          }
+        }
+      }
     },
     "Done" : {
       "localizations" : {
@@ -100,7 +1637,6 @@
       }
     },
     "DRAW" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -122,8 +1658,29 @@
         }
       }
     },
+    "Drawing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drawing"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добор"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добір"
+          }
+        }
+      }
+    },
     "DURAK" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -146,10 +1703,50 @@
       }
     },
     "Durak (Left with cards)" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durak (Left with cards)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дурак (остался с картами)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дурак (залишився з картами)"
+          }
+        }
+      }
+    },
+    "Durak invite" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durak invite"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглашение в Дурак"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запрошення в Дурак"
+          }
+        }
+      }
     },
     "DURAK!" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -171,17 +1768,464 @@
         }
       }
     },
-    "ENTER ROOM CODE" : {
+    "e.g. 482193" : {
 
     },
-    "GET STARTED" : {
+    "e.g. Alex" : {
 
+    },
+    "e.g. RoyalPlayer" : {
+
+    },
+    "Earn or top up credits, then try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Earn or top up credits, then try again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заработайте или пополните кредиты и попробуйте снова."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заробіть або поповніть кредити й спробуйте знову."
+          }
+        }
+      }
+    },
+    "Easy AI (Casual)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Easy AI (Casual)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лёгкий ИИ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Легкий ШІ"
+          }
+        }
+      }
+    },
+    "EMAIL ADDRESS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EMAIL ADDRESS"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EMAIL"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EMAIL"
+          }
+        }
+      }
+    },
+    "Enter password" : {
+
+    },
+    "ENTER ROOM CODE" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ENTER ROOM CODE"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ВВЕДИТЕ КОД КОМНАТЫ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ВВЕДІТЬ КОД КІМНАТИ"
+          }
+        }
+      }
+    },
+    "Escaped" : {
+
+    },
+    "FEEDBACK" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FEEDBACK"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ОБРАТНАЯ СВЯЗЬ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ЗВОРОТНИЙ ЗВ’ЯЗОК"
+          }
+        }
+      }
+    },
+    "Forfeit & Leave" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forfeit & Leave"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сдаться и выйти"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здатися і вийти"
+          }
+        }
+      }
+    },
+    "Free" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Бесплатно"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Безкоштовно"
+          }
+        }
+      }
+    },
+    "Game in progress" : {
+
+    },
+    "Game Over" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Game Over"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Игра окончена"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Гру завершено"
+          }
+        }
+      }
+    },
+    "Game Over — You are the Durak!" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Game Over — You are the Durak!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Игра окончена — вы Дурак!"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Гру завершено — ви Дурак!"
+          }
+        }
+      }
+    },
+    "GAME VARIANT" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GAME VARIANT"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ВАРИАНТ ИГРЫ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ВАРІАНТ ГРИ"
+          }
+        }
+      }
+    },
+    "GAMEPLAY STYLE" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GAMEPLAY STYLE"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "СТИЛЬ ИГРЫ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "СТИЛЬ ГРИ"
+          }
+        }
+      }
+    },
+    "Get rid of all your cards. The last player holding cards is the Durak (fool)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get rid of all your cards. The last player holding cards is the Durak (fool)."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Избавьтесь от всех карт. Последний игрок с картами — Дурак."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позбудьтеся всіх карт. Останній гравець із картами — Дурак."
+          }
+        }
+      }
+    },
+    "Gold (free skills)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gold (free skills)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Золото (навыки бесплатны)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Золото (навички безкоштовні)"
+          }
+        }
+      }
     },
     "Gold (Skills)" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gold (Skills)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Золото (навыки)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Золото (навички)"
+          }
+        }
+      }
+    },
+    "Graveyard (%@)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Graveyard (%@)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сброс (%@)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відбій (%@)"
+          }
+        }
+      }
+    },
+    "Graveyard (%lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Graveyard (%lld)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сброс (%lld)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відбій (%lld)"
+          }
+        }
+      }
     },
     "Graveyard is empty" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Graveyard is empty"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сброс пуст"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відбій порожній"
+          }
+        }
+      }
+    },
+    "Guest session • Local device storage only" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guest session • Local device storage only"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Гостевая сессия • Только локально на устройстве"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Гостьова сесія • Лише локально на пристрої"
+          }
+        }
+      }
+    },
+    "Haptic Feedback" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haptic Feedback"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тактильный отклик"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тактильний відгук"
+          }
+        }
+      }
+    },
+    "Hard AI (Master)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hard AI (Master)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сложный ИИ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Складний ШІ"
+          }
+        }
+      }
     },
     "HOME" : {
       "extractionState" : "stale",
@@ -207,7 +2251,70 @@
       }
     },
     "HOST" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HOST"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ХОСТ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ХОСТ"
+          }
+        }
+      }
+    },
+    "House rules in this app" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "House rules in this app"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Домашние правила в приложении"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Домашні правила в застосунку"
+          }
+        }
+      }
+    },
+    "How to Play" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How to Play"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Как играть"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Як грати"
+          }
+        }
+      }
     },
     "HOW TO PLAY" : {
       "extractionState" : "stale",
@@ -232,8 +2339,115 @@
         }
       }
     },
+    "I'M READY" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I'M READY"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Я ГОТОВ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Я ГОТОВИЙ"
+          }
+        }
+      }
+    },
+    "Inspect Discard Pile" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inspect Discard Pile"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Смотреть сброс"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переглянути скид"
+          }
+        }
+      }
+    },
     "Invite" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пригласить"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запросити"
+          }
+        }
+      }
+    },
+    "Invite a friend or add an AI seat to begin." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invite a friend or add an AI seat to begin."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пригласите друга или добавьте ИИ, чтобы начать."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запросіть друга або додайте ШІ, щоб почати."
+          }
+        }
+      }
+    },
+    "Join Game" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join Game"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войти в игру"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приєднатися"
+          }
+        }
+      }
     },
     "JOIN GAME" : {
       "localizations" : {
@@ -257,37 +2471,935 @@
         }
       }
     },
+    "Join my Durak game! Code %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join my Durak game! Code %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Присоединяйся к Дураку! Код %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приєднуйся до Дурака! Код %@"
+          }
+        }
+      }
+    },
     "JOINED" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JOINED"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В ИГРЕ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В ГРІ"
+          }
+        }
+      }
+    },
+    "Joining match…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joining match…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подключение к матчу…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підключення до матчу…"
+          }
+        }
+      }
+    },
+    "JOINING..." : {
 
     },
     "Leave" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выйти"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вийти"
+          }
+        }
+      }
+    },
+    "Leave Game?" : {
 
+    },
+    "Leave or finish your other table, then try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave or finish your other table, then try again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Покиньте или завершите другой стол, затем попробуйте снова."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Залиште або завершіть інший стіл, потім спробуйте знову."
+          }
+        }
+      }
     },
     "Leaving now returns you to the main menu." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leaving now returns you to the main menu."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выход вернёт вас в главное меню."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вихід поверне вас до головного меню."
+          }
+        }
+      }
+    },
+    "Left the table." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left the table."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы покинули стол."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ви покинули стіл."
+          }
+        }
+      }
+    },
+    "Longer helps on slow Wi‑Fi" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Longer helps on slow Wi‑Fi"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дольше — удобнее при слабом Wi‑Fi"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Довше — зручніше при слабкому Wi‑Fi"
+          }
+        }
+      }
     },
     "LOSER" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LOSER"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПРОИГРАВШИЙ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПРОГРАВШИЙ"
+          }
+        }
+      }
     },
     "MAIN MENU" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MAIN MENU"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ГЛАВНОЕ МЕНЮ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ГОЛОВНЕ МЕНЮ"
+          }
+        }
+      }
+    },
+    "MATCH CODE" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MATCH CODE"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "КОД МАТЧА"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "КОД МАТЧУ"
+          }
+        }
+      }
+    },
+    "Match pot awarded" : {
 
+    },
+    "MATCH RULES" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MATCH RULES"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПРАВИЛА МАТЧА"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПРАВИЛА МАТЧУ"
+          }
+        }
+      }
     },
     "MATCH STANDINGS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MATCH STANDINGS"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ИТОГИ МАТЧА"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПІДСУМКИ МАТЧУ"
+          }
+        }
+      }
+    },
+    "Medium AI (Balanced)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium AI (Balanced)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Средний ИИ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Середній ШІ"
+          }
+        }
+      }
+    },
+    "Min. 8 characters" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Min. 8 characters"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мин. 8 символов"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мін. 8 символів"
+          }
+        }
+      }
+    },
+    "Move didn’t go through — try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move didn’t go through — try again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ход не прошёл — попробуйте снова."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хід не пройшов — спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "name@example.com" : {
 
     },
-    "ONLINE LOBBY" : {
-
+    "Need another player" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Need another player"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нужен ещё игрок"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Потрібен ще гравець"
+          }
+        }
+      }
     },
-    "Peeking into %@'s hand" : {
-
+    "Neighbors" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neighbors"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Соседи"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сусіди"
+          }
+        }
+      }
     },
-    "Perevodnoy" : {
+    "Neighbors Only" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neighbors Only"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Только соседи"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лише сусіди"
+          }
+        }
+      }
+    },
+    "New Match" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Match"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новый матч"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новий матч"
+          }
+        }
+      }
+    },
+    "Not enough credits" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough credits"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недостаточно кредитов"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недостатньо кредитів"
+          }
+        }
+      }
+    },
+    "Not enough credits for buy-in (%@)." : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
+            "value" : "Not enough credits for buy-in (%@)."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недостаточно кредитов для ставки (%@)."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недостатньо кредитів для ставки (%@)."
+          }
+        }
+      }
+    },
+    "Not enough credits for buy-in (%lld)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough credits for buy-in (%lld)."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недостаточно кредитов для ставки (%lld)."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недостатньо кредитів для ставки (%lld)."
+          }
+        }
+      }
+    },
+    "Not enough players" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough players"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недостаточно игроков"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недостатньо гравців"
+          }
+        }
+      }
+    },
+    "Not Synced" : {
+
+    },
+    "Noto Animated Emoji" : {
+
+    },
+    "Objective" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Objective"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цель"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мета"
+          }
+        }
+      }
+    },
+    "Once the deck is empty, emptying your hand takes you out. Last player with cards is the Durak. If nobody holds cards, it is a draw." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Once the deck is empty, emptying your hand takes you out. Last player with cards is the Durak. If nobody holds cards, it is a draw."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Когда колода пуста, опустошение руки выводит из игры. Последний с картами — Дурак. Если карт ни у кого нет — ничья."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Коли колода порожня, спорожнення руки виводить із гри. Останній із картами — Дурак. Якщо карт ні в кого немає — нічия."
+          }
+        }
+      }
+    },
+    "ONLINE LOBBY" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ONLINE LOBBY"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ОНЛАЙН-ЛОББИ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ОНЛАЙН-ЛОБІ"
+          }
+        }
+      }
+    },
+    "Only the host can start" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only the host can start"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Только хост может начать"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лише хост може почати"
+          }
+        }
+      }
+    },
+    "Opponent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opponent"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Соперник"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Суперник"
+          }
+        }
+      }
+    },
+    "Opponent is taking cards — throw in!" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opponent is taking cards — throw in!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Соперник берёт карты — подкидывайте!"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Суперник бере карти — підкидайте!"
+          }
+        }
+      }
+    },
+    "Opponent reconnecting…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opponent reconnecting…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Соперник переподключается…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Суперник перепідключається…"
+          }
+        }
+      }
+    },
+    "OR CONTINUE WITH EMAIL" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OR CONTINUE WITH EMAIL"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ИЛИ ПРОДОЛЖИТЬ С EMAIL"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "АБО ПРОДОВЖИТИ З EMAIL"
+          }
+        }
+      }
+    },
+    "OUT" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OUT"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ВНЕ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПОЗА"
+          }
+        }
+      }
+    },
+    "Passing & Transfer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passing & Transfer"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переводной"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевідний"
+          }
+        }
+      }
+    },
+    "PASSWORD" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PASSWORD"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПАРОЛЬ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПАРОЛЬ"
+          }
+        }
+      }
+    },
+    "Password must be at least %@ characters." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password must be at least %@ characters."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пароль должен быть не короче %@ символов."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пароль має бути не коротший за %@ символів."
+          }
+        }
+      }
+    },
+    "Password must be at least %lld characters." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password must be at least %lld characters."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пароль должен быть не короче %lld символов."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пароль має бути не коротший за %lld символів."
+          }
+        }
+      }
+    },
+    "Paste code %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste code %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вставить код %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вставити код %@"
+          }
+        }
+      }
+    },
+    "Peek Opponent Hand" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peek Opponent Hand"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подсмотреть руку"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підглянути руку"
+          }
+        }
+      }
+    },
+    "Peeking into %@'s hand" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peeking into %@'s hand"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Смотрим карты: %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дивимось карти: %@"
+          }
+        }
+      }
+    },
+    "Perevodnoy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "Perevodnoy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переводной"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевідний"
+          }
+        }
+      }
+    },
+    "Perevodnoy (Transfer)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perevodnoy (Transfer)"
           }
         },
         "ru" : {
@@ -348,11 +3460,164 @@
         }
       }
     },
-    "Play as Guest or sign in to preserve your Gold, Credits, and match statistics across devices." : {
+    "Play any card to open. Others (except the defender) may throw in cards matching any rank already on the table — attack or defense.\n\nCaps: at most 5 attacking cards until the first successful discard, then 6. Never more attacking cards than the defender held when the bout began." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play any card to open. Others (except the defender) may throw in cards matching any rank already on the table — attack or defense.\n\nCaps: at most 5 attacking cards until the first successful discard, then 6. Never more attacking cards than the defender held when the bout began."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сыграйте любую карту, чтобы открыть атаку. Остальные (кроме защитника) могут подкидывать карты того же ранга, что уже на столе — атака или защита.\n\nЛимиты: не больше 5 атакующих карт до первого успешного сброса, затем 6. Не больше карт, чем было у защитника в начале захода."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зіграйте будь-яку карту, щоб відкрити атаку. Інші (крім захисника) можуть підкидати карти того самого рангу, що вже на столі — атака чи захист.\n\nЛіміти: не більше 5 атакувальних карт до першого успішного скидання, далі 6. Не більше карт, ніж було в захисника на початку заходу."
+          }
+        }
+      }
+    },
+    "Play solo against sharp AI or challenge friends online.\nSign in to sync your Gold, Credits, and stats." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play solo against sharp AI or challenge friends online.\nSign in to sync your Gold, Credits, and stats."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Играйте соло против умного ИИ или бросайте вызов друзьям онлайн.\nВойдите, чтобы синхронизировать золото, кредиты и статистику."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Грайте соло проти розумного ШІ або кидайте виклик друзям онлайн.\nУвійдіть, щоб синхронізувати золото, кредити та статистику."
+          }
+        }
+      }
+    },
+    "Player Name" : {
 
     },
+    "PLAYERS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PLAYERS"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ИГРОКИ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ГРАВЦІ"
+          }
+        }
+      }
+    },
+    "Players aren’t ready" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Players aren’t ready"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Игроки не готовы"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Гравці не готові"
+          }
+        }
+      }
+    },
+    "Please enter a username between 2 and 20 characters." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter a username between 2 and 20 characters."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введите имя от 2 до 20 символов."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введіть ім’я від 2 до 20 символів."
+          }
+        }
+      }
+    },
+    "Please enter a valid email address." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter a valid email address."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введите корректный email."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введіть коректний email."
+          }
+        }
+      }
+    },
+    "Please try again in a moment." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please try again in a moment."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Попробуйте ещё раз чуть позже."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спробуйте ще раз трохи пізніше."
+          }
+        }
+      }
+    },
     "Podkidnoy" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -374,17 +3639,440 @@
         }
       }
     },
+    "Press TAKE when you will not (or cannot) cover every attack. Attackers may still throw in matching ranks afterward (вдогонку), within the same caps. Then you pick up the whole table and skip the next attack — the player to your left attacks." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press TAKE when you will not (or cannot) cover every attack. Attackers may still throw in matching ranks afterward (вдогонку), within the same caps. Then you pick up the whole table and skip the next attack — the player to your left attacks."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите «Взять», если не хотите или не можете отбить все атаки. Атакующие ещё могут подкинуть карты того же ранга (вдогонку) в пределах лимитов. Затем вы забираете весь стол и пропускаете следующую атаку — ходит игрок слева."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Натисніть «Взяти», якщо не хочете або не можете відбити всі атаки. Атакувальні ще можуть підкинути карти того самого рангу (вдогонку) в межах лімітів. Потім ви забираєте весь стіл і пропускаєте наступну атаку — ходить гравець ліворуч."
+          }
+        }
+      }
+    },
     "Progress & economy safely backed up" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress & economy safely backed up"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прогресс и экономика надёжно сохранены"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прогрес і економіка надійно збережені"
+          }
+        }
+      }
+    },
+    "QUICK PLAY VS AI" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QUICK PLAY VS AI"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "БЫСТРАЯ ИГРА С ИИ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ШВИДКА ГРА З ШІ"
+          }
+        }
+      }
+    },
+    "Reaction" : {
 
+    },
+    "Reactions" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reactions"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реакции"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реакції"
+          }
+        }
+      }
     },
     "READY" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "READY"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ГОТОВ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ГОТОВИЙ"
+          }
+        }
+      }
+    },
+    "READY ✓" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "READY ✓"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ГОТОВ ✓"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ГОТОВИЙ ✓"
+          }
+        }
+      }
     },
     "Remove" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Убрать"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прибрати"
+          }
+        }
+      }
+    },
+    "Required · shown at the table" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Required · shown at the table"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обязательно · видно за столом"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обов’язково · видно за столом"
+          }
+        }
+      }
+    },
+    "Resolving take..." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolving take..."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершение взятия..."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершення взяття..."
+          }
+        }
+      }
+    },
+    "Resume" : {
+
+    },
+    "Reveal Cards" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reveal Cards"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть карты"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відкрити карти"
+          }
+        }
+      }
+    },
+    "Reveal opponent's cards for this turn" : {
+
+    },
+    "Room unavailable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Room unavailable"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Комната недоступна"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кімната недоступна"
+          }
+        }
+      }
+    },
+    "ROYAL CARD GAME" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ROYAL CARD GAME"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "КОРОЛЕВСКАЯ КАРТОЧНАЯ ИГРА"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "КОРОЛІВСЬКА КАРТКОВА ГРА"
+          }
+        }
+      }
+    },
+    "Same Rank" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Same Rank"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тот же ранг"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Той самий ранг"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зберегти"
+          }
+        }
+      }
+    },
+    "Save Your Crown & Economy" : {
+
+    },
+    "Saved" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранено"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Збережено"
+          }
+        }
+      }
+    },
+    "Saving..." : {
 
     },
     "Seat %@ — Open" : {
-
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seat %@ — Open"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Место %@ — свободно"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Місце %@ — вільне"
+          }
+        }
+      }
+    },
+    "Seat %lld — Open" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seat %lld — Open"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Место %lld — свободно"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Місце %lld — вільне"
+          }
+        }
+      }
+    },
+    "Sending move…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sending move…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправка хода…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надсилання ходу…"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Налаштування"
+          }
+        }
+      }
     },
     "SETTINGS" : {
       "extractionState" : "stale",
@@ -409,8 +4097,309 @@
         }
       }
     },
+    "Setup" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setup"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Раздача"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Роздача"
+          }
+        }
+      }
+    },
     "Share with friends" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share with friends"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поделитесь с друзьями"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поділіться з друзями"
+          }
+        }
+      }
+    },
+    "Sign In" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign In"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войти"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Увійти"
+          }
+        }
+      }
+    },
+    "SIGN IN" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SIGN IN"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ВОЙТИ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "УВІЙТИ"
+          }
+        }
+      }
+    },
+    "Sign in to restore your Gold, Credits, and player profile." : {
 
+    },
+    "Sign in with Apple" : {
+
+    },
+    "Sign in with Apple or Email to preserve your Gold, Credits, and match statistics across devices." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with Apple or Email to preserve your Gold, Credits, and match statistics across devices."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войдите через Apple или Email, чтобы сохранить золото, кредиты и статистику на всех устройствах."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Увійдіть через Apple або Email, щоб зберегти золото, кредити та статистику на всіх пристроях."
+          }
+        }
+      }
+    },
+    "Sign Out" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign Out"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выйти"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вийти"
+          }
+        }
+      }
+    },
+    "SIGN OUT" : {
+
+    },
+    "Sign Out?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign Out?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выйти из аккаунта?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вийти з акаунта?"
+          }
+        }
+      }
+    },
+    "Signing in with Apple…" : {
+
+    },
+    "SIGNING IN..." : {
+
+    },
+    "SIGNING OUT..." : {
+
+    },
+    "Skills" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skills"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Навыки"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Навички"
+          }
+        }
+      }
+    },
+    "Skills & Powers" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skills & Powers"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Навыки и силы"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Навички і сили"
+          }
+        }
+      }
+    },
+    "Skills & Tactics" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skills & Tactics"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Навыки и тактики"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Навички і тактики"
+          }
+        }
+      }
+    },
+    "Slow connection" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slow connection"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Медленное соединение"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повільне з’єднання"
+          }
+        }
+      }
+    },
+    "Slow connection — still sending…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slow connection — still sending…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Медленное соединение — отправка…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повільне з’єднання — надсилання…"
+          }
+        }
+      }
+    },
+    "Sound Effects" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sound Effects"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Звуковые эффекты"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Звукові ефекти"
+          }
+        }
+      }
     },
     "START" : {
       "extractionState" : "stale",
@@ -435,8 +4424,207 @@
         }
       }
     },
-    "Table Creator" : {
+    "START MATCH" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "START MATCH"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "НАЧАТЬ МАТЧ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПОЧАТИ МАТЧ"
+          }
+        }
+      }
+    },
+    "STARTING GUEST SESSION..." : {
 
+    },
+    "STARTING MATCH..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "STARTING MATCH..."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ЗАПУСК МАТЧА..."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ЗАПУСК МАТЧУ..."
+          }
+        }
+      }
+    },
+    "Still in another match" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Still in another match"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы ещё в другой игре"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ви ще в іншій грі"
+          }
+        }
+      }
+    },
+    "Strategic Move Hint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strategic Move Hint"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подсказка хода"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підказка ходу"
+          }
+        }
+      }
+    },
+    "STYLE" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "STYLE"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "СТИЛЬ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "СТИЛЬ"
+          }
+        }
+      }
+    },
+    "Table Creator" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Table Creator"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создатель стола"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Творець столу"
+          }
+        }
+      }
+    },
+    "Table is full" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Table is full"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Стол заполнен"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Стіл заповнений"
+          }
+        }
+      }
+    },
+    "TABLE SEATS (%@/%@)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TABLE SEATS (%1$@/%2$@)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "МЕСТА (%1$@/%2$@)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "МІСЦЯ (%1$@/%2$@)"
+          }
+        }
+      }
+    },
+    "TABLE SEATS (%lld/%lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TABLE SEATS (%1$lld/%2$lld)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "МЕСТА (%1$lld/%2$lld)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "МІСЦЯ (%1$lld/%2$lld)"
+          }
+        }
+      }
     },
     "Take" : {
       "localizations" : {
@@ -460,8 +4648,380 @@
         }
       }
     },
+    "Taking" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taking"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Взятие"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Взяття"
+          }
+        }
+      }
+    },
+    "Taking cards..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taking cards..."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Берёте карты..."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Берете карти..."
+          }
+        }
+      }
+    },
+    "That code isn’t open to join right now." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That code isn’t open to join right now."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот код сейчас недоступен для входа."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цей код зараз недоступний для входу."
+          }
+        }
+      }
+    },
+    "That username is already taken. Please try another." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That username is already taken. Please try another."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это имя уже занято. Попробуйте другое."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Це ім’я вже зайняте. Спробуйте інше."
+          }
+        }
+      }
+    },
+    "This will permanently delete your account, handle, wallet balance, and friend list. This action cannot be undone." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will permanently delete your account, handle, wallet balance, and friend list. This action cannot be undone."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это навсегда удалит аккаунт, имя, баланс кошелька и список друзей. Действие нельзя отменить."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Це назавжди видалить акаунт, ім’я, баланс гаманця та список друзів. Дію не можна скасувати."
+          }
+        }
+      }
+    },
+    "Throw in a matching card or press Done" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Throw in a matching card or press Done"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подкиньте карту нужного достоинства или нажмите Готово"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підкиньте карту потрібного номіналу або натисніть Готово"
+          }
+        }
+      }
+    },
+    "Throw in more cards or wait" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Throw in more cards or wait"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подкиньте карты или подождите"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підкиньте карти або зачекайте"
+          }
+        }
+      }
+    },
+    "THROW-IN" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "THROW-IN"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПОДКИД"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПІДКИД"
+          }
+        }
+      }
+    },
+    "THROW-IN ELIGIBILITY" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "THROW-IN ELIGIBILITY"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "КТО ПОДКИДЫВАЕТ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ХТО ПІДКИДАЄ"
+          }
+        }
+      }
+    },
+    "Throw-in scope can be All players or Neighbors only. Trump-6 ↔ face-up trump swap is not used. Partnership teams are not supported." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Throw-in scope can be All players or Neighbors only. Trump-6 ↔ face-up trump swap is not used. Partnership teams are not supported."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Область подкида: все игроки или только соседи. Обмен шестёрки на открытый козырь не используется. Командные пары не поддерживаются."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Область підкиду: усі гравці або лише сусіди. Обмін шістки на відкритий козир не використовується. Командні пари не підтримуються."
+          }
+        }
+      }
+    },
+    "TIMER" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TIMER"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ТАЙМЕР"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ТАЙМЕР"
+          }
+        }
+      }
+    },
     "Total: %@" : {
-
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total: %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Итого: %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разом: %@"
+          }
+        }
+      }
+    },
+    "Total: %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total: %lld"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Итого: %lld"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разом: %lld"
+          }
+        }
+      }
+    },
+    "TRANSFER" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TRANSFER"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПЕРЕВОД"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ПЕРЕВІД"
+          }
+        }
+      }
+    },
+    "TRUMP" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TRUMP"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "КОЗЫРЬ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "КОЗИР"
+          }
+        }
+      }
+    },
+    "TURN TIMER" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TURN TIMER"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ТАЙМЕР ХОДА"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ТАЙМЕР ХОДУ"
+          }
+        }
+      }
+    },
+    "TURN TIMER (SOLO)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TURN TIMER (SOLO)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ТАЙМЕР ХОДА (СОЛО)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ТАЙМЕР ХОДУ (СОЛО)"
+          }
+        }
+      }
     },
     "Undo" : {
       "localizations" : {
@@ -485,11 +5045,51 @@
         }
       }
     },
-    "Victory Match Bonus" : {
-
+    "Undo Last Card" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo Last Card"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отменить карту"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скасувати карту"
+          }
+        }
+      }
+    },
+    "USERNAME" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "USERNAME"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ИМЯ ПОЛЬЗОВАТЕЛЯ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ІМ’Я КОРИСТУВАЧА"
+          }
+        }
+      }
     },
     "VICTORY!" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -511,17 +5111,483 @@
         }
       }
     },
+    "Victory! You won!" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Victory! You won!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Победа! Вы выиграли!"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перемога! Ви виграли!"
+          }
+        }
+      }
+    },
+    "Wait for the host to begin the match." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wait for the host to begin the match."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дождитесь, пока хост начнёт матч."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зачекайте, доки хост почне матч."
+          }
+        }
+      }
+    },
+    "Waiting for %@ to attack" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for %@ to attack"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ждём атаку от %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чекаємо атаку від %@"
+          }
+        }
+      }
+    },
+    "Waiting for %@ to beat %lld cards" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for %@ to beat %lld cards"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ждём, пока %@ отобьёт %lld карт"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чекаємо, поки %@ відіб’є %lld карт"
+          }
+        }
+      }
+    },
+    "Waiting for %@ to beat 1 card" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for %@ to beat 1 card"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ждём, пока %@ отобьёт 1 карту"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чекаємо, поки %@ відіб’є 1 карту"
+          }
+        }
+      }
+    },
+    "Waiting for attack..." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for attack..."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ожидание атаки..."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очікування атаки..."
+          }
+        }
+      }
+    },
+    "Waiting for attackers to throw in or pass" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for attackers to throw in or pass"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ждём подкида или паса от атакующих"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чекаємо підкид або пас від атакуючих"
+          }
+        }
+      }
+    },
+    "Waiting for defense..." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for defense..."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ожидание защиты..."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очікування захисту..."
+          }
+        }
+      }
+    },
     "Waiting for host to start the match..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for host to start the match..."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ожидание начала матча хостом..."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очікування початку матчу хостом..."
+          }
+        }
+      }
+    },
+    "Welcome Back to the Table" : {
 
     },
-    "Welcome to Durak — the classic Russian card game." : {
+    "What should we call you?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What should we call you?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Как вас представить?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Як вас представити?"
+          }
+        }
+      }
+    },
+    "Winner • 1st Escaped" : {
 
+    },
+    "Winning" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Winning"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Победа"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перемога"
+          }
+        }
+      }
+    },
+    "You can sign back in anytime to access your backed-up Gold, Credits, and profile." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can sign back in anytime to access your backed-up Gold, Credits, and profile."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы можете войти снова в любое время, чтобы получить сохранённые золото, кредиты и профиль."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ви можете увійти знову будь-коли, щоб отримати збережені золото, кредити та профіль."
+          }
+        }
+      }
+    },
+    "You were left holding the cards!" : {
+
+    },
+    "You're out — watching" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're out — watching"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы вне игры — смотрите"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ви поза грою — дивіться"
+          }
+        }
+      }
+    },
+    "Your current Gold (%@) & Credits (%@) carry over automatically." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your current Gold (%1$@) & Credits (%2$@) carry over automatically."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваше золото (%1$@) и кредиты (%2$@) перенесутся автоматически."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваше золото (%1$@) і кредити (%2$@) перенесуться автоматично."
+          }
+        }
+      }
+    },
+    "Your current Gold (%lld) & Credits (%lld) carry over automatically." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your current Gold (%1$lld) & Credits (%2$lld) carry over automatically."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваше золото (%1$lld) и кредиты (%2$lld) перенесутся автоматически."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваше золото (%1$lld) і кредити (%2$lld) перенесуться автоматично."
+          }
+        }
+      }
     },
     "YOUR DISPLAY NAME" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "YOUR DISPLAY NAME"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ВАШЕ ИМЯ"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ВАШЕ ІМ’Я"
+          }
+        }
+      }
+    },
+    "Your Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Name"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваше имя"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваше ім’я"
+          }
+        }
+      }
+    },
+    "Your turn — rejoin" : {
 
     },
-    "ДУРАК" : {
-
+    "Your turn to attack — play a card" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your turn to attack — play a card"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш ход — атакуйте"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш хід — атакуйте"
+          }
+        }
+      }
+    },
+    "Your turn to defend — beat %lld cards or take" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your turn to defend — beat %lld cards or take"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш ход — отбейте %lld карт или возьмите"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш хід — відбийте %lld карт або візьміть"
+          }
+        }
+      }
+    },
+    "Your turn to defend — beat 1 card or take" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your turn to defend — beat 1 card or take"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш ход — отбейте 1 карту или возьмите"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш хід — відбийте 1 карту або візьміть"
+          }
+        }
+      }
+    },
+    "Your turn to defend — beat all cards or take" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your turn to defend — beat all cards or take"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш ход — отбейте все или возьмите"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш хід — відбийте всі або візьміть"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

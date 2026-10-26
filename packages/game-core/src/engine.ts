@@ -112,6 +112,8 @@ export function createGame(
     variant: options.rules?.variant ?? DEFAULT_RULES.variant,
     throwInScope: options.rules?.throwInScope ?? DEFAULT_RULES.throwInScope,
     playStyle: options.rules?.playStyle ?? DEFAULT_RULES.playStyle,
+    allowTransferOnFirstBout:
+      options.rules?.allowTransferOnFirstBout ?? DEFAULT_RULES.allowTransferOnFirstBout,
   };
 
   // Bottom card fixes the trump suit and is drawn last.
@@ -420,7 +422,9 @@ function endRound(state: GameState, defenderTook: boolean): void {
   state.passed = [];
   state.takeInProgress = false;
 
-  if (state.maxAttacks < MAX_ATTACKS) {
+  // Cap rises to 6 only after the first successful beat (discard nonempty).
+  // Takes leave discard empty, so subsequent bouts stay at 5 until then.
+  if (!defenderTook && state.discard.length > 0 && state.maxAttacks < MAX_ATTACKS) {
     state.maxAttacks = MAX_ATTACKS;
   }
 

@@ -140,13 +140,18 @@ export async function settleMatchEconomy(
     return;
   }
 
-  const winnerPlayerId = state.finishedOrder[0];
-  const winnerMember = room.members.find(
-    (m) => !m.isBot && m.playerId === winnerPlayerId,
+  // Prefer first human in finishedOrder (bots may finish first but never paid buy-in).
+  const winnerPlayerId = state.finishedOrder.find((playerId) =>
+    humans.some((m) => m.playerId === playerId),
   );
+  const winnerMember = winnerPlayerId
+    ? humans.find((m) => m.playerId === winnerPlayerId)
+    : undefined;
+  // No human finisher → humans already lost buy-in; nothing to award.
   if (!winnerMember) return;
 
-  const pot = buyIn * room.config.numPlayers;
+  // Pot is only human buy-ins (bots never pay).
+  const pot = buyIn * humans.length;
   await awardCredits(ctx, winnerMember.userId, pot, "win_pot");
 }
 
@@ -229,20 +234,9 @@ export const awardGold = mutation({
     amount: v.number(),
     reason: v.string(),
   },
-  handler: async (ctx, args) => {
-    const userId = await requireUserId(ctx);
-    const wallet = await getWalletDoc(ctx, userId);
-    if (!wallet) {
-      throw new Error("Wallet not found");
-    }
-
-    const goldBalance = wallet.goldBalance + Math.max(0, Math.floor(args.amount));
-    await ctx.db.patch(wallet._id, {
-      goldBalance,
-      updatedAt: Date.now(),
-      lastReason: args.reason,
-    });
-    return { goldBalance };
+  handler: async (_ctx, _args) => {
+    // Public mint disabled — online rewards settle only via rooms.settleMatchEconomy.
+    throw new Error("Gold awards are handled by the server");
   },
 });
 
@@ -311,24 +305,17 @@ export const awardWinGold = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
-    const { wallet } = await assertWinner(ctx, userId, args.roomId);
+    const { room, wallet } = await assertWinner(ctx, userId, args.roomId);
     if (!wallet) {
       throw new Error("Wallet not found");
     }
 
-    if (wallet.lastWinAwardRoomId === args.roomId) {
+    // Match pot/gold already settled server-side — do not double-pay.
+    if ((room as any).economy?.settled || wallet.lastWinAwardRoomId === args.roomId) {
       return { goldBalance: wallet.goldBalance, awarded: 0 };
     }
 
-    const goldBalance = wallet.goldBalance + WIN_GOLD_REWARD;
-    await ctx.db.patch(wallet._id, {
-      goldBalance,
-      updatedAt: Date.now(),
-      lastReason: "win",
-      lastWinAwardRoomId: args.roomId,
-    });
-
-    return { goldBalance, awarded: WIN_GOLD_REWARD };
+    throw new Error("Win gold is settled by the server");
   },
 });
 
@@ -343,24 +330,14 @@ export const awardWinCredits = mutation({
       throw new Error("Wallet not found");
     }
 
-    if (wallet.lastCreditAwardRoomId === args.roomId) {
+    if ((room as any).economy?.settled || wallet.lastCreditAwardRoomId === args.roomId) {
       return {
         creditBalance: resolveCreditBalance(wallet),
         awarded: 0,
       };
     }
 
-    const buyIn = (room as any).buyIn ?? MATCH_BUY_IN;
-    const pot = buyIn * room.config.numPlayers;
-    const creditBalance = resolveCreditBalance(wallet) + pot;
-    await ctx.db.patch(wallet._id, {
-      creditBalance,
-      updatedAt: Date.now(),
-      lastReason: "win_pot",
-      lastCreditAwardRoomId: args.roomId,
-    });
-
-    return { creditBalance, awarded: pot };
+    throw new Error("Win credits are settled by the server");
   },
 });
 

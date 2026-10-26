@@ -3,12 +3,22 @@ options:
   bundleIdPrefix: com.qaschoolusa
   deploymentTarget:
     iOS: "18.0"
+  developmentLanguage: en
+  knownRegions:
+    - Base
+    - en
+    - ru
+    - uk
+
 packages:
   DurakGameCore:
     path: ./DurakGameCore
   ConvexMobile:
     url: https://github.com/get-convex/convex-swift
     from: "0.8.1"
+  Lottie:
+    url: https://github.com/airbnb/lottie-ios
+    from: "4.5.0"
 targets:
   Durak:
     type: application
@@ -19,6 +29,7 @@ targets:
         excludes:
           - Info.plist
           - Durak.entitlements
+          - "**/*.md"
     entitlements:
       path: Durak/Durak.entitlements
       properties:
@@ -36,6 +47,8 @@ targets:
       - package: DurakGameCore
       - package: ConvexMobile
         product: ConvexMobile
+      - package: Lottie
+        product: Lottie
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.qaschoolusa.durak
@@ -58,3 +71,5 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: YES
         ENABLE_PREVIEWS: YES
+        SWIFT_EMIT_LOC_STRINGS: YES
+

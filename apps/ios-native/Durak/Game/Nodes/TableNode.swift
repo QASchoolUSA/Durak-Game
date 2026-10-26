@@ -14,6 +14,8 @@ final class TableNode: SKNode {
 
     private var pairNodes: [(attack: CardNode, defense: CardNode?)] = []
     private var slotIndicators: [SKShapeNode] = []
+    /// Reusable defense-slot halos (avoids recreate + pulse restart every sync).
+    private var haloPool: [SKShapeNode] = []
     private var transferNode: SKNode?
     private(set) var transferSlotBounds: CGRect?
     private var appearance: AppearancePreset
@@ -24,7 +26,7 @@ final class TableNode: SKNode {
         UIAccessibility.isReduceMotionEnabled
     }
 
-    init(appearance: AppearancePreset, cardSize: CGSize = CGSize(width: 68, height: 95)) {
+    init(appearance: AppearancePreset, cardSize: CGSize = CGSize(width: 72, height: 100)) {
         self.appearance = appearance
         self.cardSize = cardSize
         super.init()
@@ -61,8 +63,8 @@ final class TableNode: SKNode {
             let centerX = startX + CGFloat(col) * (pairWidth + spacingX)
             let centerY = startY - CGFloat(row) * (pairHeight + spacingY)
 
-            let attackPos = CGPoint(x: centerX - 6, y: centerY + 6)
-            let defensePos = CGPoint(x: centerX + 6, y: centerY - 6)
+            let attackPos = CGPoint(x: centerX - 8, y: centerY + 8)
+            let defensePos = CGPoint(x: centerX + 8, y: centerY - 8)
             let bbox = CGRect(x: centerX - pairWidth / 2, y: centerY - pairHeight / 2, width: pairWidth, height: pairHeight)
 
             layouts.append(SlotLayout(index: i, center: CGPoint(x: centerX, y: centerY), attackPosition: attackPos, defensePosition: defensePos, boundingBox: bbox))
@@ -86,18 +88,20 @@ final class TableNode: SKNode {
             }
             slotIndicators.removeAll()
 
-            transferNode?.removeFromParent()
-            transferNode = nil
-            transferSlotBounds = nil
+            hideTransferAffordance()
             return
         }
 
         let slots = layoutSlots(pairCount: pairs.count)
         var newPairNodes: [(attack: CardNode, defense: CardNode?)] = []
 
-        // Remove old slot indicators
+        // Park active indicators back into the pool (keep nodes alive).
         for ind in slotIndicators {
-            ind.removeFromParent()
+            ind.isHidden = true
+            ind.removeAction(forKey: "haloPulse")
+            if !haloPool.contains(where: { $0 === ind }) {
+                haloPool.append(ind)
+            }
         }
         slotIndicators.removeAll()
 
@@ -112,18 +116,39 @@ final class TableNode: SKNode {
                 attackNode.updateAppearance(appearance)
                 // Don't interrupt an in-flight fly from the hand
                 if attackNode.action(forKey: "flyTo") == nil {
-                    attackNode.flyTo(position: slot.attackPosition, duration: 0.22)
+                    attackNode.flyTo(
+                        position: slot.attackPosition,
+                        duration: CardNode.FlightStyle.reflow.duration,
+                        style: .reflow
+                    )
                 }
                 attackNode.zPosition = CGFloat(10 + i * 2)
             } else {
+                // New attack (typically AI/opponent) — spawn offset so travel is always visible.
                 attackNode = CardNode(card: pair.attack, isFaceUp: true, size: cardSize, appearance: appearance)
-                attackNode.position = slot.attackPosition
+                attackNode.position = CGPoint(x: slot.attackPosition.x, y: slot.attackPosition.y + 18)
                 attackNode.zPosition = CGFloat(10 + i * 2)
-                attackNode.setScale(0.85)
+                attackNode.zRotation = 0.04
+                attackNode.setScale(0.90)
                 addChild(attackNode)
-                let popIn = SKAction.scale(to: 1.0, duration: reduceMotion ? 0 : 0.18)
-                popIn.timingMode = .easeOut
-                attackNode.run(popIn)
+                let delay = reduceMotion ? 0 : TimeInterval(i) * 0.03
+                let flyDuration: TimeInterval = reduceMotion ? 0 : CardNode.FlightStyle.place.duration
+                let attackTarget = slot.attackPosition
+                let attackZ = CGFloat(10 + i * 2)
+                attackNode.run(SKAction.sequence([
+                    SKAction.wait(forDuration: delay),
+                    SKAction.run { [weak attackNode] in
+                        attackNode?.flyTo(
+                            position: attackTarget,
+                            rotation: 0,
+                            zPosition: attackZ,
+                            scale: 1.0,
+                            duration: flyDuration,
+                            style: .place,
+                            onImpact: { FeedbackManager.shared.trigger(.cardPlay) }
+                        )
+                    }
+                ]))
             }
 
             // Defense card if present
@@ -134,38 +159,59 @@ final class TableNode: SKNode {
                     defNode = existingDef
                     existingDef.updateAppearance(appearance)
                     if existingDef.action(forKey: "flyTo") == nil {
-                        existingDef.flyTo(position: slot.defensePosition, rotation: -0.05, duration: 0.22)
+                        existingDef.flyTo(
+                            position: slot.defensePosition,
+                            rotation: -0.08,
+                            duration: CardNode.FlightStyle.place.duration,
+                            style: .place
+                        )
                     }
                     existingDef.zPosition = CGFloat(11 + i * 2)
                 } else {
+                    // New defense land (AI or sync) — staggered with attacks in the same sync.
                     let node = CardNode(card: defenseCard, isFaceUp: true, size: cardSize, appearance: appearance)
-                    node.position = CGPoint(x: slot.defensePosition.x, y: slot.defensePosition.y + 10)
+                    node.position = CGPoint(x: slot.defensePosition.x, y: slot.defensePosition.y + 14)
                     node.zPosition = CGFloat(11 + i * 2)
-                    node.zRotation = -0.05
-                    node.setScale(1.08)
+                    node.zRotation = -0.04
+                    node.setScale(1.06)
                     addChild(node)
-                    let dropDown = SKAction.group([
-                        SKAction.move(to: slot.defensePosition, duration: reduceMotion ? 0 : 0.18),
-                        SKAction.scale(to: 1.0, duration: reduceMotion ? 0 : 0.18)
-                    ])
-                    dropDown.timingMode = .easeOut
-                    node.run(dropDown)
+                    let delay = reduceMotion ? 0 : TimeInterval(i) * 0.03 + 0.02
+                    let flyDuration: TimeInterval = reduceMotion ? 0 : CardNode.FlightStyle.place.duration
+                    let defenseTarget = slot.defensePosition
+                    let defenseZ = CGFloat(11 + i * 2)
+                    node.run(SKAction.sequence([
+                        SKAction.wait(forDuration: delay),
+                        SKAction.run { [weak node] in
+                            node?.flyTo(
+                                position: defenseTarget,
+                                rotation: -0.08,
+                                zPosition: defenseZ,
+                                scale: 1.0,
+                                duration: flyDuration,
+                                style: .place,
+                                onImpact: { FeedbackManager.shared.trigger(.cardPlay) }
+                            )
+                        }
+                    ]))
                     defNode = node
                 }
             } else {
-                // Undefended attack slot outline/halo with pulsing animation
-                let halo = SKShapeNode(rect: CGRect(x: -cardSize.width / 2, y: -cardSize.height / 2, width: cardSize.width, height: cardSize.height), cornerRadius: 8)
+                // Undefended slot — reuse pooled halo (no recreate each sync).
+                let halo = borrowHalo()
                 halo.position = slot.defensePosition
                 halo.zPosition = CGFloat(9 + i * 2)
                 halo.strokeColor = UIColor(appearance.ui.accent).withAlphaComponent(0.45)
                 halo.fillColor = UIColor(appearance.ui.accent).withAlphaComponent(0.08)
                 halo.lineWidth = 1.5
-                let pulse = SKAction.repeatForever(SKAction.sequence([
-                    SKAction.fadeAlpha(to: 0.85, duration: 0.65),
-                    SKAction.fadeAlpha(to: 0.35, duration: 0.65)
-                ]))
-                halo.run(pulse)
-                addChild(halo)
+                halo.alpha = 0.7
+                halo.isHidden = false
+                if halo.action(forKey: "haloPulse") == nil {
+                    let pulse = SKAction.repeatForever(SKAction.sequence([
+                        SKAction.fadeAlpha(to: 0.85, duration: 0.65),
+                        SKAction.fadeAlpha(to: 0.35, duration: 0.65)
+                    ]))
+                    halo.run(pulse, withKey: "haloPulse")
+                }
                 slotIndicators.append(halo)
             }
 
@@ -185,76 +231,140 @@ final class TableNode: SKNode {
         }
         self.pairNodes = newPairNodes
 
-        // Perevodnoy Transfer Slot: Illuminated slot next to the opening attack card
-        if canTransfer, let openingSlot = slots.first {
-            if transferNode == nil {
-                let container = SKNode()
-                let transferCenter = CGPoint(x: openingSlot.center.x + cardSize.width + 16, y: openingSlot.center.y)
-                container.position = transferCenter
-                container.zPosition = 15
-
-                let rect = CGRect(x: -cardSize.width / 2, y: -cardSize.height / 2, width: cardSize.width, height: cardSize.height)
-                let slotBg = SKShapeNode(rect: rect, cornerRadius: 10)
-                slotBg.strokeColor = UIColor(appearance.ui.accent)
-                slotBg.fillColor = UIColor(appearance.ui.accent).withAlphaComponent(0.09)
-                slotBg.lineWidth = 1.5
-                container.addChild(slotBg)
-
-                let icon = SKLabelNode(text: "⇄")
-                icon.fontName = "HelveticaNeue-Bold"
-                icon.fontSize = 24
-                icon.fontColor = UIColor(appearance.ui.accent)
-                icon.verticalAlignmentMode = .center
-                icon.horizontalAlignmentMode = .center
-                icon.position = CGPoint(x: 0, y: 12)
-                container.addChild(icon)
-
-                let label = SKLabelNode(text: "TRANSFER")
-                label.fontName = "HelveticaNeue-Bold"
-                label.fontSize = 9
-                label.fontColor = UIColor(appearance.ui.accent)
-                label.verticalAlignmentMode = .center
-                label.horizontalAlignmentMode = .center
-                label.position = CGPoint(x: 0, y: -8)
-                container.addChild(label)
-
-                let subLabel = SKLabelNode(text: "Same Rank")
-                subLabel.fontName = "HelveticaNeue"
-                subLabel.fontSize = 8
-                subLabel.fontColor = UIColor(DesignTokens.Colors.textMuted)
-                subLabel.verticalAlignmentMode = .center
-                subLabel.horizontalAlignmentMode = .center
-                subLabel.position = CGPoint(x: 0, y: -20)
-                container.addChild(subLabel)
-
-                container.run(SKAction.repeatForever(SKAction.sequence([
-                    SKAction.fadeAlpha(to: 0.65, duration: 0.8),
-                    SKAction.fadeAlpha(to: 1.0, duration: 0.8)
-                ])))
-
-                addChild(container)
-                self.transferNode = container
-
-                let bbox = CGRect(x: transferCenter.x - cardSize.width / 2, y: transferCenter.y - cardSize.height / 2, width: cardSize.width, height: cardSize.height)
-                self.transferSlotBounds = bbox
-            }
+        // Perevodnoy transfer affordance: empty slot to the right of the full layout
+        // (never overlapping attack cards). Always rebuild so reflow stays correct.
+        if canTransfer, !slots.isEmpty {
+            installTransferAffordance(slots: slots, appearance: appearance)
         } else {
-            transferNode?.removeFromParent()
-            transferNode = nil
-            transferSlotBounds = nil
+            hideTransferAffordance()
         }
+    }
+
+    /// Clears transfer chrome immediately (e.g. when a transfer is committed).
+    func hideTransferAffordance() {
+        transferNode?.removeAllActions()
+        transferNode?.removeFromParent()
+        transferNode = nil
+        transferSlotBounds = nil
+    }
+
+    /// Empty dashed slot placed clear of all pair columns, below card z-order.
+    private func installTransferAffordance(slots: [SlotLayout], appearance: AppearancePreset) {
+        hideTransferAffordance()
+
+        let transferCenter = transferSlotCenter(for: slots)
+        let container = SKNode()
+        container.position = transferCenter
+        // Below table cards (10+) so labels never paint over faces.
+        container.zPosition = 7
+        container.name = "transferAffordance"
+
+        let rect = CGRect(
+            x: -cardSize.width / 2,
+            y: -cardSize.height / 2,
+            width: cardSize.width,
+            height: cardSize.height
+        )
+        let slotBg = SKShapeNode(rect: rect, cornerRadius: 10)
+        slotBg.strokeColor = UIColor(appearance.ui.accent).withAlphaComponent(0.85)
+        slotBg.fillColor = UIColor(appearance.ui.accent).withAlphaComponent(0.07)
+        slotBg.lineWidth = 1.5
+        container.addChild(slotBg)
+
+        // Inner dashed path — empty drop target, not a card face.
+        let inset = rect.insetBy(dx: 5, dy: 5)
+        let dashPath = CGPath(
+            roundedRect: inset,
+            cornerWidth: 8,
+            cornerHeight: 8,
+            transform: nil
+        ).copy(
+            dashingWithPhase: 0,
+            lengths: [5, 4]
+        )
+        let dashOutline = SKShapeNode(path: dashPath)
+        dashOutline.strokeColor = UIColor(appearance.ui.accent).withAlphaComponent(0.55)
+        dashOutline.fillColor = .clear
+        dashOutline.lineWidth = 1.2
+        container.addChild(dashOutline)
+
+        // Caption sits above the slot so it cannot cover a landed card face.
+        let captionY = cardSize.height / 2 + 14
+
+        let icon = SKLabelNode(text: "⇄")
+        icon.fontName = "HelveticaNeue-Bold"
+        icon.fontSize = 16
+        icon.fontColor = UIColor(appearance.ui.accent)
+        icon.verticalAlignmentMode = .center
+        icon.horizontalAlignmentMode = .center
+        icon.position = CGPoint(x: 0, y: captionY + 10)
+        container.addChild(icon)
+
+        let label = SKLabelNode(text: String(localized: "TRANSFER"))
+        label.fontName = "HelveticaNeue-Bold"
+        label.fontSize = 9
+        label.fontColor = UIColor(appearance.ui.accent)
+        label.verticalAlignmentMode = .center
+        label.horizontalAlignmentMode = .center
+        label.position = CGPoint(x: 0, y: captionY - 4)
+        container.addChild(label)
+
+        let subLabel = SKLabelNode(text: String(localized: "Same Rank"))
+        subLabel.fontName = "HelveticaNeue"
+        subLabel.fontSize = 8
+        subLabel.fontColor = UIColor(appearance.ui.accentMuted)
+        subLabel.verticalAlignmentMode = .center
+        subLabel.horizontalAlignmentMode = .center
+        subLabel.position = CGPoint(x: 0, y: captionY - 16)
+        container.addChild(subLabel)
+
+        container.alpha = 1.0
+        container.run(SKAction.repeatForever(SKAction.sequence([
+            SKAction.fadeAlpha(to: 0.72, duration: 0.8),
+            SKAction.fadeAlpha(to: 1.0, duration: 0.8)
+        ])))
+
+        addChild(container)
+        transferNode = container
+        transferSlotBounds = CGRect(
+            x: transferCenter.x - cardSize.width / 2,
+            y: transferCenter.y - cardSize.height / 2,
+            width: cardSize.width,
+            height: cardSize.height
+        )
+    }
+
+    /// Center of the transfer drop zone: one column past the rightmost pair.
+    private func transferSlotCenter(for slots: [SlotLayout]) -> CGPoint {
+        let pairWidth = cardSize.width + 12
+        let spacingX: CGFloat = 16
+        guard let rightmost = slots.max(by: { $0.center.x < $1.center.x }) else {
+            return .zero
+        }
+        return CGPoint(
+            x: rightmost.center.x + pairWidth + spacingX,
+            y: rightmost.center.y
+        )
     }
 
     // MARK: - Human Play Handoff
 
     /// Reparents a dragged hand card onto the table as a new attack and flies it into slot.
-    func adoptAttackFromHand(_ node: CardNode, resultingPairs: [TablePair]) {
+    func adoptAttackFromHand(
+        _ node: CardNode,
+        resultingPairs: [TablePair],
+        style: CardNode.FlightStyle = .place,
+        onLand: (() -> Void)? = nil
+    ) {
         let slots = layoutSlots(pairCount: max(resultingPairs.count, 1))
         let index = max(0, resultingPairs.count - 1)
-        guard index < slots.count else { return }
+        guard index < slots.count else {
+            onLand?()
+            return
+        }
 
         reparentIntoTable(node)
-        normalizeAdoptedCardSize(node)
+        node.preserveVisualSize(thenResizeTo: cardSize)
 
         // Bookkeep before sync so updateTable reuses this node
         if pairNodes.count == index {
@@ -263,27 +373,40 @@ final class TableNode: SKNode {
             pairNodes[index].attack.removeFromParent()
             pairNodes[index] = (attack: node, defense: pairNodes[index].defense)
         } else {
-            while pairNodes.count < index {
-                // Should not happen in normal play; pad defensively
-                break
-            }
             pairNodes.append((attack: node, defense: nil))
         }
 
         let target = slots[index].attackPosition
-        let duration: TimeInterval = reduceMotion ? 0 : 0.22
+        let duration: TimeInterval = reduceMotion ? 0 : style.duration
         node.zPosition = CGFloat(10 + index * 2)
-        node.setLifted(false, animated: false)
-        node.flyTo(position: target, rotation: 0, zPosition: node.zPosition, scale: 1.0, duration: duration)
+        node.setLifted(false, animated: true, duration: duration)
+        node.flyTo(
+            position: target,
+            rotation: 0,
+            zPosition: node.zPosition,
+            scale: 1.0,
+            duration: duration,
+            style: style,
+            onImpact: onLand
+        )
     }
 
     /// Reparents a dragged hand card onto the table as a defense on the given slot.
-    func adoptDefenseFromHand(_ node: CardNode, slotIndex: Int, resultingPairs: [TablePair]) {
+    func adoptDefenseFromHand(
+        _ node: CardNode,
+        slotIndex: Int,
+        resultingPairs: [TablePair],
+        style: CardNode.FlightStyle = .place,
+        onLand: (() -> Void)? = nil
+    ) {
         let slots = layoutSlots(pairCount: max(resultingPairs.count, 1))
-        guard slotIndex < slots.count else { return }
+        guard slotIndex < slots.count else {
+            onLand?()
+            return
+        }
 
         reparentIntoTable(node)
-        normalizeAdoptedCardSize(node)
+        node.preserveVisualSize(thenResizeTo: cardSize)
 
         if slotIndex < pairNodes.count {
             pairNodes[slotIndex].defense?.removeFromParent()
@@ -291,10 +414,18 @@ final class TableNode: SKNode {
         }
 
         let target = slots[slotIndex].defensePosition
-        let duration: TimeInterval = reduceMotion ? 0 : 0.22
+        let duration: TimeInterval = reduceMotion ? 0 : style.duration
         node.zPosition = CGFloat(11 + slotIndex * 2)
-        node.setLifted(false, animated: false)
-        node.flyTo(position: target, rotation: -0.05, zPosition: node.zPosition, scale: 1.0, duration: duration)
+        node.setLifted(false, animated: true, duration: duration)
+        node.flyTo(
+            position: target,
+            rotation: -0.08,
+            zPosition: node.zPosition,
+            scale: 1.0,
+            duration: duration,
+            style: style,
+            onImpact: onLand
+        )
     }
 
     private func reparentIntoTable(_ node: CardNode) {
@@ -309,35 +440,39 @@ final class TableNode: SKNode {
         node.position = posInTable
     }
 
-    private func normalizeAdoptedCardSize(_ node: CardNode) {
-        // Hand cards are larger; resize to table card size while preserving visual scale during fly.
-        let scaleFactor = cardSize.width / max(node.cardSize.width, 1)
-        node.setScale(node.xScale * scaleFactor)
-        node.updateSize(cardSize)
-    }
-
     // MARK: - Slot Highlighting (Magnetic Guides)
 
     func highlightDefenseSlot(at index: Int?) {
         for (i, halo) in slotIndicators.enumerated() {
-            halo.removeAllActions()
+            // Avoid removeAllActions — keeps the soft pulse running.
             if let idx = index, i == idx {
                 halo.strokeColor = UIColor(appearance.ui.accent)
                 halo.fillColor = UIColor(appearance.ui.accent).withAlphaComponent(0.25)
                 halo.lineWidth = 2.5
-                halo.run(SKAction.scale(to: 1.08, duration: 0.12))
+                halo.removeAction(forKey: "haloScale")
+                halo.run(SKAction.scale(to: 1.08, duration: 0.12), withKey: "haloScale")
             } else {
                 halo.strokeColor = UIColor(appearance.ui.accent).withAlphaComponent(0.4)
                 halo.fillColor = UIColor(appearance.ui.accent).withAlphaComponent(0.08)
                 halo.lineWidth = 1.5
-                halo.run(SKAction.scale(to: 1.0, duration: 0.12))
-                let pulse = SKAction.repeatForever(SKAction.sequence([
-                    SKAction.fadeAlpha(to: 0.8, duration: 0.6),
-                    SKAction.fadeAlpha(to: 0.35, duration: 0.6)
-                ]))
-                halo.run(pulse)
+                halo.removeAction(forKey: "haloScale")
+                halo.run(SKAction.scale(to: 1.0, duration: 0.12), withKey: "haloScale")
             }
         }
+    }
+
+    private func borrowHalo() -> SKShapeNode {
+        if let recycled = haloPool.popLast() {
+            recycled.setScale(1.0)
+            recycled.isHidden = false
+            return recycled
+        }
+        let halo = SKShapeNode(
+            rect: CGRect(x: -cardSize.width / 2, y: -cardSize.height / 2, width: cardSize.width, height: cardSize.height),
+            cornerRadius: 8
+        )
+        addChild(halo)
+        return halo
     }
 
     func highlightTransferSlot(_ active: Bool) {
@@ -365,6 +500,38 @@ final class TableNode: SKNode {
         sweepPairs(to: pos, rotationRange: -0.15...0.15, duration: 0.28, stagger: 0.04, completion: completion)
     }
 
+    /// Ordered table cards (attack then defense, left → right), reparented into `destination`
+    /// with positions converted. Clears pair bookkeeping. Caller animates.
+    @discardableResult
+    func releaseCardsForTake(into destination: SKNode) -> [CardNode] {
+        var ordered: [CardNode] = []
+        for pair in pairNodes {
+            ordered.append(pair.attack)
+            if let defense = pair.defense {
+                ordered.append(defense)
+            }
+        }
+
+        for node in ordered {
+            let posInDest = destination.convert(node.position, from: self)
+            node.removeFromParent()
+            destination.addChild(node)
+            node.position = posInDest
+        }
+
+        pairNodes.removeAll()
+        for ind in slotIndicators {
+            ind.isHidden = true
+            ind.removeAction(forKey: "haloPulse")
+            if !haloPool.contains(where: { $0 === ind }) {
+                haloPool.append(ind)
+            }
+        }
+        slotIndicators.removeAll()
+        hideTransferAffordance()
+        return ordered
+    }
+
     private func sweepPairs(
         to pos: CGPoint,
         rotationRange: ClosedRange<CGFloat>,
@@ -380,7 +547,9 @@ final class TableNode: SKNode {
         let motionDuration = reduceMotion ? 0 : duration
         let motionStagger = reduceMotion ? 0 : stagger
 
-        transferNode?.run(SKAction.fadeOut(withDuration: reduceMotion ? 0 : 0.18))
+        if let transfer = transferNode {
+            transfer.run(SKAction.fadeOut(withDuration: reduceMotion ? 0 : 0.18))
+        }
 
         let group = DispatchGroup()
         for (i, pair) in pairNodes.enumerated() {
@@ -421,16 +590,24 @@ final class TableNode: SKNode {
         }
 
         group.notify(queue: .main) { [weak self] in
-            self?.pairNodes.forEach {
+            guard let self else {
+                completion()
+                return
+            }
+            self.pairNodes.forEach {
                 $0.attack.removeFromParent()
                 $0.defense?.removeFromParent()
             }
-            self?.pairNodes.removeAll()
-            self?.slotIndicators.forEach { $0.removeFromParent() }
-            self?.slotIndicators.removeAll()
-            self?.transferNode?.removeFromParent()
-            self?.transferNode = nil
-            self?.transferSlotBounds = nil
+            self.pairNodes.removeAll()
+            for ind in self.slotIndicators {
+                ind.isHidden = true
+                ind.removeAction(forKey: "haloPulse")
+                if !self.haloPool.contains(where: { $0 === ind }) {
+                    self.haloPool.append(ind)
+                }
+            }
+            self.slotIndicators.removeAll()
+            self.hideTransferAffordance()
             completion()
         }
     }

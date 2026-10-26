@@ -12,98 +12,129 @@ struct SkillsSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var economy = EconomyStore.shared
+    @State private var isSpending = false
+
+    /// Skills mode: abilities are free (matches RN + Convex rooms).
+    private var abilitiesMode: Bool {
+        if let style = gameVM.game?.rules.playStyle {
+            return style == .abilities
+        }
+        return gameVM.playStyle == .abilities
+    }
+
+    private func costLabel(_ amount: Int) -> String {
+        abilitiesMode || amount <= 0 ? String(localized: "Free") : "\(amount) 🪙"
+    }
+
+    private func canAfford(_ amount: Int) -> Bool {
+        abilitiesMode || amount <= 0 || economy.canAffordGold(amount)
+    }
+
+    private func spendIfNeeded(_ amount: Int, reason: String, then action: @escaping () -> Void) {
+        guard !isSpending else { return }
+        if abilitiesMode || amount <= 0 {
+            FeedbackManager.shared.trigger(.confirm)
+            dismiss()
+            action()
+            return
+        }
+        isSpending = true
+        Task { @MainActor in
+            let ok = await economy.spendGoldSynced(amount, reason: reason)
+            isSpending = false
+            if ok {
+                dismiss()
+                action()
+            } else {
+                FeedbackManager.shared.trigger(.failure)
+            }
+        }
+    }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                LinearGradient(
-                    colors: theme.tablePalette.gradient ?? [theme.tablePalette.backgroundColor],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+        ZStack {
+            LinearGradient(
+                colors: theme.tablePalette.gradient ?? [theme.tablePalette.backgroundColor],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-                ScrollView {
+            VStack(spacing: 0) {
+                sheetHeader
+
+                ScrollView(showsIndicators: false) {
                     VStack(spacing: DesignTokens.Spacing.md) {
-                        // Currency balance card
                         currencyCard
 
-                        // Skills list
                         VStack(spacing: DesignTokens.Spacing.sm) {
-                            // 1. Reveal Hand (solo only — online hands are sanitized placeholders)
                             skillRow(
                                 icon: "eye.fill",
                                 iconColor: Color.cyan,
-                                title: "Peek Opponent Hand",
+                                title: String(localized: "Peek Opponent Hand"),
                                 subtitle: gameVM.playMode == .online
-                                    ? "Available in solo games only"
-                                    : "Reveal opponent's cards for this turn",
-                                costText: "2 🪙",
+                                    ? String(localized: "Available in solo games only")
+                                    : String(localized: "Reveal opponent's cards for this turn"),
+                                costText: costLabel(EconomyStore.revealGoldCost),
                                 isEnabled: gameVM.playMode == .solo
-                                    && economy.canAffordGold(EconomyStore.revealGoldCost)
+                                    && canAfford(EconomyStore.revealGoldCost)
+                                    && !isSpending
                             ) {
                                 guard gameVM.playMode == .solo else {
                                     FeedbackManager.shared.trigger(.failure)
                                     return
                                 }
-                                if economy.spendGold(EconomyStore.revealGoldCost) {
-                                    FeedbackManager.shared.trigger(.confirm)
-                                    dismiss()
+                                spendIfNeeded(
+                                    EconomyStore.revealGoldCost,
+                                    reason: "reveal_hand"
+                                ) {
                                     onReveal()
-                                } else {
-                                    FeedbackManager.shared.trigger(.failure)
                                 }
                             }
 
-                            // 2. Graveyard Discard
                             skillRow(
                                 icon: "archivebox.fill",
                                 iconColor: theme.ui.accent,
-                                title: "Inspect Discard Pile",
-                                subtitle: "Browse played cards to track remaining trumps",
-                                costText: "1 🪙",
-                                isEnabled: economy.canAffordGold(EconomyStore.graveyardGoldCost)
+                                title: String(localized: "Inspect Discard Pile"),
+                                subtitle: String(localized: "Browse played cards to track remaining trumps"),
+                                costText: costLabel(EconomyStore.graveyardGoldCost),
+                                isEnabled: canAfford(EconomyStore.graveyardGoldCost) && !isSpending
                             ) {
-                                if economy.spendGold(EconomyStore.graveyardGoldCost) {
-                                    FeedbackManager.shared.trigger(.confirm)
-                                    dismiss()
+                                spendIfNeeded(
+                                    EconomyStore.graveyardGoldCost,
+                                    reason: "graveyard"
+                                ) {
                                     onGraveyard()
-                                } else {
-                                    FeedbackManager.shared.trigger(.failure)
                                 }
                             }
 
-                            // 3. Strategic Move Hint
                             skillRow(
                                 icon: "lightbulb.fill",
                                 iconColor: Color.yellow,
-                                title: "Strategic Move Hint",
-                                subtitle: "Analyze board and get best card recommendation",
-                                costText: "1 🪙",
-                                isEnabled: economy.canAffordGold(EconomyStore.hintGoldCost)
+                                title: String(localized: "Strategic Move Hint"),
+                                subtitle: String(localized: "Analyze board and get best card recommendation"),
+                                costText: costLabel(EconomyStore.hintGoldCost),
+                                isEnabled: canAfford(EconomyStore.hintGoldCost) && !isSpending
                             ) {
-                                if economy.spendGold(EconomyStore.hintGoldCost) {
-                                    FeedbackManager.shared.trigger(.confirm)
-                                    dismiss()
+                                spendIfNeeded(
+                                    EconomyStore.hintGoldCost,
+                                    reason: "hint"
+                                ) {
                                     onHint()
-                                } else {
-                                    FeedbackManager.shared.trigger(.failure)
                                 }
                             }
 
-                            // 4. Undo Move
                             skillRow(
                                 icon: "arrow.uturn.backward.circle.fill",
                                 iconColor: Color.orange,
-                                title: "Undo Last Card",
+                                title: String(localized: "Undo Last Card"),
                                 subtitle: gameVM.canReturn
-                                    ? "Active: Take back your recently played card"
-                                    : "Available for 3 seconds after playing a card",
-                                costText: "Free",
-                                isEnabled: gameVM.canReturn
+                                    ? String(localized: "Active: Take back your recently played card")
+                                    : String(localized: "Available shortly after playing a card"),
+                                costText: String(localized: "Free"),
+                                isEnabled: gameVM.canReturn && !isSpending
                             ) {
                                 if gameVM.canReturn {
-                                    FeedbackManager.shared.trigger(.confirm)
                                     dismiss()
                                     onUndo()
                                 }
@@ -111,30 +142,39 @@ struct SkillsSheet: View {
                         }
                     }
                     .padding(.horizontal, DesignTokens.Spacing.md)
-                    .padding(.vertical, DesignTokens.Spacing.md)
-                }
-            }
-            .navigationTitle("Skills & Tactics")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title3)
-                            .foregroundStyle(DesignTokens.Colors.textMuted)
-                    }
+                    .padding(.bottom, DesignTokens.Spacing.md)
                 }
             }
         }
+    }
+
+    private var sheetHeader: some View {
+        HStack {
+            Color.clear.frame(width: 32, height: 32)
+            Spacer()
+            Text("Skills & Tactics")
+                .font(DesignTokens.Typography.heading)
+                .foregroundStyle(DesignTokens.Colors.textLight)
+            Spacer()
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(DesignTokens.Colors.textMuted)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.springPressable(scale: 0.90, feedback: .uiTap))
+        }
+        .padding(.horizontal, DesignTokens.Spacing.md)
+        .padding(.top, DesignTokens.Spacing.md)
+        .padding(.bottom, DesignTokens.Spacing.xs)
     }
 
     // MARK: - Currency Header Card
 
     private var currencyCard: some View {
         HStack(spacing: DesignTokens.Spacing.md) {
-            // Gold
             HStack(spacing: 8) {
                 Text("🪙")
                     .font(.system(size: 24))
@@ -142,7 +182,9 @@ struct SkillsSheet: View {
                     Text("\(economy.gold)")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(theme.ui.accent)
-                    Text("Gold (Skills)")
+                    Text(abilitiesMode
+                         ? String(localized: "Gold (free skills)")
+                         : String(localized: "Gold (Skills)"))
                         .font(DesignTokens.Typography.captionSmall)
                         .foregroundStyle(DesignTokens.Colors.textMuted)
                 }
@@ -156,7 +198,6 @@ struct SkillsSheet: View {
                     .overlay(RoundedRectangle(cornerRadius: 14).stroke(theme.ui.accent.opacity(0.4), lineWidth: 1))
             )
 
-            // Credits
             HStack(spacing: 8) {
                 Image(systemName: "suit.diamond.fill")
                     .font(.system(size: 20))
@@ -165,7 +206,7 @@ struct SkillsSheet: View {
                     Text("\(economy.credits)")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(DesignTokens.Colors.textLight)
-                    Text("Credits (Stakes)")
+                    Text(String(localized: "Credits (Stakes)"))
                         .font(DesignTokens.Typography.captionSmall)
                         .foregroundStyle(DesignTokens.Colors.textMuted)
                 }
@@ -196,7 +237,6 @@ struct SkillsSheet: View {
             action()
         } label: {
             HStack(spacing: DesignTokens.Spacing.md) {
-                // Circular icon
                 Image(systemName: icon)
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(isEnabled ? iconColor : DesignTokens.Colors.textFaint)
@@ -206,7 +246,6 @@ struct SkillsSheet: View {
                             .fill(isEnabled ? iconColor.opacity(0.15) : Color.white.opacity(0.04))
                     )
 
-                // Title + Subtitle
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title)
                         .font(DesignTokens.Typography.heading)
@@ -221,7 +260,6 @@ struct SkillsSheet: View {
 
                 Spacer()
 
-                // Cost badge
                 Text(costText)
                     .font(DesignTokens.Typography.caption)
                     .fontWeight(.bold)
@@ -245,14 +283,6 @@ struct SkillsSheet: View {
             )
         }
         .disabled(!isEnabled)
-        .buttonStyle(SkillRowButtonStyle())
-    }
-}
-
-private struct SkillRowButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+        .buttonStyle(.springPressable(scale: 0.97, feedback: .confirm))
     }
 }

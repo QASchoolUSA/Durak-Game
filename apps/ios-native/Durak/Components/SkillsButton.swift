@@ -6,23 +6,25 @@ struct SkillsButton: View {
     var onTap: () -> Void
     @State private var economy = EconomyStore.shared
 
+    private var btnSize: CGFloat { DesignTokens.Layout.chromeButtonSize }
+    private var iconSize: CGFloat { DesignTokens.Layout.isPadOrMac ? 22 : 19 }
+
     var body: some View {
         Button {
-            FeedbackManager.shared.trigger(.selection)
             onTap()
         } label: {
             ZStack(alignment: .topTrailing) {
                 // Circular glass button
                 Circle()
                     .fill(theme.ui.surfaceGlass)
-                    .frame(width: 44, height: 44)
+                    .frame(width: btnSize, height: btnSize)
                     .overlay(
                         Circle()
-                            .stroke(theme.ui.accent.opacity(0.45), lineWidth: 1.2)
+                            .stroke(theme.ui.accent.opacity(0.40), lineWidth: 1.2)
                     )
                     .overlay(
                         Image(systemName: "wand.and.stars")
-                            .font(.system(size: 19, weight: .bold))
+                            .font(.system(size: iconSize, weight: .bold))
                             .foregroundStyle(theme.ui.accent)
                     )
                     .shadow(color: Color.black.opacity(0.35), radius: 6, y: 3)
@@ -31,7 +33,7 @@ struct SkillsButton: View {
                 if economy.gold > 0 {
                     HStack(spacing: 1) {
                         Text("\(economy.gold)")
-                            .font(.system(size: 9, weight: .heavy))
+                            .font(.system(size: DesignTokens.Layout.isPadOrMac ? 10 : 9, weight: .heavy))
                             .foregroundStyle(theme.ui.accentText)
                     }
                     .padding(.horizontal, 5)
@@ -44,14 +46,6 @@ struct SkillsButton: View {
                 }
             }
         }
-        .buttonStyle(SkillsButtonStyle())
-    }
-}
-
-private struct SkillsButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.90 : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.65), value: configuration.isPressed)
+        .buttonStyle(.springPressable(scale: 0.90, feedback: .selection))
     }
 }

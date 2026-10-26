@@ -5,6 +5,7 @@ import DurakGameCore
 struct RootView: View {
     @Environment(AppRouter.self) private var router
     @Environment(ThemeManager.self) private var theme
+    @Environment(\.scenePhase) private var scenePhase
     @State private var gameVM = GameViewModel()
 
     var body: some View {
@@ -47,6 +48,12 @@ struct RootView: View {
             }
         }
         .statusBarHidden(true)
+        .onChange(of: scenePhase) { _, phase in
+            OnlineBridge.shared.setAppActive(phase == .active)
+        }
+        .onAppear {
+            OnlineBridge.shared.setAppActive(scenePhase == .active)
+        }
         .animation(.interactiveSpring(response: 0.24, dampingFraction: 0.84), value: router.current)
         .sheet(isPresented: Binding(
             get: { router.settingsPresented },
@@ -103,23 +110,27 @@ struct RootView: View {
                     router.joinSheetPresented = true
                 }
             } else if args.contains("-startSoloGame") {
-                gameVM.startSoloGame()
-                if args.contains("-demoTable") {
-                    if let g = gameVM.game, let firstCard = (g.hands[g.attackerId] ?? []).first {
-                        if let next = try? applyMove(g, .attack(player: g.attackerId, card: firstCard)) {
-                            gameVM.game = next
+                Task {
+                    _ = await gameVM.startSoloGame()
+                    await MainActor.run {
+                        if args.contains("-demoTable") {
+                            if let g = gameVM.game, let firstCard = (g.hands[g.attackerId] ?? []).first {
+                                if let next = try? applyMove(g, .attack(player: g.attackerId, card: firstCard)) {
+                                    gameVM.game = next
+                                }
+                            }
                         }
+                        if args.contains("-demoLastCard") {
+                            if var g = gameVM.game {
+                                g.deck = [g.trumpCard]
+                                gameVM.game = g
+                            }
+                            // Freeze bots so the solo trump stays on-screen for layout screenshots.
+                            gameVM.debugCancelAI()
+                        }
+                        router.navigate(to: .game)
                     }
                 }
-                if args.contains("-demoLastCard") {
-                    if var g = gameVM.game {
-                        g.deck = [g.trumpCard]
-                        gameVM.game = g
-                    }
-                    // Freeze bots so the solo trump stays on-screen for layout screenshots.
-                    gameVM.debugCancelAI()
-                }
-                router.navigate(to: .game)
             } else if args.contains("-showLobby") {
                 gameVM.onlineRoomCode = "791371"
                 gameVM.onlineRoomId = "test-room-id"
@@ -135,9 +146,13 @@ struct RootView: View {
             } else if args.contains("-showConfig") || args.contains("-showJoin") {
                 router.navigate(to: .home)
             } else if args.contains("-showResult") {
-                gameVM.startSoloGame()
-                gameVM.forfeit()
-                router.navigate(to: .result)
+                Task {
+                    _ = await gameVM.startSoloGame()
+                    await MainActor.run {
+                        gameVM.forfeit()
+                        router.navigate(to: .result)
+                    }
+                }
             }
         }
 #endif
@@ -150,13 +165,17 @@ struct RootView: View {
             if url.host == "welcome" {
                 router.navigate(to: .welcome)
             } else if url.host == "game" {
-                gameVM.startSoloGame()
-                router.navigate(to: .game)
-            } else if url.host == "result" {
-                if gameVM.game == nil {
-                    gameVM.startSoloGame()
+                Task {
+                    _ = await gameVM.startSoloGame()
+                    await MainActor.run { router.navigate(to: .game) }
                 }
-                router.navigate(to: .result)
+            } else if url.host == "result" {
+                Task {
+                    if gameVM.game == nil {
+                        _ = await gameVM.startSoloGame()
+                    }
+                    await MainActor.run { router.navigate(to: .result) }
+                }
             } else if url.host == "lobby" {
                 router.navigate(to: .lobby)
             } else if url.host == "home" {

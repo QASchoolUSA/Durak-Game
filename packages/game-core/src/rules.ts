@@ -116,6 +116,8 @@ export function legalAttacks(state: GameState, player: PlayerId): Card[] {
   }
 
   // Throw-in: must be eligible and not the defender.
+  // During an active perevodnoy transfer window, same-rank adds keep the chain
+  // alive (transferChainActive only requires matching ranks + no defenses).
   if (player === state.defenderId || !canThrowIn(state, player)) return [];
 
   if (state.table.length >= state.maxAttacks) return [];
@@ -140,28 +142,36 @@ export function legalDefenses(
   return hand.filter((c) => beats(c, pair.attack, state.trumpSuit));
 }
 
-/** True while defenders may keep passing the attack via matching-rank transfers. */
+/**
+ * True while defenders may keep passing the attack via matching-rank transfers.
+ * Active when nothing is covered and every attack shares the opening rank
+ * (viaTransfer is optional — same-rank throw-ins keep the window open).
+ */
 export function transferChainActive(state: GameState): boolean {
   if (state.table.length === 0) return false;
   if (state.table.some((p) => p.defense)) return false;
   if (state.table.length === 1) return true;
   const openingRank = state.table[0]!.attack.rank;
   for (let i = 1; i < state.table.length; i++) {
-    const p = state.table[i]!;
-    if (!p.viaTransfer || p.attack.rank !== openingRank) return false;
+    if (state.table[i]!.attack.rank !== openingRank) return false;
   }
   return true;
 }
 
 /**
  * Perevodnoy: defender plays same rank as the opening attack to pass defense on.
- * Allowed only on the opening card while the chain has no throw-ins or defenses.
+ * Allowed while the uncovered pile is all one rank (no defenses yet).
  */
 export function legalTransfers(state: GameState, target: number): Card[] {
   if (state.rules.variant !== "perevodnoy") return [];
   if (state.phase !== "playing" || state.takeInProgress) return [];
   if (target !== 0) return [];
   if (!transferChainActive(state)) return [];
+
+  // Common house rule: no transfer until the first successful discard.
+  if (!(state.rules.allowTransferOnFirstBout ?? false) && state.discard.length === 0) {
+    return [];
+  }
 
   const opening = state.table[0];
   if (!opening || opening.defense) return [];

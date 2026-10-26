@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { AppState } from "react-native";
 import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -16,8 +17,13 @@ import {
   loadPlaySession,
 } from "./onlineSessionStorage";
 import { useGameStore } from "./store";
+import type { Move } from "@durak/game-core";
 
 const GAME_START_FEEDBACK_GRACE_MS = 1500;
+
+function newClientMoveId(): string {
+  return `m_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 export function useOnlineGame() {
   const { isAuthenticated } = useConvexAuth();
@@ -28,6 +34,7 @@ export function useOnlineGame() {
   const goHome = useGameStore((s) => s.goHome);
   const setOnlineStatusMessage = useGameStore((s) => s.setOnlineStatusMessage);
   const setSubmittingMove = useGameStore((s) => s.setSubmittingMove);
+  const markOnlineMutationSettled = useGameStore((s) => s.markOnlineMutationSettled);
 
   const submitMove = useMutation(api.rooms.submitMove);
   const useReturnAbility = useMutation(api.rooms.useReturnAbility);
@@ -37,6 +44,8 @@ export function useOnlineGame() {
   const reconnectAttemptedRef = useRef(false);
   const nameReconciledKeyRef = useRef<string | null>(null);
   const ownMovePendingRef = useRef(false);
+  const pendingClientMoveIdRef = useRef<string | null>(null);
+  const lastRoomViewRef = useRef<import("./onlineTypes").RoomView | null>(null);
   const prevLastMoveAtRef = useRef<number | null>(null);
   const prevRoomStatusRef = useRef<"lobby" | "playing" | "finished" | null>(null);
   const gameStartAtRef = useRef<number | null>(null);
@@ -51,19 +60,32 @@ export function useOnlineGame() {
   useEffect(() => {
     if (playMode !== "online" || !onlineRoomId || !isAuthenticated) return;
 
-    registerOnlineMoveSubmit((move) => {
+    registerOnlineMoveSubmit((move: Move) => {
       if (!onlineRoomId) return;
+      const clientMoveId = newClientMoveId();
       ownMovePendingRef.current = true;
+      pendingClientMoveIdRef.current = clientMoveId;
       setSubmittingMove(true);
       void submitMove({
         roomId: onlineRoomId as Id<"rooms">,
         move,
-      }).catch((error) => {
-        ownMovePendingRef.current = false;
-        setSubmittingMove(false);
-        trigger("error");
-        setOnlineStatusMessage(formatOnlineMutationError(error));
-      });
+        clientMoveId,
+      })
+        .then(() => {
+          if (pendingClientMoveIdRef.current !== clientMoveId) return;
+          markOnlineMutationSettled();
+          // Reconcile immediately if a newer view already arrived while HTTP was open.
+          const latest = lastRoomViewRef.current;
+          if (latest) syncOnlineState(latest);
+        })
+        .catch((error) => {
+          if (pendingClientMoveIdRef.current !== clientMoveId) return;
+          ownMovePendingRef.current = false;
+          pendingClientMoveIdRef.current = null;
+          setSubmittingMove(false);
+          trigger("error");
+          setOnlineStatusMessage(formatOnlineMutationError(error));
+        });
     });
 
     return () => registerOnlineMoveSubmit(null);
@@ -74,6 +96,8 @@ export function useOnlineGame() {
     submitMove,
     setOnlineStatusMessage,
     setSubmittingMove,
+    markOnlineMutationSettled,
+    syncOnlineState,
   ]);
 
   useEffect(() => {
@@ -131,6 +155,7 @@ export function useOnlineGame() {
 
   useEffect(() => {
     if (roomView) {
+      lastRoomViewRef.current = roomView;
       evictedRef.current = false;
 
       const prevStatus = prevRoomStatusRef.current;
@@ -143,6 +168,13 @@ export function useOnlineGame() {
         gameStartAtRef.current != null &&
         Date.now() - gameStartAtRef.current < GAME_START_FEEDBACK_GRACE_MS;
 
+      const st = useGameStore.getState();
+      const base = st.pendingSubmitBaseVersion;
+      const versionAdvanced =
+        base == null || (roomView.version ?? 0) > base;
+      const submitFullyAcked =
+        st.pendingMutationSettled && versionAdvanced;
+
       if (
         prevLastMoveAtRef.current != null &&
         roomView.lastMoveAt !== prevLastMoveAtRef.current &&
@@ -154,8 +186,10 @@ export function useOnlineGame() {
         playSound("cardPlay");
       }
 
-      if (ownMovePendingRef.current) {
+      // Only clear own-move pending once HTTP settled and version advanced.
+      if (ownMovePendingRef.current && submitFullyAcked) {
         ownMovePendingRef.current = false;
+        pendingClientMoveIdRef.current = null;
       }
 
       prevLastMoveAtRef.current = roomView.lastMoveAt;
@@ -231,5 +265,25 @@ export function useOnlineGame() {
     tick();
     const id = setInterval(tick, 30_000);
     return () => clearInterval(id);
+  }, [playMode, onlineRoomId, isAuthenticated, touchRoom]);
+
+  // Foreground: recover presence. Background/hide: stamp away for reconnect UI.
+  useEffect(() => {
+    if (playMode !== "online" || !onlineRoomId || !isAuthenticated) return;
+
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        void touchRoom({
+          roomId: onlineRoomId as Id<"rooms">,
+          active: true,
+        });
+        return;
+      }
+      void touchRoom({
+        roomId: onlineRoomId as Id<"rooms">,
+        active: false,
+      });
+    });
+    return () => sub.remove();
   }, [playMode, onlineRoomId, isAuthenticated, touchRoom]);
 }

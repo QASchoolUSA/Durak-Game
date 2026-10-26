@@ -17,11 +17,13 @@ export function sanitizeGameState(state: GameState, viewerPlayerId: PlayerId): G
   return {
     ...state,
     hands,
+    // Keep deck length for UI counts; only index 0 (face-up trump) is real.
     deck: state.deck.map((c, i) =>
       i === 0
         ? { id: `deck-${i}`, suit: c.suit, rank: c.rank }
         : { id: `hidden-deck-${i}`, suit: "spades" as const, rank: 6 as const },
     ),
+    // Discard faces stay visible for the graveyard skill.
   };
 }
 

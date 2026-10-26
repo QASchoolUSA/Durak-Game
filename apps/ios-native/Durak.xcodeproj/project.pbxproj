@@ -7,24 +7,37 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00E6074625187A96A79ADFFF /* noto_1f60e.json in Resources */ = {isa = PBXBuildFile; fileRef = D799C3CE8E91A37ACC1A3B26 /* noto_1f60e.json */; };
 		0288E559E6593C78330D8CE7 /* BootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ED4C5840EE050ACC4E5864F /* BootView.swift */; };
+		03405F9117982F6FD56D69F9 /* SeatReactionBurstView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E96AE1BFD5A5DB6ABE20390A /* SeatReactionBurstView.swift */; };
+		0432DEFB3D3338255BC4B1E7 /* noto_1f64f.json in Resources */ = {isa = PBXBuildFile; fileRef = 6A2F180F19E5991E757353C7 /* noto_1f64f.json */; };
 		0716679CDAB2DC3340B72571 /* TurnStatusBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20EF8D53AA6210B01D270B32 /* TurnStatusBanner.swift */; };
 		0995D6F0CABA758E077E0272 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22D73B0F625A2474D3EFFA4 /* WelcomeView.swift */; };
 		0A7A79E41A0777B1253CA0D6 /* SkillsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8AB90B080B850A489BF9D34 /* SkillsSheet.swift */; };
+		0E16A4D247F629DF87645F38 /* noto_1f609.json in Resources */ = {isa = PBXBuildFile; fileRef = 194DEF111243933A2C8509DC /* noto_1f609.json */; };
+		103DA29FA55DFA9114EDC5C9 /* noto_1f602.json in Resources */ = {isa = PBXBuildFile; fileRef = B63C48CB3032031779FCD4C5 /* noto_1f602.json */; };
+		1356C7FEDFCFF2CE7E4693AE /* noto_1f525.json in Resources */ = {isa = PBXBuildFile; fileRef = 9727298362A939E0247FBA01 /* noto_1f525.json */; };
 		138ADBA893DAF766541ED20E /* HandNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7199215D670181D3909C9AD /* HandNode.swift */; };
+		16D5005F5ED353BD4E9D1DE9 /* noto_1f618.json in Resources */ = {isa = PBXBuildFile; fileRef = 1425530623412F9E327D9DF3 /* noto_1f618.json */; };
 		17B6438A2043E2E8E1C83138 /* EconomyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13F381B4DC5152D526860C5 /* EconomyStore.swift */; };
 		18F0A26AC2E2C9C1D699BB0C /* draw.wav in Resources */ = {isa = PBXBuildFile; fileRef = 49CE640622FCB99EA4E199D4 /* draw.wav */; };
 		19B497E1FD8EF611A6B4ECCC /* DurakApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26797B46CCDF35485054D0F5 /* DurakApp.swift */; };
 		1C8D5FDF54DD37308A6A65C6 /* DisplayNamePromptSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AAF9268F95847CEFB89CE27 /* DisplayNamePromptSheet.swift */; };
 		1C98490EA133FFE60E15681A /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B8CA65A72B55EB94BB95E83 /* DesignTokens.swift */; };
 		1E4C36C7369B0EBD7D3778DE /* confirm.wav in Resources */ = {isa = PBXBuildFile; fileRef = D0A9374C5F525B0B08FCEA11 /* confirm.wav */; };
+		1EE0DBAC74C4C1FAF90A0485 /* noto_23f0.json in Resources */ = {isa = PBXBuildFile; fileRef = 365CFA956BDD1BDB03FAE919 /* noto_23f0.json */; };
 		25E969E68CD0EEEFE0436376 /* round-clear.wav in Resources */ = {isa = PBXBuildFile; fileRef = B0B3ACE4387300F76811C60C /* round-clear.wav */; };
 		26EAF16DBB473583DF8A6954 /* tick.wav in Resources */ = {isa = PBXBuildFile; fileRef = EE7B295E79BA2E9B50FCFE89 /* tick.wav */; };
 		270AB863A12D1E31AA7561EC /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF98C0142DD7ED06078FEB3D /* ResultView.swift */; };
 		2BE6DE40ED5A13154113D8EC /* EmojiButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F3D9868EE501DF2A3B51537 /* EmojiButton.swift */; };
 		30AC2079062F3BF38190659F /* deal.wav in Resources */ = {isa = PBXBuildFile; fileRef = FD1AD96EED817BD2AA8F8E2C /* deal.wav */; };
+		32B3DD9ECAFB6397CAB198BE /* noto_1f601.json in Resources */ = {isa = PBXBuildFile; fileRef = E99640DCD63888AC87AFFD4F /* noto_1f601.json */; };
+		356C394A760B78762C1235A8 /* noto_1f4af.json in Resources */ = {isa = PBXBuildFile; fileRef = 074EB684B431337B671CC8A5 /* noto_1f4af.json */; };
 		363DB11BDEB0C5FA8228D051 /* SkillsButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 772255CD4F557A8909BB054C /* SkillsButton.swift */; };
+		37FC30CFFD7126E313C79EEC /* noto_1f60a.json in Resources */ = {isa = PBXBuildFile; fileRef = 8E63DDD14A5CAD4FF42DDE5E /* noto_1f60a.json */; };
 		39B8FFFFE0546C41BB9C6B0B /* OpponentFanNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C3DFE4091D18025C97ACFB3 /* OpponentFanNode.swift */; };
+		3D916CA926B130B3422ECA8C /* noto_1f92f.json in Resources */ = {isa = PBXBuildFile; fileRef = D71017AEA622D92C6E051F3A /* noto_1f92f.json */; };
+		3ED96FE53A580533746D5543 /* noto_1f622.json in Resources */ = {isa = PBXBuildFile; fileRef = 69A5FD367743C5DD0AAB23C2 /* noto_1f622.json */; };
 		4083A539532C2AD99F4E79C9 /* HintCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 390B5085478937AF3BFA7B4A /* HintCoach.swift */; };
 		41B14C6884A067840CB6384B /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A3CC9D0A2EB6E30BCC1266F /* SoundManager.swift */; };
 		42F2F984E0D249D9A85560A6 /* take.wav in Resources */ = {isa = PBXBuildFile; fileRef = 45F6133B8EE06BFECE0C8DB4 /* take.wav */; };
@@ -37,82 +50,140 @@
 		562A0FFA0659CCFFE63D2B5F /* TableNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75BCA80683058ECDEEF98C9D /* TableNode.swift */; };
 		58B38F70200FFC47DCF8EA2A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8827A032AEF2F4BB0698153E /* Assets.xcassets */; };
 		58BB9691EBB3353919D354F5 /* EmojiPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24E10B703DCA8B67D541E202 /* EmojiPickerSheet.swift */; };
+		5F090F61BC3FAE36F17DA242 /* noto_1f621.json in Resources */ = {isa = PBXBuildFile; fileRef = C974951207E9BE9D8FE080FC /* noto_1f621.json */; };
+		60F3593BA9F5F0DB56050182 /* noto_1f971.json in Resources */ = {isa = PBXBuildFile; fileRef = 6768786D0324394051641C0B /* noto_1f971.json */; };
 		624B7D825C6AFE1E5A58FDFF /* failure.wav in Resources */ = {isa = PBXBuildFile; fileRef = 52E8DBE2A7533E37D02D739D /* failure.wav */; };
+		6296080E54574296E33D1B9F /* noto_2b50.json in Resources */ = {isa = PBXBuildFile; fileRef = 99A2260FDEF1AFD46F7D0D6A /* noto_2b50.json */; };
 		6506ABE756F715ABDDC95777 /* JoinGameSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 436C9F4809B8FA26F2BB9E26 /* JoinGameSheet.swift */; };
 		683055D4F65AD9DCAC1ED74D /* EconomyBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85BD71467280315B11C68E9 /* EconomyBar.swift */; };
+		6A9CA4437D989E555146AD88 /* noto_1f44d.json in Resources */ = {isa = PBXBuildFile; fileRef = 033E82B6A5673E639C979C5E /* noto_1f44d.json */; };
+		6CADBF5B39F0237A367A5F87 /* ReactionCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DED73C2AA54A88440374C68B /* ReactionCatalog.swift */; };
+		6CF2AC1F71FA7350DF55311F /* noto_1f914.json in Resources */ = {isa = PBXBuildFile; fileRef = 38A2C38B84518BFFEF5C0FF6 /* noto_1f914.json */; };
 		7172170D3AB3B03343FC4868 /* CardNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDD2DB732ED1C25082528B5D /* CardNode.swift */; };
+		71FEC5FB0B10E8C343C20166 /* noto_1f605.json in Resources */ = {isa = PBXBuildFile; fileRef = D9FAD94B9A9F3200072147A3 /* noto_1f605.json */; };
 		7BE224751AFBEC9B3B9F36DF /* AuthSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69BDAB558526B4F2292249A /* AuthSheet.swift */; };
 		7C2A13078206A1F22F542C11 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97D7081A49CEDEFE839BAFC3 /* SessionStore.swift */; };
 		7FEF2BA9C66FB358740EA1D9 /* GameConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 218913013CCBF11DC63F9983 /* GameConfigStore.swift */; };
 		8177B6E72019212566782380 /* SpectatorHandsNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92343F507AB76630A962560 /* SpectatorHandsNode.swift */; };
+		842AEF3EADF1DEFF6D4A7E56 /* noto_1f389.json in Resources */ = {isa = PBXBuildFile; fileRef = 49987709750EB969641B8AE0 /* noto_1f389.json */; };
 		84B58521104BE60B090EB3F6 /* RevealSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2453DB08E5103EAC3C0CF759 /* RevealSheet.swift */; };
+		8622F6744DEEF0EC9E3BFE0C /* noto_1f4aa.json in Resources */ = {isa = PBXBuildFile; fileRef = 9319A3DCB82F43218A2FE7D6 /* noto_1f4aa.json */; };
 		8943F0067E433E10C3DD7F09 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4485DB25D46D207BA44FB33F /* ThemeManager.swift */; };
 		894C0A8F57AB05FDD95B35C9 /* game-start.wav in Resources */ = {isa = PBXBuildFile; fileRef = 39AC3E6F3C082A64C81E3B85 /* game-start.wav */; };
 		897C078F3E21E370B222EEA6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B78E2FDBBECB25B359EDFAAD /* SettingsView.swift */; };
 		8D75E7A1B9893CC01575BE40 /* ConvexMobile in Frameworks */ = {isa = PBXBuildFile; productRef = 3D1B8F32A7F1C70C6DD54B17 /* ConvexMobile */; };
 		8DD4E9AA18409F9F18C74DC4 /* card-play.wav in Resources */ = {isa = PBXBuildFile; fileRef = 245EB8FEA40F801A8CCC2491 /* card-play.wav */; };
+		963EC710FFC09A3F22D31442 /* noto_2764.json in Resources */ = {isa = PBXBuildFile; fileRef = D10F859F106EE09BEE4C7615 /* noto_2764.json */; };
+		992285BBA4A0AA65FAAADCE2 /* noto_1f606.json in Resources */ = {isa = PBXBuildFile; fileRef = F3F742007523AC562018C248 /* noto_1f606.json */; };
+		9C438012C7C91F2514C23ED3 /* noto_1f929.json in Resources */ = {isa = PBXBuildFile; fileRef = 5A495B994DC6CB0B6CDF23E5 /* noto_1f929.json */; };
 		9E084BF4E54FE88A61A3F958 /* PlayerNameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3DCFE984D3FEAB783BA9C2F /* PlayerNameStore.swift */; };
+		A0904332AC6BC9A3B03D832F /* noto_1f620.json in Resources */ = {isa = PBXBuildFile; fileRef = BC21E9F2CED71AE8B6DBD53B /* noto_1f620.json */; };
+		A09AE7040D84E5EB933D32DB /* noto_1f60d.json in Resources */ = {isa = PBXBuildFile; fileRef = 3F123D3669F5E3D2AA1E20AB /* noto_1f60d.json */; };
 		A0BE8EBB6D5525C433C7081B /* DeckPileNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ABE039E23420B66CB732685 /* DeckPileNode.swift */; };
+		A7D88C51D323722D13871111 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 380E97D666BC0635E33685B5 /* Lottie */; };
 		A86CED27FEBD24247082BC89 /* ActionBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9493C28BECADC560D2C05D04 /* ActionBar.swift */; };
 		AAAC1EBD0ECE2FBB82C40961 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E3E08C9926465EE521057B80 /* Localizable.xcstrings */; };
+		AAC860CF19EC0BC61279B7B1 /* noto_1f44f.json in Resources */ = {isa = PBXBuildFile; fileRef = 99846F1927513EB31CDBC247 /* noto_1f44f.json */; };
+		AB369CFCD1CFCF2A61E318C0 /* noto_1f923.json in Resources */ = {isa = PBXBuildFile; fileRef = 2086483C745C5237E3C2CFD0 /* noto_1f923.json */; };
 		AE51B66DDC11EB87B2985899 /* ConvexHTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39CD96B4A1E58349147A57F4 /* ConvexHTTPClient.swift */; };
+		B44A328688F8990348FC464E /* noto_1f494.json in Resources */ = {isa = PBXBuildFile; fileRef = 210942C966E4D4802191994E /* noto_1f494.json */; };
 		B46CEE956FA3E421F7AF47F4 /* DurakGameCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA7ED1C2B1272856CA2585AB /* DurakGameCore */; };
+		B684883DD931467A15081CE9 /* noto_1f634.json in Resources */ = {isa = PBXBuildFile; fileRef = 0572DC28DAD418AC9010255E /* noto_1f634.json */; };
+		B8066339EB0802E508B945E2 /* noto_1f600.json in Resources */ = {isa = PBXBuildFile; fileRef = E83A0B1C6122523354320A17 /* noto_1f600.json */; };
 		BB683D83C58DB77BEFED1FB8 /* PreferencesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C0435D2093377752DB92080 /* PreferencesStore.swift */; };
 		BDBDB9F59941E2D3DA44C17F /* TurnTimerRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B970B9B5179D067D46B3210 /* TurnTimerRing.swift */; };
+		BE6E52F08EB82A85426F53A3 /* noto_1f44e.json in Resources */ = {isa = PBXBuildFile; fileRef = C0F14A4A801E43F3312FB54C /* noto_1f44e.json */; };
+		C2B5039F461357F4D7C157C0 /* noto_1f61c.json in Resources */ = {isa = PBXBuildFile; fileRef = F3896881240FAB407935AFC0 /* noto_1f61c.json */; };
 		C3AE2167B8AAE3FE41ED3130 /* ConvexLiveClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9853CFA4AD019CFA984395E3 /* ConvexLiveClient.swift */; };
+		C3E0CC637EE5EC2414B88FA2 /* noto_1f921.json in Resources */ = {isa = PBXBuildFile; fileRef = 66C137DB2F3A37CFA878CDDB /* noto_1f921.json */; };
 		C49B9F3286DF18F10CB04A62 /* RulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1904AE469F66FD5DED26FEFE /* RulesView.swift */; };
+		C73DC03DA6DB09204D79D61D /* noto_1f451.json in Resources */ = {isa = PBXBuildFile; fileRef = EC9587F64E88A191606CDB70 /* noto_1f451.json */; };
 		C7A57E4A45EC3FDA679274C8 /* tap.wav in Resources */ = {isa = PBXBuildFile; fileRef = 45B0AB3A02EF57D14493CC0C /* tap.wav */; };
+		C7A7523B0908BB0CF0444055 /* noto_1f3c6.json in Resources */ = {isa = PBXBuildFile; fileRef = C2C09611087E5B8A3ABD5478 /* noto_1f3c6.json */; };
 		CA16AE8B116DB4AE9B6CB25B /* OnlineErrorCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F624F8CD32AFA7C308D24F0B /* OnlineErrorCopy.swift */; };
+		CA2BF04DCE257DC23F5359C9 /* noto_1f92a.json in Resources */ = {isa = PBXBuildFile; fileRef = 3EEB073C0E420B2723E171A0 /* noto_1f92a.json */; };
+		CA5CC5C40BE63A95F12251E9 /* noto_1f62f.json in Resources */ = {isa = PBXBuildFile; fileRef = FA34218CC81E0941E0379DFF /* noto_1f62f.json */; };
+		CA81E4A7C28B846F3210456A /* noto_1f62e.json in Resources */ = {isa = PBXBuildFile; fileRef = 703DC2E7C62B260B86328432 /* noto_1f62e.json */; };
 		D06357F7A6BB55CF94BD292A /* success.wav in Resources */ = {isa = PBXBuildFile; fileRef = 0B5BD33DECFEEE273A888B81 /* success.wav */; };
+		D26058956DD86ADB74A95871 /* noto_1f97a.json in Resources */ = {isa = PBXBuildFile; fileRef = CDEBA1EC965DAA130F5773F5 /* noto_1f97a.json */; };
 		D68BB512386C6655872FABCC /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2632234D082F76E638C231A7 /* GameViewModel.swift */; };
 		D6B2E1E46CD5672A8B062709 /* GraveyardSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 717D33F4EDD73583F1E6C9B4 /* GraveyardSheet.swift */; };
+		D9EBC051AD59FBD2CAA8DECB /* noto_1f604.json in Resources */ = {isa = PBXBuildFile; fileRef = 28D7FF2588F96144C0503312 /* noto_1f604.json */; };
+		DAE77646633716B52F28F0C2 /* ReactionBurstView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4859D6249BBC958133B25D3 /* ReactionBurstView.swift */; };
 		DD8906354E2E37A985340981 /* LobbyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 577451687B517C17F5B38069 /* LobbyView.swift */; };
 		DDAFB0CF0C775019416FF247 /* AppearanceThemes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E1B3056492D579A96930A32 /* AppearanceThemes.swift */; };
 		E028D4DF1C60C347A90F0F4B /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 808A22576277CC8C968DAD04 /* ConfettiView.swift */; };
 		E09BB5147BBABE85B72EE69D /* turn-start.wav in Resources */ = {isa = PBXBuildFile; fileRef = 6705537491E22EF1A7530656 /* turn-start.wav */; };
 		E140F2CD724ABDB24FC81E40 /* GameConfigSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8797C226A4A587A2B055754 /* GameConfigSheet.swift */; };
+		EA79573066BB932DAB03B7B5 /* noto_1f603.json in Resources */ = {isa = PBXBuildFile; fileRef = BF5C743DDBE2EDDADCBB5950 /* noto_1f603.json */; };
+		EE73327878A7245DB28968C0 /* noto_1f62d.json in Resources */ = {isa = PBXBuildFile; fileRef = 137987E597ED97D5C4048475 /* noto_1f62d.json */; };
 		EF3ECA0E4ECBF05DFD749DF3 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44853506D0BDDEB0B4F0A0FA /* RootView.swift */; };
 		EF44DAB4D2FE847C04710331 /* InviteLinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = B562D768CF514D7A60839A52 /* InviteLinks.swift */; };
 		EFADACC7ADF54B584B3D8EE0 /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88B3BD11108F0F400807B1D4 /* GameScene.swift */; };
+		F1DEE42BD75BE4C305FFC4D0 /* noto_1f973.json in Resources */ = {isa = PBXBuildFile; fileRef = B04ED8D3F30CF384F5CEACD0 /* noto_1f973.json */; };
 		F892C87374AECCB02A1A4F15 /* ConvexAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB3D635E9F20B88BE872E3B4 /* ConvexAuth.swift */; };
+		FC939FD9E6291921EAE69200 /* noto_1f44c.json in Resources */ = {isa = PBXBuildFile; fileRef = 087DFEF28A61C06DC5DE6659 /* noto_1f44c.json */; };
+		FE1F765DAF8AFB7024DBB014 /* noto_1f917.json in Resources */ = {isa = PBXBuildFile; fileRef = 2D496FEBA5DDB20277F18DCC /* noto_1f917.json */; };
 		FE5592AC2FDF0CF71D117675 /* FeedbackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20DC6A7177E0A9ABEECA58D /* FeedbackManager.swift */; };
 		FF4E033F4E9580494E45D3A0 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC53B31E1B9D32CB8E6A0CA6 /* HomeView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		033E82B6A5673E639C979C5E /* noto_1f44d.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f44d.json; sourceTree = "<group>"; };
+		0572DC28DAD418AC9010255E /* noto_1f634.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f634.json; sourceTree = "<group>"; };
+		074EB684B431337B671CC8A5 /* noto_1f4af.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f4af.json; sourceTree = "<group>"; };
+		087DFEF28A61C06DC5DE6659 /* noto_1f44c.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f44c.json; sourceTree = "<group>"; };
 		0B5BD33DECFEEE273A888B81 /* success.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = success.wav; sourceTree = "<group>"; };
 		13768D4AD65DB1821041BCE3 /* DurakGameCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DurakGameCore; path = DurakGameCore; sourceTree = SOURCE_ROOT; };
+		137987E597ED97D5C4048475 /* noto_1f62d.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f62d.json; sourceTree = "<group>"; };
+		1425530623412F9E327D9DF3 /* noto_1f618.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f618.json; sourceTree = "<group>"; };
 		16D9A4A85AE0A16241ACBE34 /* HapticsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsEngine.swift; sourceTree = "<group>"; };
 		1904AE469F66FD5DED26FEFE /* RulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesView.swift; sourceTree = "<group>"; };
+		194DEF111243933A2C8509DC /* noto_1f609.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f609.json; sourceTree = "<group>"; };
 		1B8CA65A72B55EB94BB95E83 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		1C3DFE4091D18025C97ACFB3 /* OpponentFanNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpponentFanNode.swift; sourceTree = "<group>"; };
 		1E1B3056492D579A96930A32 /* AppearanceThemes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceThemes.swift; sourceTree = "<group>"; };
+		2086483C745C5237E3C2CFD0 /* noto_1f923.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f923.json; sourceTree = "<group>"; };
 		20EF8D53AA6210B01D270B32 /* TurnStatusBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TurnStatusBanner.swift; sourceTree = "<group>"; };
+		210942C966E4D4802191994E /* noto_1f494.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f494.json; sourceTree = "<group>"; };
 		218913013CCBF11DC63F9983 /* GameConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameConfigStore.swift; sourceTree = "<group>"; };
 		2453DB08E5103EAC3C0CF759 /* RevealSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealSheet.swift; sourceTree = "<group>"; };
 		245EB8FEA40F801A8CCC2491 /* card-play.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "card-play.wav"; sourceTree = "<group>"; };
 		24E10B703DCA8B67D541E202 /* EmojiPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmojiPickerSheet.swift; sourceTree = "<group>"; };
 		2632234D082F76E638C231A7 /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewModel.swift; sourceTree = "<group>"; };
 		26797B46CCDF35485054D0F5 /* DurakApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurakApp.swift; sourceTree = "<group>"; };
+		28D7FF2588F96144C0503312 /* noto_1f604.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f604.json; sourceTree = "<group>"; };
+		2D496FEBA5DDB20277F18DCC /* noto_1f917.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f917.json; sourceTree = "<group>"; };
+		365CFA956BDD1BDB03FAE919 /* noto_23f0.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_23f0.json; sourceTree = "<group>"; };
+		38A2C38B84518BFFEF5C0FF6 /* noto_1f914.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f914.json; sourceTree = "<group>"; };
 		390B5085478937AF3BFA7B4A /* HintCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HintCoach.swift; sourceTree = "<group>"; };
 		39AC3E6F3C082A64C81E3B85 /* game-start.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "game-start.wav"; sourceTree = "<group>"; };
 		39CD96B4A1E58349147A57F4 /* ConvexHTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvexHTTPClient.swift; sourceTree = "<group>"; };
+		3EEB073C0E420B2723E171A0 /* noto_1f92a.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f92a.json; sourceTree = "<group>"; };
+		3F123D3669F5E3D2AA1E20AB /* noto_1f60d.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f60d.json; sourceTree = "<group>"; };
 		4151A50B866370AA84400537 /* OnlineBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnlineBridge.swift; sourceTree = "<group>"; };
 		436C9F4809B8FA26F2BB9E26 /* JoinGameSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinGameSheet.swift; sourceTree = "<group>"; };
 		44853506D0BDDEB0B4F0A0FA /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		4485DB25D46D207BA44FB33F /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
 		45B0AB3A02EF57D14493CC0C /* tap.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tap.wav; sourceTree = "<group>"; };
 		45F6133B8EE06BFECE0C8DB4 /* take.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = take.wav; sourceTree = "<group>"; };
+		49987709750EB969641B8AE0 /* noto_1f389.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f389.json; sourceTree = "<group>"; };
 		49CE640622FCB99EA4E199D4 /* draw.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = draw.wav; sourceTree = "<group>"; };
 		4C0435D2093377752DB92080 /* PreferencesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesStore.swift; sourceTree = "<group>"; };
 		4ED4C5840EE050ACC4E5864F /* BootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BootView.swift; sourceTree = "<group>"; };
 		4F3D9868EE501DF2A3B51537 /* EmojiButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmojiButton.swift; sourceTree = "<group>"; };
 		52E8DBE2A7533E37D02D739D /* failure.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = failure.wav; sourceTree = "<group>"; };
 		577451687B517C17F5B38069 /* LobbyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LobbyView.swift; sourceTree = "<group>"; };
+		5A495B994DC6CB0B6CDF23E5 /* noto_1f929.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f929.json; sourceTree = "<group>"; };
 		5B970B9B5179D067D46B3210 /* TurnTimerRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TurnTimerRing.swift; sourceTree = "<group>"; };
+		66C137DB2F3A37CFA878CDDB /* noto_1f921.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f921.json; sourceTree = "<group>"; };
 		6705537491E22EF1A7530656 /* turn-start.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "turn-start.wav"; sourceTree = "<group>"; };
+		6768786D0324394051641C0B /* noto_1f971.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f971.json; sourceTree = "<group>"; };
 		67C27682B8868A71F4305882 /* Durak.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Durak.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		69A5FD367743C5DD0AAB23C2 /* noto_1f622.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f622.json; sourceTree = "<group>"; };
+		6A2F180F19E5991E757353C7 /* noto_1f64f.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f64f.json; sourceTree = "<group>"; };
 		6ABE039E23420B66CB732685 /* DeckPileNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeckPileNode.swift; sourceTree = "<group>"; };
+		703DC2E7C62B260B86328432 /* noto_1f62e.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f62e.json; sourceTree = "<group>"; };
 		717D33F4EDD73583F1E6C9B4 /* GraveyardSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraveyardSheet.swift; sourceTree = "<group>"; };
 		75BCA80683058ECDEEF98C9D /* TableNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableNode.swift; sourceTree = "<group>"; };
 		772255CD4F557A8909BB054C /* SkillsButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsButton.swift; sourceTree = "<group>"; };
@@ -121,9 +192,14 @@
 		8827A032AEF2F4BB0698153E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		88B3BD11108F0F400807B1D4 /* GameScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameScene.swift; sourceTree = "<group>"; };
 		8A3CC9D0A2EB6E30BCC1266F /* SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundManager.swift; sourceTree = "<group>"; };
+		8E63DDD14A5CAD4FF42DDE5E /* noto_1f60a.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f60a.json; sourceTree = "<group>"; };
+		9319A3DCB82F43218A2FE7D6 /* noto_1f4aa.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f4aa.json; sourceTree = "<group>"; };
 		9493C28BECADC560D2C05D04 /* ActionBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionBar.swift; sourceTree = "<group>"; };
+		9727298362A939E0247FBA01 /* noto_1f525.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f525.json; sourceTree = "<group>"; };
 		97D7081A49CEDEFE839BAFC3 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
 		9853CFA4AD019CFA984395E3 /* ConvexLiveClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvexLiveClient.swift; sourceTree = "<group>"; };
+		99846F1927513EB31CDBC247 /* noto_1f44f.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f44f.json; sourceTree = "<group>"; };
+		99A2260FDEF1AFD46F7D0D6A /* noto_2b50.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_2b50.json; sourceTree = "<group>"; };
 		9AAF9268F95847CEFB89CE27 /* DisplayNamePromptSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNamePromptSheet.swift; sourceTree = "<group>"; };
 		A20DC6A7177E0A9ABEECA58D /* FeedbackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackManager.swift; sourceTree = "<group>"; };
 		A22D73B0F625A2474D3EFFA4 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
@@ -132,22 +208,43 @@
 		AC53B31E1B9D32CB8E6A0CA6 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		ACE78F004CCBDDBB83CC6FA3 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
 		B043789EF3BA48F2AD6B2918 /* shuffle.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = shuffle.wav; sourceTree = "<group>"; };
+		B04ED8D3F30CF384F5CEACD0 /* noto_1f973.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f973.json; sourceTree = "<group>"; };
 		B0B3ACE4387300F76811C60C /* round-clear.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "round-clear.wav"; sourceTree = "<group>"; };
 		B13F381B4DC5152D526860C5 /* EconomyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EconomyStore.swift; sourceTree = "<group>"; };
 		B562D768CF514D7A60839A52 /* InviteLinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteLinks.swift; sourceTree = "<group>"; };
+		B63C48CB3032031779FCD4C5 /* noto_1f602.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f602.json; sourceTree = "<group>"; };
 		B78E2FDBBECB25B359EDFAAD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		BC21E9F2CED71AE8B6DBD53B /* noto_1f620.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f620.json; sourceTree = "<group>"; };
+		BF5C743DDBE2EDDADCBB5950 /* noto_1f603.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f603.json; sourceTree = "<group>"; };
+		C0F14A4A801E43F3312FB54C /* noto_1f44e.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f44e.json; sourceTree = "<group>"; };
+		C2C09611087E5B8A3ABD5478 /* noto_1f3c6.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f3c6.json; sourceTree = "<group>"; };
+		C4859D6249BBC958133B25D3 /* ReactionBurstView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionBurstView.swift; sourceTree = "<group>"; };
 		C7199215D670181D3909C9AD /* HandNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandNode.swift; sourceTree = "<group>"; };
+		C974951207E9BE9D8FE080FC /* noto_1f621.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f621.json; sourceTree = "<group>"; };
+		CDEBA1EC965DAA130F5773F5 /* noto_1f97a.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f97a.json; sourceTree = "<group>"; };
 		D0A9374C5F525B0B08FCEA11 /* confirm.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = confirm.wav; sourceTree = "<group>"; };
+		D10F859F106EE09BEE4C7615 /* noto_2764.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_2764.json; sourceTree = "<group>"; };
 		D69BDAB558526B4F2292249A /* AuthSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSheet.swift; sourceTree = "<group>"; };
+		D71017AEA622D92C6E051F3A /* noto_1f92f.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f92f.json; sourceTree = "<group>"; };
+		D799C3CE8E91A37ACC1A3B26 /* noto_1f60e.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f60e.json; sourceTree = "<group>"; };
+		D9FAD94B9A9F3200072147A3 /* noto_1f605.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f605.json; sourceTree = "<group>"; };
 		DDD2DB732ED1C25082528B5D /* CardNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardNode.swift; sourceTree = "<group>"; };
+		DED73C2AA54A88440374C68B /* ReactionCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionCatalog.swift; sourceTree = "<group>"; };
 		E3E08C9926465EE521057B80 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		E83A0B1C6122523354320A17 /* noto_1f600.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f600.json; sourceTree = "<group>"; };
 		E8AB90B080B850A489BF9D34 /* SkillsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsSheet.swift; sourceTree = "<group>"; };
 		E92343F507AB76630A962560 /* SpectatorHandsNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpectatorHandsNode.swift; sourceTree = "<group>"; };
+		E96AE1BFD5A5DB6ABE20390A /* SeatReactionBurstView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeatReactionBurstView.swift; sourceTree = "<group>"; };
+		E99640DCD63888AC87AFFD4F /* noto_1f601.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f601.json; sourceTree = "<group>"; };
 		EB3D635E9F20B88BE872E3B4 /* ConvexAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConvexAuth.swift; sourceTree = "<group>"; };
+		EC9587F64E88A191606CDB70 /* noto_1f451.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f451.json; sourceTree = "<group>"; };
 		EE7B295E79BA2E9B50FCFE89 /* tick.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tick.wav; sourceTree = "<group>"; };
+		F3896881240FAB407935AFC0 /* noto_1f61c.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f61c.json; sourceTree = "<group>"; };
+		F3F742007523AC562018C248 /* noto_1f606.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f606.json; sourceTree = "<group>"; };
 		F624F8CD32AFA7C308D24F0B /* OnlineErrorCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnlineErrorCopy.swift; sourceTree = "<group>"; };
 		F83575C41FAEB4433C3F6BD0 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		F8797C226A4A587A2B055754 /* GameConfigSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameConfigSheet.swift; sourceTree = "<group>"; };
+		FA34218CC81E0941E0379DFF /* noto_1f62f.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noto_1f62f.json; sourceTree = "<group>"; };
 		FD1AD96EED817BD2AA8F8E2C /* deal.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = deal.wav; sourceTree = "<group>"; };
 		FF98C0142DD7ED06078FEB3D /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -159,6 +256,7 @@
 			files = (
 				B46CEE956FA3E421F7AF47F4 /* DurakGameCore in Frameworks */,
 				8D75E7A1B9893CC01575BE40 /* ConvexMobile in Frameworks */,
+				A7D88C51D323722D13871111 /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -194,6 +292,14 @@
 				F624F8CD32AFA7C308D24F0B /* OnlineErrorCopy.swift */,
 			);
 			path = Networking;
+			sourceTree = "<group>";
+		};
+		425E901BE1A8EFF6432C0FB2 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				8EE14CE78A3C5C93B4277BAC /* NotoReactions */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		5796B0B3716054AF226E14B6 /* Screens */ = {
@@ -264,12 +370,66 @@
 				90461D7ED7D4373E153DA193 /* I18n */,
 				67E6B8C90D3FF9DCA1017BFF /* Navigation */,
 				1A203AA84B9E9D328974E6EA /* Networking */,
+				8F2A62BE0F8DAF2A059A053B /* Reactions */,
+				425E901BE1A8EFF6432C0FB2 /* Resources */,
 				5796B0B3716054AF226E14B6 /* Screens */,
 				6555116983C7C9196226F7B9 /* Sounds */,
 				8F06508BC70BA1FD0ABA2ACC /* Storage */,
 				10DF1EAFA8E74F85E78123DE /* Theme */,
 			);
 			path = Durak;
+			sourceTree = "<group>";
+		};
+		8EE14CE78A3C5C93B4277BAC /* NotoReactions */ = {
+			isa = PBXGroup;
+			children = (
+				C2C09611087E5B8A3ABD5478 /* noto_1f3c6.json */,
+				9319A3DCB82F43218A2FE7D6 /* noto_1f4aa.json */,
+				074EB684B431337B671CC8A5 /* noto_1f4af.json */,
+				087DFEF28A61C06DC5DE6659 /* noto_1f44c.json */,
+				033E82B6A5673E639C979C5E /* noto_1f44d.json */,
+				C0F14A4A801E43F3312FB54C /* noto_1f44e.json */,
+				99846F1927513EB31CDBC247 /* noto_1f44f.json */,
+				8E63DDD14A5CAD4FF42DDE5E /* noto_1f60a.json */,
+				3F123D3669F5E3D2AA1E20AB /* noto_1f60d.json */,
+				D799C3CE8E91A37ACC1A3B26 /* noto_1f60e.json */,
+				F3896881240FAB407935AFC0 /* noto_1f61c.json */,
+				137987E597ED97D5C4048475 /* noto_1f62d.json */,
+				703DC2E7C62B260B86328432 /* noto_1f62e.json */,
+				FA34218CC81E0941E0379DFF /* noto_1f62f.json */,
+				6A2F180F19E5991E757353C7 /* noto_1f64f.json */,
+				3EEB073C0E420B2723E171A0 /* noto_1f92a.json */,
+				D71017AEA622D92C6E051F3A /* noto_1f92f.json */,
+				CDEBA1EC965DAA130F5773F5 /* noto_1f97a.json */,
+				49987709750EB969641B8AE0 /* noto_1f389.json */,
+				EC9587F64E88A191606CDB70 /* noto_1f451.json */,
+				210942C966E4D4802191994E /* noto_1f494.json */,
+				9727298362A939E0247FBA01 /* noto_1f525.json */,
+				E83A0B1C6122523354320A17 /* noto_1f600.json */,
+				E99640DCD63888AC87AFFD4F /* noto_1f601.json */,
+				B63C48CB3032031779FCD4C5 /* noto_1f602.json */,
+				BF5C743DDBE2EDDADCBB5950 /* noto_1f603.json */,
+				28D7FF2588F96144C0503312 /* noto_1f604.json */,
+				D9FAD94B9A9F3200072147A3 /* noto_1f605.json */,
+				F3F742007523AC562018C248 /* noto_1f606.json */,
+				194DEF111243933A2C8509DC /* noto_1f609.json */,
+				1425530623412F9E327D9DF3 /* noto_1f618.json */,
+				BC21E9F2CED71AE8B6DBD53B /* noto_1f620.json */,
+				C974951207E9BE9D8FE080FC /* noto_1f621.json */,
+				69A5FD367743C5DD0AAB23C2 /* noto_1f622.json */,
+				0572DC28DAD418AC9010255E /* noto_1f634.json */,
+				38A2C38B84518BFFEF5C0FF6 /* noto_1f914.json */,
+				2D496FEBA5DDB20277F18DCC /* noto_1f917.json */,
+				66C137DB2F3A37CFA878CDDB /* noto_1f921.json */,
+				2086483C745C5237E3C2CFD0 /* noto_1f923.json */,
+				5A495B994DC6CB0B6CDF23E5 /* noto_1f929.json */,
+				6768786D0324394051641C0B /* noto_1f971.json */,
+				B04ED8D3F30CF384F5CEACD0 /* noto_1f973.json */,
+				99A2260FDEF1AFD46F7D0D6A /* noto_2b50.json */,
+				365CFA956BDD1BDB03FAE919 /* noto_23f0.json */,
+				D10F859F106EE09BEE4C7615 /* noto_2764.json */,
+			);
+			path = NotoReactions;
 			sourceTree = "<group>";
 		};
 		8F06508BC70BA1FD0ABA2ACC /* Storage */ = {
@@ -283,6 +443,15 @@
 				97D7081A49CEDEFE839BAFC3 /* SessionStore.swift */,
 			);
 			path = Storage;
+			sourceTree = "<group>";
+		};
+		8F2A62BE0F8DAF2A059A053B /* Reactions */ = {
+			isa = PBXGroup;
+			children = (
+				C4859D6249BBC958133B25D3 /* ReactionBurstView.swift */,
+				DED73C2AA54A88440374C68B /* ReactionCatalog.swift */,
+			);
+			path = Reactions;
 			sourceTree = "<group>";
 		};
 		90461D7ED7D4373E153DA193 /* I18n */ = {
@@ -331,6 +500,7 @@
 				24E10B703DCA8B67D541E202 /* EmojiPickerSheet.swift */,
 				717D33F4EDD73583F1E6C9B4 /* GraveyardSheet.swift */,
 				2453DB08E5103EAC3C0CF759 /* RevealSheet.swift */,
+				E96AE1BFD5A5DB6ABE20390A /* SeatReactionBurstView.swift */,
 				772255CD4F557A8909BB054C /* SkillsButton.swift */,
 				E8AB90B080B850A489BF9D34 /* SkillsSheet.swift */,
 				20EF8D53AA6210B01D270B32 /* TurnStatusBanner.swift */,
@@ -380,6 +550,7 @@
 			packageProductDependencies = (
 				AA7ED1C2B1272856CA2585AB /* DurakGameCore */,
 				3D1B8F32A7F1C70C6DD54B17 /* ConvexMobile */,
+				380E97D666BC0635E33685B5 /* Lottie */,
 			);
 			productName = Durak;
 			productReference = 67C27682B8868A71F4305882 /* Durak.app */;
@@ -413,6 +584,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				A0DD4821FBC1744EB94231E9 /* XCRemoteSwiftPackageReference "convex-swift" */,
+				6A9335A0AC8BF421180E324D /* XCRemoteSwiftPackageReference "lottie-ios" */,
 				8C5EA3EF43505C2214FA1211 /* XCLocalSwiftPackageReference "DurakGameCore" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -438,6 +610,51 @@
 				18F0A26AC2E2C9C1D699BB0C /* draw.wav in Resources */,
 				624B7D825C6AFE1E5A58FDFF /* failure.wav in Resources */,
 				894C0A8F57AB05FDD95B35C9 /* game-start.wav in Resources */,
+				842AEF3EADF1DEFF6D4A7E56 /* noto_1f389.json in Resources */,
+				C7A7523B0908BB0CF0444055 /* noto_1f3c6.json in Resources */,
+				FC939FD9E6291921EAE69200 /* noto_1f44c.json in Resources */,
+				6A9CA4437D989E555146AD88 /* noto_1f44d.json in Resources */,
+				BE6E52F08EB82A85426F53A3 /* noto_1f44e.json in Resources */,
+				AAC860CF19EC0BC61279B7B1 /* noto_1f44f.json in Resources */,
+				C73DC03DA6DB09204D79D61D /* noto_1f451.json in Resources */,
+				B44A328688F8990348FC464E /* noto_1f494.json in Resources */,
+				8622F6744DEEF0EC9E3BFE0C /* noto_1f4aa.json in Resources */,
+				356C394A760B78762C1235A8 /* noto_1f4af.json in Resources */,
+				1356C7FEDFCFF2CE7E4693AE /* noto_1f525.json in Resources */,
+				B8066339EB0802E508B945E2 /* noto_1f600.json in Resources */,
+				32B3DD9ECAFB6397CAB198BE /* noto_1f601.json in Resources */,
+				103DA29FA55DFA9114EDC5C9 /* noto_1f602.json in Resources */,
+				EA79573066BB932DAB03B7B5 /* noto_1f603.json in Resources */,
+				D9EBC051AD59FBD2CAA8DECB /* noto_1f604.json in Resources */,
+				71FEC5FB0B10E8C343C20166 /* noto_1f605.json in Resources */,
+				992285BBA4A0AA65FAAADCE2 /* noto_1f606.json in Resources */,
+				0E16A4D247F629DF87645F38 /* noto_1f609.json in Resources */,
+				37FC30CFFD7126E313C79EEC /* noto_1f60a.json in Resources */,
+				A09AE7040D84E5EB933D32DB /* noto_1f60d.json in Resources */,
+				00E6074625187A96A79ADFFF /* noto_1f60e.json in Resources */,
+				16D5005F5ED353BD4E9D1DE9 /* noto_1f618.json in Resources */,
+				C2B5039F461357F4D7C157C0 /* noto_1f61c.json in Resources */,
+				A0904332AC6BC9A3B03D832F /* noto_1f620.json in Resources */,
+				5F090F61BC3FAE36F17DA242 /* noto_1f621.json in Resources */,
+				3ED96FE53A580533746D5543 /* noto_1f622.json in Resources */,
+				EE73327878A7245DB28968C0 /* noto_1f62d.json in Resources */,
+				CA81E4A7C28B846F3210456A /* noto_1f62e.json in Resources */,
+				CA5CC5C40BE63A95F12251E9 /* noto_1f62f.json in Resources */,
+				B684883DD931467A15081CE9 /* noto_1f634.json in Resources */,
+				0432DEFB3D3338255BC4B1E7 /* noto_1f64f.json in Resources */,
+				6CF2AC1F71FA7350DF55311F /* noto_1f914.json in Resources */,
+				FE1F765DAF8AFB7024DBB014 /* noto_1f917.json in Resources */,
+				C3E0CC637EE5EC2414B88FA2 /* noto_1f921.json in Resources */,
+				AB369CFCD1CFCF2A61E318C0 /* noto_1f923.json in Resources */,
+				9C438012C7C91F2514C23ED3 /* noto_1f929.json in Resources */,
+				CA2BF04DCE257DC23F5359C9 /* noto_1f92a.json in Resources */,
+				3D916CA926B130B3422ECA8C /* noto_1f92f.json in Resources */,
+				60F3593BA9F5F0DB56050182 /* noto_1f971.json in Resources */,
+				F1DEE42BD75BE4C305FFC4D0 /* noto_1f973.json in Resources */,
+				D26058956DD86ADB74A95871 /* noto_1f97a.json in Resources */,
+				1EE0DBAC74C4C1FAF90A0485 /* noto_23f0.json in Resources */,
+				963EC710FFC09A3F22D31442 /* noto_2764.json in Resources */,
+				6296080E54574296E33D1B9F /* noto_2b50.json in Resources */,
 				25E969E68CD0EEEFE0436376 /* round-clear.wav in Resources */,
 				4358DF7D8BB53F7BE1E7F794 /* shuffle.wav in Resources */,
 				D06357F7A6BB55CF94BD292A /* success.wav in Resources */,
@@ -493,10 +710,13 @@
 				39B8FFFFE0546C41BB9C6B0B /* OpponentFanNode.swift in Sources */,
 				9E084BF4E54FE88A61A3F958 /* PlayerNameStore.swift in Sources */,
 				BB683D83C58DB77BEFED1FB8 /* PreferencesStore.swift in Sources */,
+				DAE77646633716B52F28F0C2 /* ReactionBurstView.swift in Sources */,
+				6CADBF5B39F0237A367A5F87 /* ReactionCatalog.swift in Sources */,
 				270AB863A12D1E31AA7561EC /* ResultView.swift in Sources */,
 				84B58521104BE60B090EB3F6 /* RevealSheet.swift in Sources */,
 				EF3ECA0E4ECBF05DFD749DF3 /* RootView.swift in Sources */,
 				C49B9F3286DF18F10CB04A62 /* RulesView.swift in Sources */,
+				03405F9117982F6FD56D69F9 /* SeatReactionBurstView.swift in Sources */,
 				7C2A13078206A1F22F542C11 /* SessionStore.swift in Sources */,
 				897C078F3E21E370B222EEA6 /* SettingsView.swift in Sources */,
 				363DB11BDEB0C5FA8228D051 /* SkillsButton.swift in Sources */,
@@ -663,6 +883,7 @@
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.10;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -698,6 +919,7 @@
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.10;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -734,6 +956,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		6A9335A0AC8BF421180E324D /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.5.0;
+			};
+		};
 		A0DD4821FBC1744EB94231E9 /* XCRemoteSwiftPackageReference "convex-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/get-convex/convex-swift";
@@ -745,6 +975,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		380E97D666BC0635E33685B5 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6A9335A0AC8BF421180E324D /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
+		};
 		3D1B8F32A7F1C70C6DD54B17 /* ConvexMobile */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = A0DD4821FBC1744EB94231E9 /* XCRemoteSwiftPackageReference "convex-swift" */;

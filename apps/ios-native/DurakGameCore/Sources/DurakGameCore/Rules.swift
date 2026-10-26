@@ -118,6 +118,8 @@ public func legalAttacks(_ state: GameState, _ player: PlayerId) -> [Card] {
     }
 
     // Throw-in: must be eligible and not the defender.
+    // During an active perevodnoy transfer window, same-rank adds keep the chain
+    // alive (transferChainActive only requires matching ranks + no defenses).
     if player == state.defenderId || !canThrowIn(state, player) { return [] }
     if state.table.count >= state.maxAttacks { return [] }
 
@@ -140,25 +142,30 @@ public func legalDefenses(_ state: GameState, target: Int) -> [Card] {
 }
 
 /// True while defenders may keep passing the attack via matching-rank transfers.
+/// Active when nothing is covered and every attack shares the opening rank.
 public func transferChainActive(_ state: GameState) -> Bool {
     if state.table.isEmpty { return false }
     if state.table.contains(where: { $0.defense != nil }) { return false }
     if state.table.count == 1 { return true }
     let openingRank = state.table[0].attack.rank
     for i in 1..<state.table.count {
-        let p = state.table[i]
-        if !p.viaTransfer || p.attack.rank != openingRank { return false }
+        if state.table[i].attack.rank != openingRank { return false }
     }
     return true
 }
 
 /// Perevodnoy: defender plays same rank as the opening attack to pass defense on.
-/// Allowed only on the opening card while the chain has no throw-ins or defenses.
+/// Allowed while the uncovered pile is all one rank (no defenses yet).
 public func legalTransfers(_ state: GameState, target: Int) -> [Card] {
     guard state.rules.variant == .perevodnoy else { return [] }
     guard state.phase == .playing, !state.takeInProgress else { return [] }
     guard target == 0 else { return [] }
     guard transferChainActive(state) else { return [] }
+
+    // Common house rule: no transfer until the first successful discard.
+    if !state.rules.allowTransferOnFirstBout && state.discard.isEmpty {
+        return []
+    }
 
     guard let opening = state.table.first, opening.defense == nil else { return [] }
     guard state.table.count < state.maxAttacks else { return [] }

@@ -14,6 +14,8 @@ final class PreferencesStore {
         static let tutorialCompleted = "durak_tutorial_completed"
         static let language = "durak_language"
         static let appearance = "durak_appearance"
+        /// Legacy key — cleared on launch (packs removed).
+        static let selectedReactionPack = "durak_reaction_pack"
     }
 
     var soundEnabled: Bool {
@@ -68,6 +70,8 @@ final class PreferencesStore {
 
         self.tutorialCompleted = defaults.bool(forKey: Keys.tutorialCompleted)
         self.language = defaults.string(forKey: Keys.language) ?? "system"
+
+        defaults.removeObject(forKey: Keys.selectedReactionPack)
 
         FeedbackManager.shared.soundEnabled = self.soundEnabled
         FeedbackManager.shared.hapticsEnabled = self.hapticsEnabled

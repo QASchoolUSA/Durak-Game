@@ -96,18 +96,35 @@ public struct GameRules: Codable, Sendable, Equatable {
     public var variant: GameVariant
     public var throwInScope: ThrowInScope
     public var playStyle: PlayStyle
+    /// Perevodnoy: when false (default), no transfer while discard is empty.
+    public var allowTransferOnFirstBout: Bool
 
     public init(
         variant: GameVariant = .podkidnoy,
         throwInScope: ThrowInScope = .all,
-        playStyle: PlayStyle = .standard
+        playStyle: PlayStyle = .standard,
+        allowTransferOnFirstBout: Bool = false
     ) {
         self.variant = variant
         self.throwInScope = throwInScope
         self.playStyle = playStyle
+        self.allowTransferOnFirstBout = allowTransferOnFirstBout
     }
 
     public static let `default` = GameRules()
+
+    private enum CodingKeys: String, CodingKey {
+        case variant, throwInScope, playStyle, allowTransferOnFirstBout
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.variant = try container.decodeIfPresent(GameVariant.self, forKey: .variant) ?? .podkidnoy
+        self.throwInScope = try container.decodeIfPresent(ThrowInScope.self, forKey: .throwInScope) ?? .all
+        self.playStyle = try container.decodeIfPresent(PlayStyle.self, forKey: .playStyle) ?? .standard
+        self.allowTransferOnFirstBout =
+            try container.decodeIfPresent(Bool.self, forKey: .allowTransferOnFirstBout) ?? false
+    }
 }
 
 // MARK: - Moves

@@ -64,7 +64,9 @@ export type TurnTone =
   | "you-defend"
   | "you-throw"
   | "waiting"
-  | "neutral";
+  | "neutral"
+  | "confirming"
+  | "reconnecting";
 
 export interface TurnStatus {
   text: string;
@@ -79,8 +81,19 @@ export function getTurnStatus(
   state: GameState,
   human: PlayerId,
   names: Record<string, string>,
+  options?: {
+    submittingMove?: boolean;
+    opponentReconnecting?: boolean;
+  },
 ): TurnStatus | null {
   if (state.phase !== "playing") return null;
+
+  if (options?.submittingMove) {
+    return { text: "Sending move…", tone: "confirming" };
+  }
+  if (options?.opponentReconnecting) {
+    return { text: "Opponent reconnecting…", tone: "reconnecting" };
+  }
 
   const nameOf = (id: PlayerId) => names[id] ?? i18n.t("common.opponent");
   const isDefender = state.defenderId === human;

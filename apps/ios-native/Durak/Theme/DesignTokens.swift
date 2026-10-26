@@ -85,16 +85,54 @@ enum DesignTokens {
     // MARK: - Typography
 
     enum Typography {
-        static let hero    = Font.system(size: 58, weight: .black)
-        static let display = Font.system(size: 34, weight: .black)
-        static let title   = Font.system(size: 22, weight: .heavy)
-        static let heading = Font.system(size: 17, weight: .bold)
-        static let button  = Font.system(size: 15, weight: .bold)
-        static let body    = Font.system(size: 14, weight: .medium)
-        static let caption = Font.system(size: 12, weight: .semibold)
-        static let captionSmall = Font.system(size: 10, weight: .semibold)
-        static let label   = Font.system(size: 9, weight: .heavy)
-        static let micro   = Font.system(size: 8, weight: .bold)
+        private static var isWideDevice: Bool {
+            UIDevice.current.userInterfaceIdiom == .pad || ProcessInfo.processInfo.isiOSAppOnMac
+        }
+
+        static var hero: Font { .system(size: isWideDevice ? 74 : 58, weight: .black) }
+        static var display: Font { .system(size: isWideDevice ? 42 : 34, weight: .black) }
+        static var title: Font { .system(size: isWideDevice ? 26 : 22, weight: .heavy) }
+        static var heading: Font { .system(size: isWideDevice ? 20 : 17, weight: .bold) }
+        static var button: Font { .system(size: isWideDevice ? 17 : 15, weight: .bold) }
+        static var body: Font { .system(size: isWideDevice ? 16 : 14, weight: .medium) }
+        static var caption: Font { .system(size: isWideDevice ? 13.5 : 12, weight: .semibold) }
+        static var captionSmall: Font { .system(size: isWideDevice ? 11.5 : 10, weight: .semibold) }
+        static var label: Font { .system(size: isWideDevice ? 10.5 : 9, weight: .heavy) }
+        static var micro: Font { .system(size: isWideDevice ? 9.5 : 8, weight: .bold) }
+    }
+
+    // MARK: - Adaptive Device Layout (iPhone · iPadOS Portrait/Landscape · macOS Apple Silicon)
+
+    enum Layout {
+        static var isPadOrMac: Bool {
+            UIDevice.current.userInterfaceIdiom == .pad || ProcessInfo.processInfo.isiOSAppOnMac
+        }
+
+        /// Max width for centered menu / lobby / result / sheet content on iPad & Mac so buttons and cards never stretch edge-to-edge.
+        static var maxContentWidth: CGFloat {
+            isPadOrMac ? 540 : .infinity
+        }
+
+        /// Max width for wider lobby / result cards on iPad & Mac.
+        static var maxPanelWidth: CGFloat {
+            isPadOrMac ? 620 : .infinity
+        }
+
+        /// Corner chrome button diameter (X, Settings, Rules, Emoji, Skills).
+        static var chromeButtonSize: CGFloat {
+            isPadOrMac ? 52 : 44
+        }
+
+        /// Scale multiplier for SpriteKit cards and seats based on canvas dimensions.
+        static func spriteScale(for size: CGSize) -> CGFloat {
+            let shortSide = min(size.width, size.height)
+            if shortSide >= 700 {
+                // iPad / Mac window
+                let isLandscape = size.width > size.height
+                return isLandscape ? 1.24 : 1.32
+            }
+            return 1.0
+        }
     }
 
     // MARK: - Card
@@ -132,13 +170,15 @@ extension Color {
 // MARK: - Apple Spring Pressable Button Style
 
 struct SpringPressableButtonStyle: ButtonStyle {
-    var scaleAmount: CGFloat = 0.95
+    var scaleAmount: CGFloat = 0.96
     var hapticFeedback: FeedbackEvent = .uiTap
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .contentShape(Rectangle())
             .scaleEffect(configuration.isPressed ? scaleAmount : 1.0)
-            .animation(.spring(response: 0.22, dampingFraction: 0.65), value: configuration.isPressed)
+            .brightness(configuration.isPressed ? -0.04 : 0)
+            .animation(.interactiveSpring(response: 0.14, dampingFraction: 0.72, blendDuration: 0), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, isPressed in
                 if isPressed {
                     FeedbackManager.shared.trigger(hapticFeedback)
@@ -152,7 +192,7 @@ extension ButtonStyle where Self == SpringPressableButtonStyle {
         SpringPressableButtonStyle()
     }
 
-    static func springPressable(scale: CGFloat = 0.95, feedback: FeedbackEvent = .uiTap) -> SpringPressableButtonStyle {
+    static func springPressable(scale: CGFloat = 0.96, feedback: FeedbackEvent = .uiTap) -> SpringPressableButtonStyle {
         SpringPressableButtonStyle(scaleAmount: scale, hapticFeedback: feedback)
     }
 }

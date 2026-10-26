@@ -10,54 +10,70 @@ struct RevealSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                LinearGradient(
-                    colors: theme.tablePalette.gradient ?? [theme.tablePalette.backgroundColor],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+        ZStack {
+            LinearGradient(
+                colors: theme.tablePalette.gradient ?? [theme.tablePalette.backgroundColor],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-                VStack(spacing: DesignTokens.Spacing.lg) {
-                    Text("Peeking into \(opponentName)'s hand")
-                        .font(DesignTokens.Typography.body)
-                        .foregroundStyle(DesignTokens.Colors.textMuted)
-
-                    ScrollView {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 58))], spacing: DesignTokens.Spacing.sm) {
-                            ForEach(cards) { card in
-                                RevealedCardView(card: card, isTrump: card.suit == trumpSuit, trumpHighlightColor: theme.ui.accent)
-                            }
-                        }
-                        .padding(DesignTokens.Spacing.lg)
-                    }
-
-                    Button {
+            VStack(spacing: DesignTokens.Spacing.md) {
+                HStack {
+                    Color.clear.frame(width: 50, height: 32)
+                    Spacer()
+                    Text("Reveal Cards")
+                        .font(DesignTokens.Typography.heading)
+                        .foregroundStyle(DesignTokens.Colors.textLight)
+                    Spacer()
+                    Button("Done") {
                         dismiss()
-                    } label: {
-                        Text("Close")
-                            .font(DesignTokens.Typography.button)
-                            .foregroundStyle(theme.ui.accentText)
-                            .padding(.horizontal, DesignTokens.Spacing.xxl)
-                            .padding(.vertical, DesignTokens.Spacing.sm)
-                            .background(
-                                Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: theme.ui.accentGradient,
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                            )
-                            .shadow(color: theme.ui.accent.opacity(0.4), radius: 8, y: 3)
                     }
-                    .padding(.bottom, DesignTokens.Spacing.md)
+                    .font(DesignTokens.Typography.body)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(theme.ui.accent)
+                    .frame(width: 50, alignment: .trailing)
+                    .buttonStyle(.springPressable(scale: 0.94, feedback: .uiTap))
                 }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.top, DesignTokens.Spacing.md)
+
+                Text("Peeking into \(opponentName)'s hand")
+                    .font(DesignTokens.Typography.body)
+                    .foregroundStyle(DesignTokens.Colors.textMuted)
+
+                ScrollView(showsIndicators: false) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 58))], spacing: DesignTokens.Spacing.sm) {
+                        ForEach(cards) { card in
+                            RevealedCardView(card: card, isTrump: card.suit == trumpSuit, trumpHighlightColor: theme.ui.accent)
+                        }
+                    }
+                    .padding(DesignTokens.Spacing.lg)
+                }
+
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Close")
+                        .font(DesignTokens.Typography.button)
+                        .foregroundStyle(theme.ui.accentText)
+                        .padding(.horizontal, DesignTokens.Spacing.xxl)
+                        .padding(.vertical, DesignTokens.Spacing.sm)
+                        .background(
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: theme.ui.accentGradient,
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                        )
+                        .shadow(color: theme.ui.accent.opacity(0.4), radius: 8, y: 3)
+                }
+                .buttonStyle(.springPressable(feedback: .uiTap))
+                .padding(.bottom, DesignTokens.Spacing.md)
             }
-            .navigationTitle("Reveal Cards")
-            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }

@@ -131,6 +131,13 @@ interface GameStore {
   lastConsumedReactionAt: number;
   pendingReveal: { card: Card; expiresAt: number } | null;
   submittingMove: boolean;
+  /** Latest applied getRoomView.version. */
+  onlineVersion: number;
+  /** Server version observed before the in-flight online submit. */
+  pendingSubmitBaseVersion: number | null;
+  /** True after submitMove HTTP succeeds; version gate then finishes reconcile. */
+  pendingMutationSettled: boolean;
+  opponentReconnecting: boolean;
   goldBalance: number;
   goldHydrated: boolean;
   creditBalance: number;
@@ -159,6 +166,7 @@ interface GameStore {
   triggerLocalReaction: (emoji: string) => void;
   tryConsumeReactionAt: (at: number) => boolean;
   setSubmittingMove: (submitting: boolean) => void;
+  markOnlineMutationSettled: () => void;
   clearPendingReveal: () => void;
   startGame: (n?: number, options?: { buyInCharged?: boolean }) => void;
   goHome: () => void;
@@ -330,6 +338,10 @@ export const useGameStore = create<GameStore>((set, get) => {
     lastConsumedReactionAt: 0,
     pendingReveal: null,
     submittingMove: false,
+    onlineVersion: 0,
+    pendingSubmitBaseVersion: null,
+    pendingMutationSettled: false,
+    opponentReconnecting: false,
     goldBalance: STARTING_GOLD,
     goldHydrated: false,
     creditBalance: STARTING_CREDITS,
@@ -378,7 +390,17 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
     },
 
-    setSubmittingMove: (submittingMove) => set({ submittingMove }),
+    setSubmittingMove: (submittingMove) =>
+      set(
+        submittingMove
+          ? { submittingMove: true, pendingMutationSettled: false }
+          : {
+              submittingMove: false,
+              pendingSubmitBaseVersion: null,
+              pendingMutationSettled: false,
+            },
+      ),
+    markOnlineMutationSettled: () => set({ pendingMutationSettled: true }),
     clearPendingReveal: () => set({ pendingReveal: null }),
 
     triggerLocalReaction: (emoji) => {
@@ -414,12 +436,27 @@ export const useGameStore = create<GameStore>((set, get) => {
         game: null,
         pendingReveal: null,
         submittingMove: false,
+        pendingSubmitBaseVersion: null,
+        pendingMutationSettled: false,
+        opponentReconnecting: false,
+        onlineVersion: 0,
       });
     },
 
     syncOnlineState: (view) => {
       const prev = get();
       const nextPendingReveal = view.pendingReveal ?? null;
+      const viewVersion = view.version ?? 0;
+      const pendingBase = prev.pendingSubmitBaseVersion;
+      const versionAdvanced = pendingBase == null || viewVersion > pendingBase;
+      const stillAwaitingAck =
+        prev.submittingMove &&
+        (!prev.pendingMutationSettled || !versionAdvanced);
+
+      const opponentReconnecting =
+        view.turnClockConnection === "reconnecting" &&
+        view.turnClockPlayerId != null &&
+        view.turnClockPlayerId !== prev.humanId;
 
       const baseWithoutPlayer = {
         onlineRoomCode: view.code,
@@ -436,7 +473,16 @@ export const useGameStore = create<GameStore>((set, get) => {
         buyIn: view.buyIn ?? 100,
         pot: (view.buyIn ?? 100) * view.config.numPlayers,
         pendingReveal: nextPendingReveal,
-        submittingMove: false,
+        onlineVersion: viewVersion,
+        opponentReconnecting,
+        // Ack-gated: only clear submittingMove once version advances past our submit.
+        ...(stillAwaitingAck
+          ? {}
+          : {
+              submittingMove: false,
+              pendingSubmitBaseVersion: null,
+              pendingMutationSettled: false,
+            }),
         ...(view.recentReaction && view.recentReaction.at !== prev.remoteReaction?.at
           ? { remoteReaction: view.recentReaction }
           : {}),
@@ -504,7 +550,17 @@ export const useGameStore = create<GameStore>((set, get) => {
           !reactionChanged &&
           !pendingRevealChanged;
 
-        if (sameGameplay && sameMeta) {
+        if (sameGameplay && sameMeta && !stillAwaitingAck) {
+          return;
+        }
+
+        // While awaiting our move ack, keep local board; only refresh meta.
+        if (stillAwaitingAck) {
+          set({
+            ...base,
+            playMode: "online",
+            screen: "game",
+          });
           return;
         }
 
@@ -514,7 +570,6 @@ export const useGameStore = create<GameStore>((set, get) => {
           screen: "game",
           game: nextGame,
           pendingReveal: null,
-          submittingMove: false,
         });
         return;
       }
@@ -527,6 +582,8 @@ export const useGameStore = create<GameStore>((set, get) => {
             game: view.gameState,
             pendingReveal: null,
             submittingMove: false,
+            pendingSubmitBaseVersion: null,
+            pendingMutationSettled: false,
             ...(prev.screen === "result" ? { screen: "result" as const } : { screen: "game" as const }),
           });
           if (prev.screen !== "result") {
@@ -631,6 +688,9 @@ export const useGameStore = create<GameStore>((set, get) => {
         lastConsumedReactionAt: 0,
         pendingReveal: null,
         submittingMove: false,
+        pendingSubmitBaseVersion: null,
+        pendingMutationSettled: false,
+        opponentReconnecting: false,
         pot: 0,
         humanId: HUMAN_ID,
         names: { [HUMAN_ID]: get().onlineDisplayName.trim() || "Player" },
@@ -638,12 +698,17 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     submitHuman: (move) => {
-      const { game, humanId, playStyle, playMode } = get();
+      const { game, humanId, playStyle, playMode, submittingMove } = get();
       if (!game || game.phase !== "playing") return;
 
       if (playMode === "online") {
+        if (submittingMove) return;
         triggerMoveFeedback(move);
-        set({ submittingMove: true });
+        set({
+          submittingMove: true,
+          pendingSubmitBaseVersion: get().onlineVersion,
+          pendingMutationSettled: false,
+        });
         submitOnlineMove(move);
         return;
       }

@@ -28,8 +28,11 @@ import {
   botPlayerIds,
   DEFAULT_TURN_SECONDS,
   LOBBY_STALE_MS,
+  MAX_RECENT_CLIENT_MOVE_IDS,
+  NETWORK_GRACE_MS,
   PLAYING_STALE_MS,
-  timeoutMoveFor,
+  RECONNECT_SILENCE_MS,
+  RECONNECT_WINDOW_MS,
 } from "./lib/onlineGame";
 import {
   BOT_NAMES,
@@ -110,15 +113,28 @@ function isCardMove(move: Move): boolean {
   return move.type === "ATTACK" || move.type === "DEFEND" || move.type === "TRANSFER";
 }
 
+type AiDifficultyLevel = "easy" | "medium" | "hard";
+
+function botDifficultyForPlayer(
+  members: RoomDoc["members"],
+  playerId: string,
+  roomDifficulty: AiDifficultyLevel,
+): AiDifficultyLevel {
+  const member = members.find((m) => m.playerId === playerId && m.isBot);
+  return member?.difficulty ?? roomDifficulty;
+}
+
 function findBotMove(
   state: GameState,
   bots: Set<string>,
-  difficulty: "easy" | "medium" | "hard",
-): Move | null {
+  members: RoomDoc["members"],
+  roomDifficulty: AiDifficultyLevel,
+): { move: Move; difficulty: AiDifficultyLevel } | null {
   for (const p of state.players) {
     if (!bots.has(p)) continue;
+    const difficulty = botDifficultyForPlayer(members, p, roomDifficulty);
     const move = pickMove(state, p, difficulty);
-    if (move) return move;
+    if (move) return { move, difficulty };
   }
   return null;
 }
@@ -161,10 +177,18 @@ async function applyGameUpdate(
     clearReturnWindow?: boolean;
     /** After a null timeout, only forced seats may own the clock. */
     clockForcedOnly?: boolean;
+    /** Clear idle-timeout strikes for this player after a real move. */
+    clearIdleStrikeFor?: PlayerId;
+    /** Replace members (e.g. stamp lastSeenAt on submitter). */
+    members?: RoomDoc["members"];
+    /** Persist idempotency log after a successful human move. */
+    recentClientMoveIds?: RoomDoc["recentClientMoveIds"];
+    /** Clear reconnect hold when the match ends or a real move lands. */
+    clearReconnectHold?: boolean;
   },
 ) {
   const status = next.phase === "gameOver" ? "finished" : "playing";
-  const bots = botPlayerIds(room.members);
+  const bots = botPlayerIds(options?.members ?? room.members);
   const turnTimerSeconds = room.turnTimerSeconds ?? DEFAULT_TURN_SECONDS;
   const now = Date.now();
 
@@ -202,6 +226,21 @@ async function applyGameUpdate(
         ? { returnWindow: options.returnWindow }
         : { returnWindow: undefined };
 
+  let idleTimeoutStrikes: Record<string, number> | undefined =
+    room.idleTimeoutStrikes
+      ? { ...room.idleTimeoutStrikes }
+      : undefined;
+  if (status === "finished") {
+    idleTimeoutStrikes = undefined;
+  } else if (options?.clearIdleStrikeFor) {
+    if (idleTimeoutStrikes) {
+      delete idleTimeoutStrikes[options.clearIdleStrikeFor];
+      if (Object.keys(idleTimeoutStrikes).length === 0) {
+        idleTimeoutStrikes = undefined;
+      }
+    }
+  }
+
   await ctx.db.patch(roomId, {
     gameState: next,
     status,
@@ -211,10 +250,18 @@ async function applyGameUpdate(
     ...returnWindowPatch,
     pendingReveal: undefined,
     economy,
+    idleTimeoutStrikes,
     version: room.version + 1,
+    ...(options?.members ? { members: options.members } : {}),
+    ...(options?.recentClientMoveIds !== undefined
+      ? { recentClientMoveIds: options.recentClientMoveIds }
+      : {}),
+    ...(status === "finished" || options?.clearReconnectHold
+      ? { reconnectHoldDeadline: undefined }
+      : {}),
   });
 
-  if (next.phase === "playing") {
+  if (next.phase === "playing" && bots.size > 0) {
     await ctx.scheduler.runAfter(0, internal.rooms.processBotTurns, { roomId });
   }
 
@@ -267,6 +314,9 @@ export async function createRoomForHost(
     buyIn?: number;
   },
 ): Promise<{ roomId: Id<"rooms">; code: string }> {
+  // Invites / alternate create paths also clear ghost playing seats.
+  await releasePlayingMembership(ctx, args.hostUserId);
+
   const numPlayers = Math.min(6, Math.max(2, args.config.numPlayers));
   const config = { ...args.config, numPlayers };
   const now = Date.now();
@@ -305,6 +355,49 @@ export async function createRoomForHost(
   return { roomId, code };
 }
 
+/**
+ * One account = one live match. When the user joins/creates a new lobby after
+ * reinstall, crash, or force-quit, auto-forfeit any leftover playing seats so
+ * they are not stuck behind a cryptic "already in a match" error.
+ */
+async function releasePlayingMembership(
+  ctx: MutationCtx,
+  userId: string,
+  exceptRoomId?: Id<"rooms">,
+) {
+  const playing = await ctx.db
+    .query("rooms")
+    .withIndex("by_status", (q) => q.eq("status", "playing"))
+    .collect();
+
+  for (const room of playing) {
+    if (exceptRoomId && room._id === exceptRoomId) continue;
+    if (!findMember(room, userId)) continue;
+
+    const fresh = await ctx.db.get(room._id);
+    if (!fresh || fresh.status !== "playing") continue;
+    const member = findMember(fresh, userId);
+    if (!member) continue;
+
+    if (fresh.gameState && member.playerId) {
+      try {
+        const next = forceForfeitEnd(
+          fresh.gameState as GameState,
+          member.playerId,
+        );
+        await applyGameUpdate(ctx, fresh._id, fresh, next);
+      } catch {
+        // Still drop the seat below even if forfeit-end fails.
+      }
+    }
+
+    const after = await ctx.db.get(fresh._id);
+    if (after && findMember(after, userId)) {
+      await removeMemberFromRoom(ctx, after._id, after, userId);
+    }
+  }
+}
+
 export const createRoom = mutation({
   args: {
     config: roomConfigValidator,
@@ -339,6 +432,15 @@ export const joinRoom = mutation({
     if (!room || (room.status !== "lobby" && room.status !== "finished")) {
       throw new Error("Room not found or game already started");
     }
+
+    // Already seated in this room — return existing seat (no double-seat).
+    const existing = findMember(room, userId);
+    if (existing && !existing.isBot) {
+      return { roomId: room._id, seatIndex: existing.seatIndex };
+    }
+
+    // Clear ghost seats from abandoned matches (reinstall / crash / force-quit).
+    await releasePlayingMembership(ctx, userId, room._id);
 
     const seat = nextOpenSeat(room.members, room.config.numPlayers);
     if (seat === null) {
@@ -402,11 +504,18 @@ export const forfeit = mutation({
     }
 
     if (room.status === "playing") {
-      if (!room.gameState || !member.playerId) return;
-
-      const next = forceForfeitEnd(room.gameState as GameState, member.playerId);
-      await applyGameUpdate(ctx, args.roomId, room, next);
-      await removeMemberFromRoom(ctx, args.roomId, room, userId);
+      // End the match when we can; always drop the seat so Resume cannot stick.
+      if (room.gameState && member.playerId) {
+        const next = forceForfeitEnd(
+          room.gameState as GameState,
+          member.playerId,
+        );
+        await applyGameUpdate(ctx, args.roomId, room, next);
+      }
+      const after = await ctx.db.get(args.roomId);
+      if (after && findMember(after, userId)) {
+        await removeMemberFromRoom(ctx, after._id, after, userId);
+      }
     }
   },
 });
@@ -414,6 +523,8 @@ export const forfeit = mutation({
 export const touchRoom = mutation({
   args: {
     roomId: v.id("rooms"),
+    /** false = app backgrounded / hidden → stamp away for reconnect UI. */
+    active: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
@@ -421,7 +532,16 @@ export const touchRoom = mutation({
     if (!room) return;
     if (!findMember(room, userId)) return;
 
-    await ctx.db.patch(args.roomId, { lastTouchedAt: Date.now() });
+    const now = Date.now();
+    const lastSeenAt =
+      args.active === false ? now - RECONNECT_SILENCE_MS - 1 : now;
+    const members = room.members.map((m) =>
+      m.userId === userId && !m.isBot ? { ...m, lastSeenAt } : m,
+    );
+    await ctx.db.patch(args.roomId, {
+      lastTouchedAt: args.active === false ? room.lastTouchedAt ?? now : now,
+      members,
+    });
   },
 });
 
@@ -454,6 +574,19 @@ export const updateDisplayName = mutation({
   },
 });
 
+/** Pack tokens (`z.cool`, `d.love`, `n.1f602`) or short Unicode emoji for classic. */
+const PACK_REACTION_TOKEN = /^[zdn]\.[a-z0-9_]{1,32}$/;
+const MAX_REACTION_TOKEN_LENGTH = 48;
+
+function sanitizeReactionToken(raw: string): string | null {
+  const trimmed = raw.trim().slice(0, MAX_REACTION_TOKEN_LENGTH);
+  if (!trimmed) return null;
+  if (PACK_REACTION_TOKEN.test(trimmed)) return trimmed;
+  // Classic Unicode / short emoji grapheme cluster (keep multi-codepoint faces).
+  if ([...trimmed].length <= 8) return trimmed;
+  return null;
+}
+
 export const sendReaction = mutation({
   args: {
     roomId: v.id("rooms"),
@@ -468,10 +601,13 @@ export const sendReaction = mutation({
     if (!member?.playerId) return;
     if (room.status !== "playing" && room.status !== "finished") return;
 
+    const token = sanitizeReactionToken(args.emoji);
+    if (!token) return;
+
     const now = Date.now();
     await ctx.db.patch(args.roomId, {
       recentReaction: {
-        emoji: args.emoji.slice(0, 8),
+        emoji: token,
         fromPlayerId: member.playerId,
         at: now,
       },
@@ -481,9 +617,16 @@ export const sendReaction = mutation({
   },
 });
 
+const difficultyValidator = v.union(
+  v.literal("easy"),
+  v.literal("medium"),
+  v.literal("hard"),
+);
+
 function addBotAtSeat(
-  members: { userId: string; displayName: string; seatIndex: number; isBot: boolean }[],
+  members: RoomDoc["members"],
   seat: number,
+  difficulty?: AiDifficultyLevel,
 ): void {
   const botIndex = members.filter((m) => m.isBot).length;
   members.push({
@@ -491,6 +634,7 @@ function addBotAtSeat(
     displayName: BOT_NAMES[botIndex] ?? `Bot ${botIndex + 1}`,
     seatIndex: seat,
     isBot: true,
+    difficulty: difficulty ?? "medium",
   });
 }
 
@@ -499,6 +643,7 @@ export const setLobbyBot = mutation({
     roomId: v.id("rooms"),
     seatIndex: v.number(),
     enabled: v.boolean(),
+    difficulty: v.optional(difficultyValidator),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
@@ -520,7 +665,11 @@ export const setLobbyBot = mutation({
       if (atSeat) {
         throw new Error("Seat is not empty");
       }
-      addBotAtSeat(members, args.seatIndex);
+      addBotAtSeat(
+        members,
+        args.seatIndex,
+        args.difficulty ?? room.config.difficulty,
+      );
     } else {
       if (!atSeat?.isBot) {
         throw new Error("No AI at this seat");
@@ -529,6 +678,41 @@ export const setLobbyBot = mutation({
         (m) => !(m.seatIndex === args.seatIndex && m.isBot),
       );
     }
+
+    await ctx.db.patch(args.roomId, {
+      members,
+      ...touchFields(),
+      version: room.version + 1,
+    });
+  },
+});
+
+export const setLobbyBotDifficulty = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    seatIndex: v.number(),
+    difficulty: difficultyValidator,
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const room = await ctx.db.get(args.roomId);
+    if (!room || room.status !== "lobby") {
+      throw new Error("Cannot change AI difficulty outside lobby");
+    }
+    if (!isHost(room, userId)) {
+      throw new Error("Only the host can change AI difficulty");
+    }
+
+    const atSeat = memberAtSeat(room.members, args.seatIndex);
+    if (!atSeat?.isBot) {
+      throw new Error("No AI at this seat");
+    }
+
+    const members = room.members.map((m) =>
+      m.seatIndex === args.seatIndex && m.isBot
+        ? { ...m, difficulty: args.difficulty }
+        : m,
+    );
 
     await ctx.db.patch(args.roomId, {
       members,
@@ -627,9 +811,9 @@ async function beginNextRound(
 
   if (autoFill) {
     members = lobbyHumans(members);
-    for (let seat = 0; seat < room.config.numPlayers; seat++) {
+    for (let seat = 0; seat < config.numPlayers; seat++) {
       if (!memberAtSeat(members, seat)) {
-        addBotAtSeat(members, seat);
+        addBotAtSeat(members, seat, config.difficulty);
       }
     }
   }
@@ -657,6 +841,7 @@ async function beginNextRound(
     turnTimerSeconds: room.turnTimerSeconds ?? DEFAULT_TURN_SECONDS,
     turnDeadlineAt: undefined,
     turnClockPlayerId: undefined,
+    idleTimeoutStrikes: undefined,
     returnWindow: undefined,
     pendingReveal: undefined,
     recentReaction: undefined,
@@ -702,12 +887,26 @@ export const startGame = mutation({
     ) {
       throw new Error("Waiting for another player");
     }
-    if (humansInRoom >= 2 && args.soloWithAi !== true && !allHumansReady(room.members)) {
+
+    // Host tapping Start implies the host is ready — only guests must have
+    // tapped I'm Ready. Persist host ready so lobby state stays consistent.
+    let members = room.members.map((m) =>
+      m.userId === userId ? { ...m, isReady: true } : m,
+    );
+    const guests = members.filter((m) => !m.isBot && m.userId !== userId);
+    if (
+      humansInRoom >= 2 &&
+      args.soloWithAi !== true &&
+      guests.some((m) => m.isReady !== true)
+    ) {
       throw new Error("Waiting for all players to be ready");
     }
 
+    if (members.some((m, i) => m.isReady !== room.members[i]?.isReady)) {
+      await ctx.db.patch(args.roomId, { members });
+    }
+
     const autoFill = args.autoFillEmptySeats !== false;
-    let members = [...room.members];
     let config = { ...room.config };
 
     if (autoFill || args.soloWithAi === true) {
@@ -774,6 +973,7 @@ export const returnToLobby = mutation({
       gameState: undefined,
       turnDeadlineAt: undefined,
       turnClockPlayerId: undefined,
+      idleTimeoutStrikes: undefined,
       returnWindow: undefined,
       pendingReveal: undefined,
       recentReaction: undefined,
@@ -817,6 +1017,8 @@ export const submitMove = mutation({
   args: {
     roomId: v.id("rooms"),
     move: moveValidator,
+    /** Client-generated id so retries after flaky networks do not double-apply. */
+    clientMoveId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
@@ -828,6 +1030,15 @@ export const submitMove = mutation({
     const member = findMember(room, userId);
     if (!member?.playerId) {
       throw new Error("Not a member of this room");
+    }
+
+    const clientMoveId = args.clientMoveId?.trim();
+    if (clientMoveId) {
+      const recent = room.recentClientMoveIds ?? [];
+      if (recent.some((entry) => entry.id === clientMoveId)) {
+        // Idempotent success — first attempt already applied.
+        return { deduped: true as const, version: room.version };
+      }
     }
 
     const move = args.move as Move;
@@ -842,6 +1053,20 @@ export const submitMove = mutation({
         ? cloneGameState(gameState)
         : undefined;
     const next = applyMove(gameState, move);
+
+    let recentClientMoveIds = room.recentClientMoveIds ?? [];
+    if (clientMoveId) {
+      recentClientMoveIds = [
+        ...recentClientMoveIds,
+        { id: clientMoveId, at: now },
+      ].slice(-MAX_RECENT_CLIENT_MOVE_IDS);
+    }
+
+    // Stamp presence so turn-clock grace treats an in-flight submitter as live.
+    const members = room.members.map((m) =>
+      m.userId === userId && !m.isBot ? { ...m, lastSeenAt: now } : m,
+    );
+
     await applyGameUpdate(ctx, args.roomId, room, next, {
       returnWindow: snapshot
         ? {
@@ -850,7 +1075,13 @@ export const submitMove = mutation({
             expiresAt: now + RETURN_WINDOW_MS,
           }
         : undefined,
+      clearIdleStrikeFor: member.playerId,
+      members,
+      recentClientMoveIds: clientMoveId ? recentClientMoveIds : undefined,
+      clearReconnectHold: true,
     });
+
+    return { deduped: false as const, version: room.version + 1 };
   },
 });
 
@@ -984,6 +1215,24 @@ export const getRoomView = query({
       gameState = sanitizeGameState(room.gameState as GameState, yourPlayerId);
     }
 
+    const now = Date.now();
+    const clockOwner = room.turnClockPlayerId
+      ? room.members.find(
+          (m) => !m.isBot && m.playerId === room.turnClockPlayerId,
+        )
+      : undefined;
+    const clockLastSeen =
+      clockOwner?.lastSeenAt ?? room.lastTouchedAt ?? room.lastMoveAt;
+    const clockSilence = now - clockLastSeen;
+    const turnClockConnection =
+      room.status === "playing" &&
+      room.turnClockPlayerId &&
+      clockOwner &&
+      clockSilence > RECONNECT_SILENCE_MS &&
+      clockSilence < RECONNECT_WINDOW_MS
+        ? ("reconnecting" as const)
+        : ("ok" as const);
+
     return {
       roomId: room._id,
       code: room.code,
@@ -996,14 +1245,21 @@ export const getRoomView = query({
         isBot: m.isBot,
         playerId: m.playerId,
         isReady: m.isReady,
+        difficulty: m.difficulty,
         isSelf: m.userId === userId,
+        lastSeenAt: m.lastSeenAt ?? null,
       })),
       names,
       yourPlayerId,
       gameState,
+      version: room.version,
       lastMoveAt: room.lastMoveAt,
       turnDeadlineAt: room.turnDeadlineAt ?? null,
       turnClockPlayerId: room.turnClockPlayerId ?? null,
+      turnClockConnection:
+        room.status === "playing" && room.turnClockPlayerId
+          ? turnClockConnection
+          : null,
       turnTimerSeconds: room.turnTimerSeconds ?? DEFAULT_TURN_SECONDS,
       recentReaction: room.recentReaction ?? null,
       isHost: isHost(room, userId),
@@ -1013,12 +1269,12 @@ export const getRoomView = query({
       yourIsReady: member.isReady === true,
       returnExpiresAt:
         room.returnWindow?.playerId === yourPlayerId &&
-        room.returnWindow.expiresAt > Date.now()
+        room.returnWindow.expiresAt > now
           ? room.returnWindow.expiresAt
           : null,
       pendingReveal:
         room.pendingReveal?.userId === userId &&
-        room.pendingReveal.expiresAt > Date.now()
+        room.pendingReveal.expiresAt > now
           ? {
               card: room.pendingReveal.card,
               expiresAt: room.pendingReveal.expiresAt,
@@ -1083,6 +1339,7 @@ export const autoReturnToLobby = internalMutation({
       gameState: undefined,
       turnDeadlineAt: undefined,
       turnClockPlayerId: undefined,
+      idleTimeoutStrikes: undefined,
       returnWindow: undefined,
       pendingReveal: undefined,
       recentReaction: undefined,
@@ -1120,6 +1377,13 @@ export const cleanupStaleRooms = internalMutation({
           ? touched < lobbyCutoff
           : touched < playingCutoff;
       if (stale) {
+        const invites = await ctx.db
+          .query("gameInvites")
+          .withIndex("by_room", (q) => q.eq("roomId", room._id))
+          .collect();
+        for (const invite of invites) {
+          await ctx.db.delete(invite._id);
+        }
         await ctx.db.delete(room._id);
         deleted++;
       }
@@ -1139,49 +1403,87 @@ export const processHumanTimeout = internalMutation({
     if (!room || room.status !== "playing" || !room.gameState) return;
     if (room.turnDeadlineAt !== args.expectedDeadline) return;
 
+    const now = Date.now();
+
+    // Network grace: in-flight moves / high RTT get a short buffer before a strike.
+    if (now < args.expectedDeadline + NETWORK_GRACE_MS) {
+      await ctx.scheduler.runAfter(
+        args.expectedDeadline + NETWORK_GRACE_MS - now,
+        internal.rooms.processHumanTimeout,
+        { roomId: args.roomId, expectedDeadline: args.expectedDeadline },
+      );
+      return;
+    }
+
     const state = room.gameState as GameState;
     const bots = botPlayerIds(room.members);
     const human = activeHumanPlayer(state, bots);
     if (!human) return;
 
-    const move = timeoutMoveFor(state, human);
-    if (!move) {
-      // Timed-out seat had no auto-resolvable move (typically optional throw-in).
-      // Re-drive the clock for forced seats only so we never leave a dead deadline.
-      await applyGameUpdate(ctx, args.roomId, room, state, {
-        clockForcedOnly: true,
-        clearReturnWindow: false,
-      });
-      return;
-    }
-
-    let next: GameState;
-    try {
-      next = applyMove(state, move);
-    } catch {
-      // Illegal under current state — still re-drive so the table cannot stall.
-      await applyGameUpdate(ctx, args.roomId, room, state, {
-        clockForcedOnly: true,
-        clearReturnWindow: false,
-      });
-      return;
-    }
-
-    // The active human let their turn lapse — likely away. Nudge them to rejoin,
-    // rate-limited per member so a slow-but-present player isn't spammed.
-    const now = Date.now();
     const absentMember = room.members.find(
       (m) => !m.isBot && m.playerId === human,
     );
+    const lastSeen =
+      absentMember?.lastSeenAt ?? room.lastTouchedAt ?? room.lastMoveAt;
+    const silence = now - lastSeen;
+    const recentlyInMatch = silence < RECONNECT_WINDOW_MS;
+    const appearsReconnecting =
+      recentlyInMatch && silence > RECONNECT_SILENCE_MS;
+
+    // One free clock cycle while the seat looks like a reconnect (flaky WiFi).
+    if (
+      appearsReconnecting &&
+      room.reconnectHoldDeadline !== args.expectedDeadline
+    ) {
+      const turnTimerSeconds = room.turnTimerSeconds ?? DEFAULT_TURN_SECONDS;
+      const clock = await scheduleHumanTurnClock(
+        ctx,
+        args.roomId,
+        turnTimerSeconds,
+        human,
+        now,
+      );
+      await ctx.db.patch(args.roomId, {
+        turnDeadlineAt: clock.turnDeadlineAt,
+        turnClockPlayerId: clock.turnClockPlayerId,
+        reconnectHoldDeadline: args.expectedDeadline,
+        ...touchFields(now),
+        version: room.version + 1,
+      });
+      return;
+    }
+
+    // No auto-play: count consecutive idle misses; 2nd miss ends the match.
+    const strikes: Record<string, number> = {
+      ...(room.idleTimeoutStrikes ?? {}),
+    };
+    const nextStrikes = (strikes[human] ?? 0) + 1;
+    strikes[human] = nextStrikes;
+
+    if (nextStrikes >= 2) {
+      const ended = forceForfeitEnd(state, human);
+      await applyGameUpdate(ctx, args.roomId, room, ended);
+      return;
+    }
+
+    const turnTimerSeconds = room.turnTimerSeconds ?? DEFAULT_TURN_SECONDS;
+    const clock = await scheduleHumanTurnClock(
+      ctx,
+      args.roomId,
+      turnTimerSeconds,
+      human,
+      now,
+    );
+
+    // Nudge once per miss window (rate-limited) — first strike only path.
+    let members = room.members;
     if (
       absentMember &&
       now - (absentMember.lastNudgeAt ?? 0) > REJOIN_NUDGE_MS
     ) {
-      await ctx.db.patch(args.roomId, {
-        members: room.members.map((m) =>
-          m.userId === absentMember.userId ? { ...m, lastNudgeAt: now } : m,
-        ),
-      });
+      members = room.members.map((m) =>
+        m.userId === absentMember.userId ? { ...m, lastNudgeAt: now } : m,
+      );
       await ctx.scheduler.runAfter(0, internal.push.sendToUser, {
         userId: absentMember.userId as Id<"users">,
         title: "Your game is waiting",
@@ -1190,7 +1492,14 @@ export const processHumanTimeout = internalMutation({
       });
     }
 
-    await applyGameUpdate(ctx, args.roomId, room, next);
+    await ctx.db.patch(args.roomId, {
+      idleTimeoutStrikes: strikes,
+      turnDeadlineAt: clock.turnDeadlineAt,
+      turnClockPlayerId: clock.turnClockPlayerId,
+      members,
+      ...touchFields(now),
+      version: room.version + 1,
+    });
   },
 });
 
@@ -1205,13 +1514,13 @@ export const processBotTurns = internalMutation({
 
     if (shouldDeferBot(state, bots)) return;
 
-    const move = findBotMove(state, bots, room.config.difficulty);
-    if (!move) return;
+    const found = findBotMove(state, bots, room.members, room.config.difficulty);
+    if (!found) return;
 
-    const delay = aiMoveDelayMs(room.config.difficulty);
+    const delay = aiMoveDelayMs(found.difficulty);
     await ctx.scheduler.runAfter(delay, internal.rooms.applyBotMove, {
       roomId: args.roomId,
-      move,
+      move: found.move,
     });
   },
 });
@@ -1230,6 +1539,13 @@ export const applyBotMove = internalMutation({
     try {
       next = applyMove(gameState, args.move as Move);
     } catch {
+      // Stale delayed bot move — re-drive so the table cannot stall.
+      const bots = botPlayerIds(room.members);
+      if (bots.size > 0) {
+        await ctx.scheduler.runAfter(0, internal.rooms.processBotTurns, {
+          roomId: args.roomId,
+        });
+      }
       return;
     }
 
@@ -1255,14 +1571,18 @@ export type RoomView = {
     isBot: boolean;
     playerId?: string;
     isReady?: boolean;
+    difficulty?: "easy" | "medium" | "hard";
     isSelf: boolean;
+    lastSeenAt: number | null;
   }[];
   names: Record<string, string>;
   yourPlayerId: string | null;
   gameState: GameState | null;
+  version: number;
   lastMoveAt: number;
   turnDeadlineAt: number | null;
   turnClockPlayerId: string | null;
+  turnClockConnection: "ok" | "reconnecting" | null;
   turnTimerSeconds: number;
   recentReaction: { emoji: string; fromPlayerId: string; at: number } | null;
   isHost: boolean;
