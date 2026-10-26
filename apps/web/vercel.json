@@ -28,6 +28,15 @@
           "value": "public, max-age=3600"
         }
       ]
+    },
+    {
+      "source": "/og/invite.png",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
     }
   ],
   "rewrites": [
@@ -37,7 +46,7 @@
     },
     {
       "source": "/join/:code",
-      "destination": "/index.html"
+      "destination": "/api/join?code=:code"
     }
   ]
 }
