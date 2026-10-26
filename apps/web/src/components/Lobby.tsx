@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "../../../mobile/convex/_generated/api";
 import type { Id } from "../../../mobile/convex/_generated/dataModel";
@@ -44,6 +44,22 @@ export const Lobby: React.FC = () => {
   }, [members, maxSeats]);
 
   const hasEmptySeat = seats.some((s) => !s.member);
+  const [copied, setCopied] = useState(false);
+
+  const inviteUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/join/${encodeURIComponent(code)}`
+      : `https://durak.cards/join/${code}`;
+
+  const copyInvite = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const canHostStart =
     onlineIsHost &&
@@ -113,6 +129,21 @@ export const Lobby: React.FC = () => {
           <span className="code-title">ROOM CODE</span>
           <span className="code-value">{code}</span>
         </div>
+        <div className="lobby-invite-row">
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void copyInvite()}>
+            {copied ? "Link copied" : "Copy invite link"}
+          </button>
+          <span className="lobby-invite-url">{inviteUrl}</span>
+        </div>
+        {roomView?.config && (
+          <div className="home-config-pills" style={{ justifyContent: "center", marginBottom: 12 }}>
+            <span>{roomView.config.numPlayers}p</span>
+            <span>{roomView.config.variant}</span>
+            <span>{roomView.config.throwInScope}</span>
+            <span>{roomView.config.playStyle}</span>
+            <span>{Math.round(roomView.turnTimerSeconds ?? 12)}s</span>
+          </div>
+        )}
 
         <div className="lobby-members">
           <div className="form-label" style={{ marginBottom: "6px" }}>

@@ -86,15 +86,20 @@ export const Result: React.FC = () => {
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px", color: "var(--text-muted)" }}>
-            <span>Earnings:</span>
+            <span>Credits delta:</span>
             <span>
               {isWinner
                 ? `+${pot} Credits`
                 : isDraw
-                  ? `+${pot / game.players.length} Credits`
-                  : "+0 Credits"}
+                  ? `+${Math.floor(pot / game.players.length)} Credits`
+                  : "—"}
             </span>
           </div>
+          {isLoser && (
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
+              You are the Durak this round.
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px" }}>
@@ -102,6 +107,11 @@ export const Result: React.FC = () => {
             <button className="btn btn-primary btn-md" onClick={() => startGame()}>
               Play Again
             </button>
+          )}
+          {playMode === "online" && (
+            <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)", textAlign: "center" }}>
+              Rematch from the lobby if the host starts another round.
+            </p>
           )}
           <button className="btn btn-secondary btn-md" onClick={goHome}>
             Main Menu

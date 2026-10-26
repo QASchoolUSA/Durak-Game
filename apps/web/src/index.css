@@ -273,12 +273,15 @@ body, html {
   animation: reactionRise 1.9s ease-out forwards;
 }
 
+/* Self: centered above action dock. Opponent: over opponent seats. */
 .reaction-burst.you {
-  bottom: 22%;
+  left: 50%;
+  bottom: 168px;
 }
 
 .reaction-burst.them {
-  top: 18%;
+  left: 50%;
+  top: 72px;
 }
 
 @keyframes reactionRise {
@@ -286,6 +289,235 @@ body, html {
   15% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.1); }
   70% { opacity: 1; }
   100% { opacity: 0; transform: translateX(-50%) translateY(-90px) scale(1); }
+}
+
+/* Turn status + pointer drag chrome */
+.game-top-chrome {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+  min-height: 36px;
+}
+
+.turn-status-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(6, 26, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text-muted);
+  max-width: min(520px, 92vw);
+}
+
+.turn-status-banner.my-turn,
+.turn-status-banner.tone-you {
+  color: var(--text-light);
+  border-color: color-mix(in srgb, var(--gold) 55%, transparent);
+}
+
+.turn-status-banner.tone-confirming {
+  color: #ffd8a8;
+  border-color: rgba(255, 160, 60, 0.65);
+}
+
+.turn-status-banner.tone-reconnecting {
+  color: #ffb4b4;
+  border-color: rgba(255, 120, 120, 0.5);
+}
+
+.turn-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.turn-status-banner.my-turn .turn-status-dot,
+.turn-status-banner.tone-you .turn-status-dot {
+  background: var(--gold-bright);
+}
+
+.turn-status-banner.tone-confirming .turn-status-dot {
+  background: orange;
+}
+
+.turn-status-text {
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-drag-ghost {
+  position: fixed;
+  z-index: 2000;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.55));
+  transform: scale(1.06) rotate(-2deg);
+}
+
+.card.dragging {
+  cursor: grabbing !important;
+}
+
+.card-battlefield.drag-active {
+  border-color: rgba(231, 192, 103, 0.35);
+}
+
+.battle-pair.click-target {
+  cursor: pointer;
+  outline: 2px dashed var(--gold-bright);
+  border-radius: 8px;
+}
+
+.battlefield-hint {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.opponent-fan {
+  display: flex;
+  align-items: flex-end;
+  height: 56px;
+  margin-right: 4px;
+}
+
+.opponent-fan-card {
+  width: 36px;
+  margin-left: -18px;
+  transform-origin: bottom center;
+}
+
+.opponent-fan-card:first-child {
+  margin-left: 0;
+}
+
+.action-dock {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.player-meta-row {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.resume-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(520px, 92vw);
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1.5px solid color-mix(in srgb, var(--gold) 55%, transparent);
+  background: rgba(6, 26, 18, 0.85);
+  color: var(--text-light);
+  cursor: pointer;
+  text-align: left;
+}
+
+.resume-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.resume-banner-text strong {
+  color: var(--gold-bright);
+  font-size: 13px;
+}
+
+.resume-banner-text span {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resume-banner-cta {
+  background: var(--gold);
+  color: #2a2106;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 999px;
+}
+
+.home-top-strip {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.home-top-strip > * {
+  pointer-events: auto;
+}
+
+.home-wallet-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--gold-bright);
+  font-weight: 700;
+}
+
+.home-config-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.home-config-pills span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+
+.lobby-invite-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.lobby-invite-url {
+  font-size: 11px;
+  color: var(--text-faint);
+  word-break: break-all;
+  text-align: center;
+  max-width: 100%;
 }
 
 /* Button UI */
