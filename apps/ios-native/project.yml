@@ -6,6 +6,9 @@ options:
 packages:
   DurakGameCore:
     path: ./DurakGameCore
+  ConvexMobile:
+    url: https://github.com/get-convex/convex-swift
+    from: "0.8.1"
 targets:
   Durak:
     type: application
@@ -13,8 +16,26 @@ targets:
     deploymentTarget: "18.0"
     sources:
       - path: Durak
+        excludes:
+          - Info.plist
+          - Durak.entitlements
+    entitlements:
+      path: Durak/Durak.entitlements
+      properties:
+        com.apple.developer.associated-domains:
+          - applinks:durak.cards
+          - applinks:www.durak.cards
+    info:
+      path: Durak/Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: com.qaschoolusa.durak
+            CFBundleURLSchemes:
+              - duraknative
     dependencies:
       - package: DurakGameCore
+      - package: ConvexMobile
+        product: ConvexMobile
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.qaschoolusa.durak
@@ -22,10 +43,16 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         DEVELOPMENT_TEAM: 6MM44B6ZYT
         CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: Durak/Durak.entitlements
         INFOPLIST_KEY_CFBundleDisplayName: "Durak"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
-        INFOPLIST_KEY_UIRequiresFullScreen: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: YES
+        SUPPORTS_MACCATALYST: NO
+        INFOPLIST_KEY_UIRequiresFullScreen: NO
+        INFOPLIST_KEY_UIStatusBarHidden: YES
+        INFOPLIST_KEY_UIViewControllerBasedStatusBarAppearance: YES
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         SWIFT_VERSION: "5.10"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

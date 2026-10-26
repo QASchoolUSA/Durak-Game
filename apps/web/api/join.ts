@@ -25,7 +25,8 @@ function escapeHtml(value: string): string {
 function renderHtml(code: string): string {
   const safe = escapeHtml(code);
   const joinUrl = `${SITE}/join/${encodeURIComponent(code)}`;
-  const appLink = `durak://join/${encodeURIComponent(code)}`;
+  // Swift native scheme only — Expo owns `durak://` and must not receive invites.
+  const appLink = `duraknative://join/${encodeURIComponent(code)}`;
   const title = "You're invited to Durak";
   const description = code
     ? `Match code ${code} · Open in the app to join the table`
