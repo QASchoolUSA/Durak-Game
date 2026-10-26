@@ -8,7 +8,6 @@ import {
   REVEAL_GOLD_COST,
   STARTING_CREDITS,
   STARTING_GOLD,
-  WIN_GOLD_REWARD,
 } from "./lib/goldEconomy";
 import { requireUserId } from "./lib/requireAuth";
 
