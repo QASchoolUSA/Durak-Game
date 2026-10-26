@@ -445,4 +445,11 @@ struct MatchEconomyTests {
         #expect(matchPot(numPlayers: 4) == 400)
         #expect(matchPot(numPlayers: 6, buyIn: 50) == 300)
     }
+
+    @Test("solo end credit delta")
+    func soloEndDelta() {
+        #expect(soloMatchEndCreditDelta(isDraw: true, humanIsWinner: false, numPlayers: 4) == 100)
+        #expect(soloMatchEndCreditDelta(isDraw: false, humanIsWinner: true, numPlayers: 3) == 300)
+        #expect(soloMatchEndCreditDelta(isDraw: false, humanIsWinner: false, numPlayers: 3) == 0)
+    }
 }

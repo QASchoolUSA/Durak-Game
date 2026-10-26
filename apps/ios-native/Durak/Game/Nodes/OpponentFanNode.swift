@@ -33,68 +33,73 @@ final class OpponentFanNode: SKNode {
     }
 
     private func setupVisuals(name: String) {
-        // Track ring guide (faint background)
-        trackRing.strokeColor = UIColor(appearance.ui.accent).withAlphaComponent(0.18)
         trackRing.lineWidth = 2.0
         trackRing.fillColor = .clear
         trackRing.isHidden = true
         container.addChild(trackRing)
 
-        // Active turn countdown ring
-        activeRing.strokeColor = UIColor(appearance.ui.accent)
         activeRing.lineWidth = 2.8
         activeRing.lineCap = .round
         activeRing.fillColor = .clear
         activeRing.isHidden = true
         container.addChild(activeRing)
 
-        // Avatar circle
-        avatarCircle.fillColor = UIColor(appearance.ui.surfaceGlass)
-        avatarCircle.strokeColor = UIColor(appearance.ui.accent).withAlphaComponent(0.5)
         avatarCircle.lineWidth = 1.5
         container.addChild(avatarCircle)
 
-        // Initial in avatar
         let initialLabel = SKLabelNode(text: String(name.prefix(1).uppercased()))
+        initialLabel.name = "initialLabel"
         initialLabel.fontName = "HelveticaNeue-Bold"
         initialLabel.fontSize = 16
-        initialLabel.fontColor = UIColor(DesignTokens.Colors.textLight)
         initialLabel.verticalAlignmentMode = .center
         initialLabel.horizontalAlignmentMode = .center
         avatarCircle.addChild(initialLabel)
 
-        // Name label — comfortably spaced below avatar ring
         nameLabel.text = name
         nameLabel.fontName = "HelveticaNeue-Medium"
         nameLabel.fontSize = 11
-        nameLabel.fontColor = UIColor(DesignTokens.Colors.textLight)
         nameLabel.horizontalAlignmentMode = .center
         nameLabel.verticalAlignmentMode = .top
         nameLabel.position = CGPoint(x: 0, y: -34)
         container.addChild(nameLabel)
 
-        // Role label
         roleLabel.fontName = "HelveticaNeue-Bold"
         roleLabel.fontSize = 9
-        roleLabel.fontColor = UIColor(appearance.ui.accent)
         roleLabel.horizontalAlignmentMode = .center
         roleLabel.verticalAlignmentMode = .top
         roleLabel.position = CGPoint(x: 0, y: -48)
         container.addChild(roleLabel)
 
-        // Card count badge
-        cardCountBadge.fillColor = UIColor(appearance.ui.surfaceCard)
-        cardCountBadge.strokeColor = UIColor(appearance.ui.accent)
         cardCountBadge.lineWidth = 1
         cardCountBadge.position = CGPoint(x: 18, y: 16)
         container.addChild(cardCountBadge)
 
         cardCountLabel.fontName = "HelveticaNeue-Bold"
         cardCountLabel.fontSize = 10
-        cardCountLabel.fontColor = UIColor(DesignTokens.Colors.textLight)
         cardCountLabel.horizontalAlignmentMode = .center
         cardCountLabel.verticalAlignmentMode = .center
         cardCountBadge.addChild(cardCountLabel)
+
+        applyThemeColors()
+    }
+
+    /// Reapplies avatar / ring / badge / role colors from the current appearance (mid-match theme switch).
+    private func applyThemeColors() {
+        let accent = UIColor(appearance.ui.accent)
+        trackRing.strokeColor = accent.withAlphaComponent(0.18)
+        activeRing.strokeColor = accent
+        avatarCircle.fillColor = UIColor(appearance.ui.surfaceGlass)
+        avatarCircle.strokeColor = accent.withAlphaComponent(0.5)
+        roleLabel.fontColor = accent
+        cardCountBadge.fillColor = UIColor(appearance.ui.surfaceCard)
+        cardCountBadge.strokeColor = accent
+
+        let ink = UIColor(DesignTokens.Colors.textLight)
+        nameLabel.fontColor = ink
+        cardCountLabel.fontColor = ink
+        if let initial = avatarCircle.childNode(withName: "initialLabel") as? SKLabelNode {
+            initial.fontColor = ink
+        }
     }
 
     func update(
@@ -107,13 +112,19 @@ final class OpponentFanNode: SKNode {
         turnTimerSeconds: TimeInterval = 12
     ) {
         let turnChanged = self.isCurrentTurn != isCurrentTurn
+        let themeChanged = self.appearance.id != appearance.id
         self.cardCount = cardCount
         self.isCurrentTurn = isCurrentTurn && !finished
-        self.role = finished ? "OUT" : role
+        let outLabel = String(localized: "OUT")
+        self.role = finished ? outLabel : role
         self.appearance = appearance
 
-        cardCountLabel.text = finished ? "OUT" : "🂠 \(cardCount)"
-        roleLabel.text = (finished ? "OUT" : role)?.uppercased() ?? ""
+        if themeChanged {
+            applyThemeColors()
+        }
+
+        cardCountLabel.text = finished ? outLabel : "🂠 \(cardCount)"
+        roleLabel.text = (finished ? outLabel : role)?.uppercased() ?? ""
         roleLabel.isHidden = self.role == nil
 
         container.alpha = finished ? 0.45 : 1.0
@@ -147,17 +158,23 @@ final class OpponentFanNode: SKNode {
         let startProgress = min(1.0, duration / total)
         updateRingPath(progress: startProgress)
 
-        let countdownAction = SKAction.customAction(withDuration: duration) { [weak self] _, elapsedTime in
-            guard let self else { return }
-            let progress = max(0.0, startProgress * (1.0 - (Double(elapsedTime) / duration)))
-            self.updateRingPath(progress: progress)
+        // ~15 Hz path updates instead of every frame (avoids CGPath tessellation spam).
+        let tick: TimeInterval = 1.0 / 15.0
+        let ticks = max(1, Int(ceil(duration / tick)))
+        var actions: [SKAction] = []
+        for i in 0..<ticks {
+            let t = min(1.0, Double(i) * tick / duration)
+            let progress = max(0.0, startProgress * (1.0 - t))
+            actions.append(SKAction.run { [weak self] in
+                self?.updateRingPath(progress: progress)
+            })
+            actions.append(SKAction.wait(forDuration: tick))
         }
-
-        let completeAction = SKAction.run { [weak self] in
+        actions.append(SKAction.run { [weak self] in
             self?.stopTurnTimer()
-        }
+        })
 
-        activeRing.run(SKAction.sequence([countdownAction, completeAction]), withKey: "turnTimer")
+        activeRing.run(SKAction.sequence(actions), withKey: "turnTimer")
     }
 
     private func stopTurnTimer() {

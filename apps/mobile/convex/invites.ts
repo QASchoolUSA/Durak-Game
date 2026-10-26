@@ -159,9 +159,12 @@ export const expireStale = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
-    const rows = await ctx.db.query("gameInvites").collect();
-    for (const invite of rows) {
-      if (invite.status === "pending" && invite.expiresAt < now) {
+    const pending = await ctx.db
+      .query("gameInvites")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .collect();
+    for (const invite of pending) {
+      if (invite.expiresAt < now) {
         await ctx.db.patch(invite._id, { status: "expired" });
       }
     }

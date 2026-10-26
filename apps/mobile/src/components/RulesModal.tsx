@@ -38,6 +38,7 @@ const SECTION_KEYS = [
   { title: "rules.transferTitle", body: "rules.transferBody" },
   { title: "rules.endRoundTitle", body: "rules.endRoundBody" },
   { title: "rules.winningTitle", body: "rules.winningBody" },
+  { title: "rules.houseTitle", body: "rules.houseBody" },
   { title: "rules.abilitiesTitle", body: "rules.abilitiesBody" },
 ] as const;
 

@@ -312,6 +312,95 @@ describe("round resolution", () => {
     expect(s.attackerId).toBe("C");
     expect(s.defenderId).toBe("A");
   });
+
+  it("keeps the 5-card attack cap after a take while discard is still empty", () => {
+    let s = baseState({
+      maxAttacks: 5,
+      discard: [],
+      hands: {
+        A: [makeCard(9, "hearts"), makeCard(6, "diamonds")],
+        B: [makeCard(6, "clubs"), makeCard(7, "clubs")],
+      },
+      deck: [
+        makeCard(6, "spades"),
+        makeCard(7, "spades"),
+        makeCard(8, "spades"),
+        makeCard(9, "spades"),
+        makeCard(10, "spades"),
+        makeCard(11, "spades"),
+      ],
+    });
+    s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "hearts") });
+    s = applyMove(s, { type: "TAKE", player: "B" });
+    s = applyMove(s, { type: "PASS", player: "A" });
+    expect(s.discard).toHaveLength(0);
+    expect(s.maxAttacks).toBe(5);
+  });
+
+  it("raises the attack cap to 6 only after the first successful discard", () => {
+    let s = baseState({
+      maxAttacks: 5,
+      discard: [],
+      hands: {
+        A: [makeCard(9, "hearts"), makeCard(6, "diamonds")],
+        B: [makeCard(10, "hearts"), makeCard(6, "spades")],
+      },
+      deck: [makeCard(6, "clubs"), makeCard(7, "clubs"), makeCard(8, "clubs")],
+    });
+    s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "hearts") });
+    s = applyMove(s, { type: "DEFEND", player: "B", card: makeCard(10, "hearts"), target: 0 });
+    s = applyMove(s, { type: "PASS", player: "A" });
+    expect(s.discard.length).toBeGreaterThan(0);
+    expect(s.maxAttacks).toBe(6);
+  });
+
+  it("still allows a full bout-start hand of attacks after the defender has covered some", () => {
+    // Defender starts with 4; after two defenses they still face up to 4 attacks total.
+    let s = baseState({
+      maxAttacks: 6,
+      hands: {
+        A: [
+          makeCard(9, "clubs"),
+          makeCard(9, "diamonds"),
+          makeCard(9, "spades"),
+          makeCard(7, "hearts"),
+        ],
+        B: [
+          makeCard(10, "clubs"),
+          makeCard(10, "diamonds"),
+          makeCard(10, "spades"),
+          makeCard(10, "hearts"),
+        ],
+      },
+      table: [{ attack: makeCard(9, "hearts") }],
+    });
+    s = applyMove(s, {
+      type: "DEFEND",
+      player: "B",
+      card: makeCard(10, "hearts"),
+      target: 0,
+    });
+    s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "clubs") });
+    s = applyMove(s, {
+      type: "DEFEND",
+      player: "B",
+      card: makeCard(10, "clubs"),
+      target: 1,
+    });
+    // Two covered; may still add a 3rd and 4th attack (bout started with 4 in hand).
+    expect(legalAttacks(s, "A").map((c) => c.id)).toContain(cardId(9, "diamonds"));
+    s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "diamonds") });
+    s = applyMove(s, {
+      type: "DEFEND",
+      player: "B",
+      card: makeCard(10, "diamonds"),
+      target: 2,
+    });
+    expect(legalAttacks(s, "A").map((c) => c.id)).toContain(cardId(9, "spades"));
+    s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "spades") });
+    // Fifth would exceed the 4-card bout-start capacity.
+    expect(legalAttacks(s, "A")).toHaveLength(0);
+  });
 });
 
 describe("deal order helpers", () => {

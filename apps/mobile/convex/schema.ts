@@ -38,8 +38,14 @@ const roomMember = v.object({
   isBot: v.boolean(),
   playerId: v.optional(v.string()),
   isReady: v.optional(v.boolean()),
+  /** Per-seat AI difficulty; falls back to room.config.difficulty when unset. */
+  difficulty: v.optional(
+    v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
+  ),
   /** Last time an absent-turn "rejoin" push was sent to this member (rate-limit). */
   lastNudgeAt: v.optional(v.number()),
+  /** Last successful client heartbeat / view for soft presence. */
+  lastSeenAt: v.optional(v.number()),
 });
 
 const recentReaction = v.object({
@@ -74,6 +80,8 @@ export default defineSchema({
     turnDeadlineAt: v.optional(v.number()),
     turnClockPlayerId: v.optional(v.string()),
     turnTimerSeconds: v.optional(v.number()),
+    /** Consecutive idle turn-clock misses per playerId; 2 → forfeit end. */
+    idleTimeoutStrikes: v.optional(v.record(v.string(), v.number())),
     recentReaction: v.optional(recentReaction),
     returnWindow: v.optional(returnWindow),
     pendingReveal: v.optional(pendingReveal),
@@ -86,6 +94,23 @@ export default defineSchema({
     ),
     buyIn: v.optional(v.number()),
     version: v.number(),
+    /**
+     * Recent clientMoveId values for idempotent submitMove retries.
+     * Kept short; oldest entries drop when capped.
+     */
+    recentClientMoveIds: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          at: v.number(),
+        }),
+      ),
+    ),
+    /**
+     * Turn deadline for which a reconnect hold already skipped a strike
+     * (one free clock cycle while the clock owner looks reconnecting).
+     */
+    reconnectHoldDeadline: v.optional(v.number()),
   })
     .index("by_code", ["code"])
     .index("by_lastMoveAt", ["lastMoveAt"])
@@ -141,7 +166,8 @@ export default defineSchema({
     expiresAt: v.number(),
   })
     .index("by_toUser_status", ["toUserId", "status"])
-    .index("by_room", ["roomId"]),
+    .index("by_room", ["roomId"])
+    .index("by_status", ["status"]),
 
   pushTokens: defineTable({
     userId: v.id("users"),

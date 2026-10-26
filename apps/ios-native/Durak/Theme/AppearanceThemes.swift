@@ -1,8 +1,7 @@
 import SwiftUI
 
-/// All 11 appearance presets for table and card theming.
-///
-/// Port of `apps/mobile/src/theme/appearanceThemes.ts` + dynamic `UiPalette` for full Apple-grade theme harmonization.
+/// Curated 5 appearance presets for table and card theming:
+/// Emerald Table, Royal Velvet, Sapphire Room, Twilight Room, and Steel Navy.
 
 // MARK: - Card Back Patterns
 
@@ -61,7 +60,7 @@ struct UiPalette: Sendable {
 // MARK: - Appearance ID
 
 enum AppearanceId: String, CaseIterable, Codable, Sendable {
-    case green, purple, blue, red, charcoal, obsidian, navy, plum, pine, sienna, indigo
+    case green, purple, blue, indigo, navy
 }
 
 // MARK: - Preset
@@ -147,73 +146,27 @@ let appearancePresets: [AppearanceId: AppearancePreset] = [
             badgeText: Color(hex: "#08203E")
         )
     ),
-    .red: AppearancePreset(
-        id: .red, name: "Crimson Lounge", tagline: "Burgundy felt, sunburst backs",
-        table: TablePalette(backgroundColor: Color(hex: "#9B2335"), gradient: [Color(hex: "#9B2335"), Color(hex: "#4A1219")]),
-        card: CardPalette(face: Color(hex: "#FFF5F2"), faceEdge: Color(hex: "#E8C8C0"),
-                          back: Color(hex: "#5C1A24"), backLight: Color(hex: "#6E222E"),
-                          backAccent: Color(hex: "#F0A0A8"), suitRed: Color(hex: "#C62828"),
-                          suitBlack: Color(hex: "#1A2E24"), backPattern: .sunburst),
+    .indigo: AppearancePreset(
+        id: .indigo, name: "Twilight Room", tagline: "Midnight indigo felt, steel weave backs",
+        table: TablePalette(backgroundColor: Color(hex: "#22273D"), gradient: [Color(hex: "#22273D"), Color(hex: "#111420")]),
+        card: CardPalette(face: Color(hex: "#F2F4FB"), faceEdge: Color(hex: "#C2CADF"),
+                          back: Color(hex: "#2C3352"), backLight: Color(hex: "#384169"),
+                          backAccent: Color(hex: "#808EC4"), suitRed: Color(hex: "#C62828"),
+                          suitBlack: Color(hex: "#151822"), backPattern: .weave),
         ui: UiPalette(
-            accent: Color(hex: "#FB7185"),
-            accentGradient: [Color(hex: "#FB7185"), Color(hex: "#FED7AA")],
-            accentText: Color(hex: "#3D0814"),
-            accentSoft: Color(hex: "#FB7185").opacity(0.20),
-            accentMuted: Color(hex: "#F43F5E"),
-            surfaceGlass: Color(hex: "#3A0D15").opacity(0.55),
-            surfaceCard: Color(hex: "#26060C").opacity(0.80),
-            surfaceBorder: Color(hex: "#FB7185").opacity(0.24),
-            surfaceBorderHighlighted: Color(hex: "#FB7185").opacity(0.60),
-            selectionBg: Color(hex: "#FB7185"),
-            selectionBorder: Color(hex: "#FED7AA"),
-            badgeBg: Color(hex: "#FB7185"),
-            badgeText: Color(hex: "#3D0814")
-        )
-    ),
-    .charcoal: AppearancePreset(
-        id: .charcoal, name: "Charcoal Lounge", tagline: "Slate felt, desaturated graphite backs",
-        table: TablePalette(backgroundColor: Color(hex: "#2D3238"), gradient: [Color(hex: "#2D3238"), Color(hex: "#1B1E22")]),
-        card: CardPalette(face: Color(hex: "#F5F6F8"), faceEdge: Color(hex: "#CCD0D6"),
-                          back: Color(hex: "#353A40"), backLight: Color(hex: "#424850"),
-                          backAccent: Color(hex: "#8E959E"), suitRed: Color(hex: "#C62828"),
-                          suitBlack: Color(hex: "#1E2022"), backPattern: .weave),
-        ui: UiPalette(
-            accent: Color(hex: "#E2E8F0"),
-            accentGradient: [Color(hex: "#CBD5E1"), Color(hex: "#F8FAFC")],
-            accentText: Color(hex: "#0F172A"),
-            accentSoft: Color(hex: "#E2E8F0").opacity(0.18),
-            accentMuted: Color(hex: "#94A3B8"),
-            surfaceGlass: Color(hex: "#1E2227").opacity(0.55),
-            surfaceCard: Color(hex: "#14171A").opacity(0.82),
-            surfaceBorder: Color(hex: "#E2E8F0").opacity(0.22),
-            surfaceBorderHighlighted: Color(hex: "#E2E8F0").opacity(0.55),
-            selectionBg: Color(hex: "#E2E8F0"),
-            selectionBorder: Color(hex: "#FFFFFF"),
-            badgeBg: Color(hex: "#E2E8F0"),
-            badgeText: Color(hex: "#0F172A")
-        )
-    ),
-    .obsidian: AppearancePreset(
-        id: .obsidian, name: "Obsidian Felt", tagline: "Jet black felt, silver-grey backs",
-        table: TablePalette(backgroundColor: Color(hex: "#1E1F22"), gradient: [Color(hex: "#1E1F22"), Color(hex: "#0D0E10")]),
-        card: CardPalette(face: Color(hex: "#F4F4F6"), faceEdge: Color(hex: "#C8C8CC"),
-                          back: Color(hex: "#25262B"), backLight: Color(hex: "#313239"),
-                          backAccent: Color(hex: "#767881"), suitRed: Color(hex: "#E53935"),
-                          suitBlack: Color(hex: "#111215"), backPattern: .sunburst),
-        ui: UiPalette(
-            accent: Color(hex: "#FFFFFF"),
-            accentGradient: [Color(hex: "#E2E8F0"), Color(hex: "#FFFFFF")],
-            accentText: Color(hex: "#0A0B0D"),
-            accentSoft: Color.white.opacity(0.20),
-            accentMuted: Color(hex: "#9CA3AF"),
-            surfaceGlass: Color(hex: "#151619").opacity(0.58),
-            surfaceCard: Color(hex: "#0A0B0D").opacity(0.85),
-            surfaceBorder: Color.white.opacity(0.20),
-            surfaceBorderHighlighted: Color.white.opacity(0.55),
-            selectionBg: Color.white,
-            selectionBorder: Color(hex: "#E2E8F0"),
-            badgeBg: Color.white,
-            badgeText: Color(hex: "#0A0B0D")
+            accent: Color(hex: "#A5B4FC"),
+            accentGradient: [Color(hex: "#818CF8"), Color(hex: "#E0E7FF")],
+            accentText: Color(hex: "#1E1B4B"),
+            accentSoft: Color(hex: "#A5B4FC").opacity(0.20),
+            accentMuted: Color(hex: "#6366F1"),
+            surfaceGlass: Color(hex: "#171B30").opacity(0.55),
+            surfaceCard: Color(hex: "#0E1120").opacity(0.80),
+            surfaceBorder: Color(hex: "#A5B4FC").opacity(0.22),
+            surfaceBorderHighlighted: Color(hex: "#A5B4FC").opacity(0.60),
+            selectionBg: Color(hex: "#A5B4FC"),
+            selectionBorder: Color(hex: "#E0E7FF"),
+            badgeBg: Color(hex: "#A5B4FC"),
+            badgeText: Color(hex: "#1E1B4B")
         )
     ),
     .navy: AppearancePreset(
@@ -239,103 +192,11 @@ let appearancePresets: [AppearanceId: AppearancePreset] = [
             badgeText: Color(hex: "#082F49")
         )
     ),
-    .plum: AppearancePreset(
-        id: .plum, name: "Midnight Plum", tagline: "Deep plum felt, orchid seal backs",
-        table: TablePalette(backgroundColor: Color(hex: "#4E243D"), gradient: [Color(hex: "#4E243D"), Color(hex: "#2A1120")]),
-        card: CardPalette(face: Color(hex: "#FAF2F6"), faceEdge: Color(hex: "#E8C8DC"),
-                          back: Color(hex: "#5B2C49"), backLight: Color(hex: "#723A5D"),
-                          backAccent: Color(hex: "#BD89AA"), suitRed: Color(hex: "#C62828"),
-                          suitBlack: Color(hex: "#251520"), backPattern: .seal),
-        ui: UiPalette(
-            accent: Color(hex: "#F472B6"),
-            accentGradient: [Color(hex: "#EC4899"), Color(hex: "#FCE7F3")],
-            accentText: Color(hex: "#500724"),
-            accentSoft: Color(hex: "#F472B6").opacity(0.20),
-            accentMuted: Color(hex: "#DB2777"),
-            surfaceGlass: Color(hex: "#331427").opacity(0.55),
-            surfaceCard: Color(hex: "#220B19").opacity(0.80),
-            surfaceBorder: Color(hex: "#F472B6").opacity(0.22),
-            surfaceBorderHighlighted: Color(hex: "#F472B6").opacity(0.60),
-            selectionBg: Color(hex: "#F472B6"),
-            selectionBorder: Color(hex: "#FCE7F3"),
-            badgeBg: Color(hex: "#F472B6"),
-            badgeText: Color(hex: "#500724")
-        )
-    ),
-    .pine: AppearancePreset(
-        id: .pine, name: "Nordic Pine", tagline: "Deep forest felt, sage pine backs",
-        table: TablePalette(backgroundColor: Color(hex: "#1C2D27"), gradient: [Color(hex: "#1C2D27"), Color(hex: "#0D1815")]),
-        card: CardPalette(face: Color(hex: "#F3F7F5"), faceEdge: Color(hex: "#C2D1CB"),
-                          back: Color(hex: "#243B33"), backLight: Color(hex: "#2F4F44"),
-                          backAccent: Color(hex: "#76A394"), suitRed: Color(hex: "#C62828"),
-                          suitBlack: Color(hex: "#161E1B"), backPattern: .crest),
-        ui: UiPalette(
-            accent: Color(hex: "#86EFAC"),
-            accentGradient: [Color(hex: "#4ADE80"), Color(hex: "#DCFCE7")],
-            accentText: Color(hex: "#052E16"),
-            accentSoft: Color(hex: "#86EFAC").opacity(0.20),
-            accentMuted: Color(hex: "#22C55E"),
-            surfaceGlass: Color(hex: "#11201A").opacity(0.55),
-            surfaceCard: Color(hex: "#0A1410").opacity(0.80),
-            surfaceBorder: Color(hex: "#86EFAC").opacity(0.22),
-            surfaceBorderHighlighted: Color(hex: "#86EFAC").opacity(0.60),
-            selectionBg: Color(hex: "#86EFAC"),
-            selectionBorder: Color(hex: "#DCFCE7"),
-            badgeBg: Color(hex: "#86EFAC"),
-            badgeText: Color(hex: "#052E16")
-        )
-    ),
-    .sienna: AppearancePreset(
-        id: .sienna, name: "Sienna Hearth", tagline: "Warm terracotta felt, copper sunburst backs",
-        table: TablePalette(backgroundColor: Color(hex: "#3D221A"), gradient: [Color(hex: "#3D221A"), Color(hex: "#20110C")]),
-        card: CardPalette(face: Color(hex: "#FBF2F0"), faceEdge: Color(hex: "#E5CBC2"),
-                          back: Color(hex: "#4F2B20"), backLight: Color(hex: "#63392B"),
-                          backAccent: Color(hex: "#BD7D6A"), suitRed: Color(hex: "#B71C1C"),
-                          suitBlack: Color(hex: "#221613"), backPattern: .sunburst),
-        ui: UiPalette(
-            accent: Color(hex: "#FDBA74"),
-            accentGradient: [Color(hex: "#FB923C"), Color(hex: "#FFEDD5")],
-            accentText: Color(hex: "#431407"),
-            accentSoft: Color(hex: "#FDBA74").opacity(0.20),
-            accentMuted: Color(hex: "#F97316"),
-            surfaceGlass: Color(hex: "#2A140E").opacity(0.55),
-            surfaceCard: Color(hex: "#1C0B07").opacity(0.80),
-            surfaceBorder: Color(hex: "#FDBA74").opacity(0.22),
-            surfaceBorderHighlighted: Color(hex: "#FDBA74").opacity(0.60),
-            selectionBg: Color(hex: "#FDBA74"),
-            selectionBorder: Color(hex: "#FFEDD5"),
-            badgeBg: Color(hex: "#FDBA74"),
-            badgeText: Color(hex: "#431407")
-        )
-    ),
-    .indigo: AppearancePreset(
-        id: .indigo, name: "Twilight Room", tagline: "Midnight indigo felt, steel weave backs",
-        table: TablePalette(backgroundColor: Color(hex: "#22273D"), gradient: [Color(hex: "#22273D"), Color(hex: "#111420")]),
-        card: CardPalette(face: Color(hex: "#F2F4FB"), faceEdge: Color(hex: "#C2CADF"),
-                          back: Color(hex: "#2C3352"), backLight: Color(hex: "#384169"),
-                          backAccent: Color(hex: "#808EC4"), suitRed: Color(hex: "#C62828"),
-                          suitBlack: Color(hex: "#151822"), backPattern: .weave),
-        ui: UiPalette(
-            accent: Color(hex: "#A5B4FC"),
-            accentGradient: [Color(hex: "#818CF8"), Color(hex: "#E0E7FF")],
-            accentText: Color(hex: "#1E1B4B"),
-            accentSoft: Color(hex: "#A5B4FC").opacity(0.20),
-            accentMuted: Color(hex: "#6366F1"),
-            surfaceGlass: Color(hex: "#171B30").opacity(0.55),
-            surfaceCard: Color(hex: "#0E1120").opacity(0.80),
-            surfaceBorder: Color(hex: "#A5B4FC").opacity(0.22),
-            surfaceBorderHighlighted: Color(hex: "#A5B4FC").opacity(0.60),
-            selectionBg: Color(hex: "#A5B4FC"),
-            selectionBorder: Color(hex: "#E0E7FF"),
-            badgeBg: Color(hex: "#A5B4FC"),
-            badgeText: Color(hex: "#1E1B4B")
-        )
-    ),
 ]
 
 /// Ordered list for the appearance picker UI.
 let appearanceOrder: [AppearanceId] = [
-    .green, .purple, .blue, .red, .charcoal, .obsidian, .navy, .plum, .pine, .sienna, .indigo,
+    .green, .purple, .blue, .indigo, .navy,
 ]
 
 let defaultAppearance: AppearanceId = .green

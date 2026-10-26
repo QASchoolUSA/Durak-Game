@@ -1,17 +1,25 @@
 import Foundation
 
 /// Lightweight async/await HTTP client communicating with Convex backend endpoints.
-actor ConvexClient {
-    static let shared = ConvexClient()
+/// Named separately from ConvexMobile's `ConvexClient` to avoid type collisions.
+actor ConvexHTTPClient {
+    static let shared = ConvexHTTPClient()
+
+    static let deploymentURL = "https://marvelous-marlin-178.convex.cloud"
 
     let baseUrl: URL
     private var authToken: String?
+
+    /// Per-request timeout (flaky mobile WiFi should fail fast and retry).
+    private let requestTimeoutSeconds: TimeInterval = 12
+    private let maxTransientRetries = 1
 
     enum ConvexError: LocalizedError {
         case invalidURL
         case requestFailed(statusCode: Int, message: String)
         case serverError(String)
         case decodingError(Error)
+        case timedOut
 
         var errorDescription: String? {
             switch self {
@@ -19,11 +27,12 @@ actor ConvexClient {
             case .requestFailed(let code, let msg): return "HTTP \(code): \(msg)"
             case .serverError(let msg): return "Convex Error: \(msg)"
             case .decodingError(let err): return "Failed to decode response: \(err.localizedDescription)"
+            case .timedOut: return "Request timed out."
             }
         }
     }
 
-    init(baseUrlString: String = "https://marvelous-marlin-178.convex.cloud") {
+    init(baseUrlString: String = ConvexHTTPClient.deploymentURL) {
         self.baseUrl = URL(string: baseUrlString)!
         self.authToken = KeychainStore.shared.loadString(key: "convex_auth_token")
     }
@@ -40,28 +49,31 @@ actor ConvexClient {
     // MARK: - Query
 
     func query<T: Decodable>(_ path: String, args: [String: Any] = [:]) async throws -> T {
-        return try await send(endpoint: "api/query", path: path, args: args)
+        return try await send(endpoint: "api/query", path: path, args: args, retryTransient: false)
     }
 
     // MARK: - Mutation
 
-    func mutation<T: Decodable>(_ path: String, args: [String: Any] = [:]) async throws -> T {
-        return try await send(endpoint: "api/mutation", path: path, args: args)
+    func mutation<T: Decodable>(
+        _ path: String,
+        args: [String: Any] = [:],
+        retryTransient: Bool = false
+    ) async throws -> T {
+        return try await send(
+            endpoint: "api/mutation",
+            path: path,
+            args: args,
+            retryTransient: retryTransient
+        )
     }
 
     // MARK: - Action
 
     func action<T: Decodable>(_ path: String, args: [String: Any] = [:]) async throws -> T {
-        return try await send(endpoint: "api/action", path: path, args: args)
+        return try await send(endpoint: "api/action", path: path, args: args, retryTransient: false)
     }
 
     // MARK: - Private Transport
-
-    private struct ConvexRequest: Encodable {
-        let path: String
-        let args: [String: AnyCodable]
-        let format: String = "json"
-    }
 
     private struct ConvexResponse<U: Decodable>: Decodable {
         let status: String
@@ -70,7 +82,58 @@ actor ConvexClient {
         let errorData: AnyCodable?
     }
 
-    private func send<T: Decodable>(endpoint: String, path: String, args: [String: Any]) async throws -> T {
+    private func send<T: Decodable>(
+        endpoint: String,
+        path: String,
+        args: [String: Any],
+        retryTransient: Bool
+    ) async throws -> T {
+        var attempt = 0
+        var lastError: Error?
+        let maxAttempts = retryTransient ? (1 + maxTransientRetries) : 1
+
+        while attempt < maxAttempts {
+            do {
+                return try await sendOnce(endpoint: endpoint, path: path, args: args)
+            } catch {
+                lastError = error
+                attempt += 1
+                guard retryTransient, attempt < maxAttempts, isTransient(error) else {
+                    throw error
+                }
+                let backoffMs = UInt64(250 * attempt)
+                try? await Task.sleep(for: .milliseconds(backoffMs))
+            }
+        }
+        throw lastError ?? ConvexError.serverError("Request failed")
+    }
+
+    private func isTransient(_ error: Error) -> Bool {
+        if case ConvexError.timedOut = error { return true }
+        if case ConvexError.requestFailed(let code, _) = error {
+            return code == 408 || code == 429 || (500...599).contains(code)
+        }
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain {
+            switch ns.code {
+            case NSURLErrorTimedOut,
+                 NSURLErrorNetworkConnectionLost,
+                 NSURLErrorNotConnectedToInternet,
+                 NSURLErrorCannotConnectToHost,
+                 NSURLErrorDNSLookupFailed:
+                return true
+            default:
+                break
+            }
+        }
+        return false
+    }
+
+    private func sendOnce<T: Decodable>(
+        endpoint: String,
+        path: String,
+        args: [String: Any]
+    ) async throws -> T {
         guard let url = URL(string: endpoint, relativeTo: baseUrl) else {
             throw ConvexError.invalidURL
         }
@@ -78,6 +141,7 @@ actor ConvexClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = requestTimeoutSeconds
 
         // Never send Bearer token to auth:signIn (it's a public authentication endpoint)
         if let token = authToken, path != "auth:signIn" {
@@ -93,7 +157,19 @@ actor ConvexClient {
         request.httpBody = try JSONSerialization.data(withJSONObject: bodyPayload)
 
         NSLog("[ConvexClient] POST %@ path=%@ (hasAuth=%@)", endpoint, path, (authToken != nil && path != "auth:signIn") ? "YES" : "NO")
-        let (data, response) = try await URLSession.shared.data(for: request)
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            let ns = error as NSError
+            if ns.domain == NSURLErrorDomain && ns.code == NSURLErrorTimedOut {
+                throw ConvexError.timedOut
+            }
+            throw error
+        }
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw ConvexError.requestFailed(statusCode: 0, message: "Non-HTTP response")
         }

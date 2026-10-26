@@ -1,15 +1,15 @@
 /// AI move delay timing.
 ///
-/// 1:1 port of `packages/game-core/src/aiTiming.ts`.
+/// Tuned for responsive, Apple-grade pacing so bot replies feel natural without stalling gameplay.
 
 /// Pause before each bot move (milliseconds).
 public let aiDelayMs: [AiDifficulty: Int] = [
-    .easy: 3000,
-    .medium: 2500,
-    .hard: 2000,
+    .easy: 750,
+    .medium: 620,
+    .hard: 520,
 ]
 
-public let minAiDelayMs = 2000
+public let minAiDelayMs = 450
 
 public func aiMoveDelay(_ difficulty: AiDifficulty) -> Int {
     max(aiDelayMs[difficulty]!, minAiDelayMs)

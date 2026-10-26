@@ -204,6 +204,7 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
   const pendingReveal = useGameStore((s) => s.pendingReveal);
   const clearPendingReveal = useGameStore((s) => s.clearPendingReveal);
   const submittingMove = useGameStore((s) => s.submittingMove);
+  const opponentReconnecting = useGameStore((s) => s.opponentReconnecting);
   const returnSnapshot = useGameStore((s) => s.returnSnapshot);
   const returnExpiresAt = useGameStore((s) => s.returnExpiresAt);
   const returnLastCard = useGameStore((s) => s.returnLastCard);
@@ -1126,7 +1127,10 @@ export function GameScreen({ onOpenSettings }: GameScreenProps = {}) {
       ? "defend"
       : null;
 
-  const turnStatus = getTurnStatus(game, humanId, names);
+  const turnStatus = getTurnStatus(game, humanId, names, {
+    submittingMove,
+    opponentReconnecting,
+  });
   const highlightStrong =
     Boolean(view?.isDefender) && Boolean(view?.mustAct) && !game.takeInProgress;
 

@@ -21,4 +21,13 @@ describe("onlineRules", () => {
     });
     expect(rules.playStyle).toBe("standard");
   });
+
+  it("defaults allowTransferOnFirstBout to false", () => {
+    const rules = onlineRules({
+      variant: "perevodnoy",
+      throwInScope: "all",
+      playStyle: "standard",
+    });
+    expect(rules.allowTransferOnFirstBout).toBe(false);
+  });
 });

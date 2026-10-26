@@ -9,16 +9,37 @@ struct GraveyardSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                LinearGradient(
-                    colors: theme.tablePalette.gradient ?? [theme.tablePalette.backgroundColor],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+        ZStack {
+            LinearGradient(
+                colors: theme.tablePalette.gradient ?? [theme.tablePalette.backgroundColor],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    Color.clear.frame(width: 50, height: 32)
+                    Spacer()
+                    Text("Graveyard (\(discardPile.count))")
+                        .font(DesignTokens.Typography.heading)
+                        .foregroundStyle(DesignTokens.Colors.textLight)
+                    Spacer()
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .font(DesignTokens.Typography.body)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(theme.ui.accent)
+                    .frame(width: 50, alignment: .trailing)
+                    .buttonStyle(.springPressable(scale: 0.94, feedback: .uiTap))
+                }
+                .padding(.horizontal, DesignTokens.Spacing.lg)
+                .padding(.top, DesignTokens.Spacing.md)
+                .padding(.bottom, DesignTokens.Spacing.sm)
 
                 if discardPile.isEmpty {
+                    Spacer()
                     VStack(spacing: DesignTokens.Spacing.md) {
                         Image(systemName: "archivebox")
                             .font(.system(size: 48))
@@ -27,8 +48,9 @@ struct GraveyardSheet: View {
                             .font(DesignTokens.Typography.body)
                             .foregroundStyle(DesignTokens.Colors.textMuted)
                     }
+                    Spacer()
                 } else {
-                    ScrollView {
+                    ScrollView(showsIndicators: false) {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 55))], spacing: DesignTokens.Spacing.sm) {
                             ForEach(discardPile) { card in
                                 CardThumbnail(card: card, isTrump: card.suit == trumpSuit, trumpHighlightColor: theme.ui.accent)
@@ -36,17 +58,6 @@ struct GraveyardSheet: View {
                         }
                         .padding(DesignTokens.Spacing.lg)
                     }
-                }
-            }
-            .navigationTitle("Graveyard (\(discardPile.count))")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
-                    .foregroundStyle(theme.ui.accent)
                 }
             }
         }

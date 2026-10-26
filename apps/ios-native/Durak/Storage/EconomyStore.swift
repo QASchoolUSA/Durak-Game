@@ -7,8 +7,10 @@ final class EconomyStore {
     static let shared = EconomyStore()
 
     static let startingGold = 10
-    static let startingCredits = 100
+    /// Align with server `STARTING_CREDITS` in `goldEconomy.ts`.
+    static let startingCredits = 1000
     static let winGoldReward = 10
+    static let matchBuyIn = 100
 
     static let returnGoldCost = 0
     static let revealGoldCost = 2
@@ -57,11 +59,61 @@ final class EconomyStore {
         return true
     }
 
+    /// Spends gold locally, and mirrors to Convex when a wallet session exists.
+    /// Returns false if the local balance cannot cover the cost (or server rejects).
+    @MainActor
+    func spendGoldSynced(_ amount: Int, reason: String) async -> Bool {
+        guard amount > 0 else { return true }
+        guard canAffordGold(amount) else { return false }
+
+        if ConvexAuth.shared.hasWalletSession {
+            // Optimistic local deduct; roll back if the server rejects.
+            gold = max(0, gold - amount)
+            do {
+                _ = try await ConvexAuth.shared.spendGold(amount: amount, reason: reason)
+                return true
+            } catch {
+                gold += amount
+                return false
+            }
+        }
+
+        return spendGold(amount)
+    }
+
     func rewardWin() {
         gold += EconomyStore.winGoldReward
     }
 
+    func canAffordCredits(_ amount: Int) -> Bool {
+        amount <= 0 || credits >= amount
+    }
+
+    /// Deducts credits for match buy-in. Returns false if insufficient.
+    @discardableResult
+    func deductCredits(_ amount: Int) -> Bool {
+        guard canAffordCredits(amount) else { return false }
+        credits = max(0, credits - amount)
+        return true
+    }
+
     func adjustCredits(_ delta: Int) {
         credits = max(0, credits + delta)
+    }
+
+    /// Apply server wallet balances (signed-in source of truth).
+    func syncFromServer(gold: Int?, credits: Int?) {
+        if let gold {
+            self.gold = max(0, gold)
+        }
+        if let credits {
+            self.credits = max(0, credits)
+        }
+    }
+
+    /// Resets local balances to defaults (used on logout / account switch).
+    func resetToStartingBalances() {
+        gold = EconomyStore.startingGold
+        credits = EconomyStore.startingCredits
     }
 }

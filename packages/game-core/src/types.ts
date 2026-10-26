@@ -44,12 +44,18 @@ export interface GameRules {
   variant: GameVariant;
   throwInScope: ThrowInScope;
   playStyle: PlayStyle;
+  /**
+   * Perevodnoy: when false/undefined (default), transfers are blocked while the
+   * discard pile is empty — the common "первый ход не переводят" table rule.
+   */
+  allowTransferOnFirstBout?: boolean;
 }
 
 export const DEFAULT_RULES: GameRules = {
   variant: "podkidnoy",
   throwInScope: "all",
   playStyle: "standard",
+  allowTransferOnFirstBout: false,
 };
 
 /** Every move a player can submit. Throw-ins are just ATTACK on a non-empty table. */

@@ -25,7 +25,7 @@ enum InviteLinks {
     /// already attaches it once; duplicating it shows two links in Messages.
     static func shareMessage(code: String) -> String {
         let clean = normalizeRoomCode(code)
-        return "Join my Durak game! Code \(clean)"
+        return String(localized: "Join my Durak game! Code \(clean)")
     }
 
     /// Extracts a room code from `https://durak.cards/join/CODE` or `duraknative://join/CODE`.

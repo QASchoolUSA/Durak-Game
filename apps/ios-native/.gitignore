@@ -3,6 +3,7 @@
 .swiftpm/
 DerivedData/
 .derivedData/
+.derivedDataBuild/
 *.xcuserstate
 xcuserdata/
 *.ipa

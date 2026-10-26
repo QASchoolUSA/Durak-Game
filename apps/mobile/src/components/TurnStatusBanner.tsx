@@ -25,6 +25,10 @@ function toneColor(tone: TurnTone, mutedColor: string): string {
       return colors.success;
     case "you-defend":
       return colors.danger;
+    case "confirming":
+      return "#F59E0B";
+    case "reconnecting":
+      return "#60A5FA";
     default:
       return mutedColor;
   }
