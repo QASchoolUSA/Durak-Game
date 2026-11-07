@@ -3460,7 +3460,11 @@
         }
       }
     },
+    "Play any card to open. Others (except the defender) may throw in cards matching any rank already on the table — attack or defense.\n\nCaps: at most 5 attacking cards on the first bout, then 6. Never more attacking cards than the defender held when the bout began." : {
+
+    },
     "Play any card to open. Others (except the defender) may throw in cards matching any rank already on the table — attack or defense.\n\nCaps: at most 5 attacking cards until the first successful discard, then 6. Never more attacking cards than the defender held when the bout began." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3638,6 +3642,9 @@
           }
         }
       }
+    },
+    "Press Done" : {
+
     },
     "Press TAKE when you will not (or cannot) cover every attack. Attackers may still throw in matching ranks afterward (вдогонку), within the same caps. Then you pick up the whole table and skip the next attack — the player to your left attacks." : {
       "localizations" : {
@@ -4758,6 +4765,9 @@
         }
       }
     },
+    "Throw in a matching card" : {
+
+    },
     "Throw in a matching card or press Done" : {
       "localizations" : {
         "en" : {
@@ -5382,6 +5392,9 @@
           }
         }
       }
+    },
+    "You can throw in a matching card" : {
+
     },
     "You were left holding the cards!" : {
 

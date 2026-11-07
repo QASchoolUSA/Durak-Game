@@ -198,6 +198,79 @@ struct AttackLimitTests {
         ], table: [TablePair(attack: makeCard(.nine, .hearts))])
         #expect(legalAttacks(s, "A").count == 0)
     }
+
+    @Test("blocks throw-in after own PASS until another attacker throws")
+    func blockThrowAfterOwnPass() throws {
+        var s = baseState(
+            players: ["A", "B", "C"],
+            hands: [
+                "A": [makeCard(.nine, .clubs)],
+                "B": [makeCard(.ten, .hearts), makeCard(.seven, .spades)],
+                "C": [makeCard(.nine, .diamonds)],
+            ],
+            table: [TablePair(attack: makeCard(.nine, .hearts), defense: makeCard(.ten, .clubs))],
+            attackerId: "A",
+            defenderId: "B"
+        )
+        s = try applyMove(s, .pass(player: "A"))
+        #expect(s.passed.contains("A"))
+        #expect(legalAttacks(s, "A").isEmpty)
+        #expect(!canPass(s, "A"))
+
+        s = try applyMove(s, .attack(player: "C", card: makeCard(.nine, .diamonds)))
+        #expect(s.passed.isEmpty)
+        #expect(legalAttacks(s, "A").map(\.id).contains(cardId(rank: .nine, suit: .clubs)))
+    }
+
+    @Test("allows mid-defense throw-in when defender has spare capacity")
+    func spareCapacityMidDefense() {
+        let s = baseState(
+            hands: [
+                "A": [makeCard(.nine, .clubs), makeCard(.seven, .diamonds)],
+                "B": [makeCard(.ten, .hearts), makeCard(.jack, .hearts), makeCard(.queen, .hearts)],
+            ],
+            table: [TablePair(attack: makeCard(.nine, .hearts))]
+        )
+        let legal = legalAttacks(s, "A").map(\.id)
+        #expect(legal == [cardId(rank: .nine, suit: .clubs)])
+    }
+
+    @Test("allows throw-in during take when defender has spare capacity")
+    func spareCapacityDuringTake() {
+        let s = baseState(
+            hands: [
+                "A": [makeCard(.nine, .clubs)],
+                "B": [makeCard(.eight, .hearts), makeCard(.ten, .hearts), makeCard(.jack, .hearts)],
+            ],
+            table: [TablePair(attack: makeCard(.nine, .hearts))],
+            takeInProgress: true
+        )
+        #expect(legalAttacks(s, "A").map(\.id) == [cardId(rank: .nine, suit: .clubs)])
+    }
+
+    @Test("raises attack cap to 6 after the first bout ends in a take")
+    func raisesCapAfterFirstTake() throws {
+        var s = baseState(
+            hands: [
+                "A": [makeCard(.nine, .hearts), makeCard(.six, .diamonds)],
+                "B": [makeCard(.six, .clubs), makeCard(.seven, .clubs)],
+            ],
+            deck: [
+                makeCard(.six, .spades),
+                makeCard(.seven, .spades),
+                makeCard(.eight, .spades),
+                makeCard(.nine, .spades),
+                makeCard(.ten, .spades),
+                makeCard(.jack, .spades),
+            ],
+            maxAttacks: 5
+        )
+        s = try applyMove(s, .attack(player: "A", card: makeCard(.nine, .hearts)))
+        s = try applyMove(s, .take(player: "B"))
+        s = try applyMove(s, .pass(player: "A"))
+        #expect(s.discard.isEmpty)
+        #expect(s.maxAttacks == 6)
+    }
 }
 
 // MARK: - Basic Game Flow
@@ -451,5 +524,238 @@ struct MatchEconomyTests {
         #expect(soloMatchEndCreditDelta(isDraw: true, humanIsWinner: false, numPlayers: 4) == 100)
         #expect(soloMatchEndCreditDelta(isDraw: false, humanIsWinner: true, numPlayers: 3) == 300)
         #expect(soloMatchEndCreditDelta(isDraw: false, humanIsWinner: false, numPlayers: 3) == 0)
+    }
+}
+
+// MARK: - Parity with the TypeScript engine
+
+private let perevodnoy = GameRules(
+    variant: .perevodnoy,
+    throwInScope: .all,
+    playStyle: .standard,
+    allowTransferOnFirstBout: true
+)
+
+@Suite("Perevodnoy transfer")
+struct TransferTests {
+    @Test("rotates the defender and keeps the transfer card as an attack")
+    func transferChain() throws {
+        var state = baseState(
+            players: ["A", "B", "C"],
+            hands: [
+                "A": [makeCard(.nine, .hearts)],
+                "B": [makeCard(.nine, .diamonds), makeCard(.seven, .clubs)],
+                "C": [makeCard(.ten, .hearts), makeCard(.eight, .clubs)],
+            ],
+            table: [TablePair(attack: makeCard(.nine, .clubs))],
+            rules: perevodnoy
+        )
+        #expect(canTransfer(state, "B"))
+        state = try applyMove(state, .transfer(player: "B", card: makeCard(.nine, .diamonds), target: 0))
+        #expect(state.defenderId == "C")
+        #expect(state.attackerId == "A")
+        #expect(state.table.count == 2)
+        #expect(state.table[1].attack.id == "9-diamonds")
+        #expect(state.table[1].defense == nil)
+        #expect(state.table[1].viaTransfer)
+        #expect(state.passed.isEmpty)
+    }
+
+    @Test("blocks a transfer on the first bout unless the house rule allows it")
+    func firstBoutBlocked() {
+        let state = baseState(
+            players: ["A", "B", "C"],
+            hands: [
+                "A": [makeCard(.nine, .hearts)],
+                "B": [makeCard(.nine, .diamonds), makeCard(.seven, .clubs)],
+                "C": [makeCard(.ten, .hearts), makeCard(.eight, .clubs)],
+            ],
+            table: [TablePair(attack: makeCard(.nine, .clubs))],
+            rules: GameRules(variant: .perevodnoy, allowTransferOnFirstBout: false)
+        )
+        #expect(!canTransfer(state, "B"))
+        #expect(legalTransfers(state, target: 0).isEmpty)
+    }
+
+    @Test("rejects a transfer when every other seat is empty")
+    func noSelfTransfer() {
+        let state = baseState(
+            players: ["A", "B"],
+            hands: [
+                "A": [],
+                "B": [
+                    makeCard(.nine, .diamonds),
+                    makeCard(.seven, .clubs),
+                    makeCard(.eight, .hearts),
+                ],
+            ],
+            table: [TablePair(attack: makeCard(.nine, .clubs))],
+            discard: [makeCard(.six, .hearts), makeCard(.seven, .hearts)],
+            attackerId: "A",
+            defenderId: "B",
+            rules: GameRules(variant: .perevodnoy, allowTransferOnFirstBout: false)
+        )
+        #expect(!canTransfer(state, "B"))
+        #expect(legalTransfers(state, target: 0).isEmpty)
+    }
+
+    @Test("allows a transfer after the first discard when the first bout is closed")
+    func transferAfterFirstDiscard() {
+        let state = baseState(
+            players: ["A", "B", "C"],
+            hands: [
+                "A": [makeCard(.nine, .hearts)],
+                "B": [makeCard(.nine, .diamonds), makeCard(.seven, .clubs)],
+                "C": [makeCard(.ten, .hearts), makeCard(.eight, .clubs)],
+            ],
+            table: [TablePair(attack: makeCard(.nine, .clubs))],
+            discard: [makeCard(.six, .hearts), makeCard(.seven, .hearts)],
+            rules: GameRules(variant: .perevodnoy, allowTransferOnFirstBout: false)
+        )
+        #expect(canTransfer(state, "B"))
+    }
+
+    @Test("a defense closes the transfer window")
+    func defenseClosesWindow() {
+        let state = baseState(
+            players: ["A", "B", "C"],
+            hands: [
+                "A": [makeCard(.nine, .hearts)],
+                "B": [makeCard(.nine, .diamonds), makeCard(.ten, .clubs)],
+                "C": [makeCard(.ten, .hearts), makeCard(.eight, .clubs)],
+            ],
+            table: [TablePair(attack: makeCard(.nine, .clubs), defense: makeCard(.ten, .clubs))],
+            rules: perevodnoy
+        )
+        #expect(!canTransfer(state, "B"))
+    }
+
+    @Test("blocks a transfer the next player cannot cover")
+    func nextDefenderCapacity() {
+        let state = baseState(
+            players: ["A", "B", "C"],
+            hands: [
+                "A": [makeCard(.nine, .hearts)],
+                "B": [makeCard(.nine, .diamonds)],
+                "C": [makeCard(.ten, .hearts)],
+            ],
+            table: [TablePair(attack: makeCard(.nine, .clubs))],
+            rules: perevodnoy
+        )
+        #expect(legalTransfers(state, target: 0).isEmpty)
+    }
+
+    @Test("blocks a transfer once the table is at the attack cap")
+    func maxAttacks() {
+        let state = baseState(
+            players: ["A", "B", "C"],
+            hands: [
+                "A": [makeCard(.seven, .hearts)],
+                "B": [makeCard(.nine, .hearts)],
+                "C": [makeCard(.ten, .hearts), makeCard(.jack, .hearts), makeCard(.queen, .hearts)],
+            ],
+            table: [
+                TablePair(attack: makeCard(.nine, .clubs)),
+                TablePair(attack: makeCard(.nine, .diamonds), viaTransfer: true),
+                TablePair(attack: makeCard(.nine, .spades), viaTransfer: true),
+            ],
+            maxAttacks: 3,
+            rules: perevodnoy
+        )
+        #expect(legalTransfers(state, target: 0).isEmpty)
+    }
+
+    @Test("only the opening attack can be the transfer target")
+    func openingIndexOnly() {
+        let state = baseState(
+            players: ["A", "B", "C"],
+            hands: [
+                "A": [makeCard(.nine, .hearts), makeCard(.seven, .hearts), makeCard(.eight, .hearts)],
+                "B": [makeCard(.ten, .clubs)],
+                "C": [makeCard(.nine, .spades), makeCard(.eight, .clubs)],
+            ],
+            table: [
+                TablePair(attack: makeCard(.nine, .clubs)),
+                TablePair(attack: makeCard(.nine, .diamonds), viaTransfer: true),
+            ],
+            defenderId: "C",
+            rules: perevodnoy
+        )
+        #expect(!legalTransfers(state, target: 0).isEmpty)
+        #expect(legalTransfers(state, target: 1).isEmpty)
+    }
+
+    @Test("podkidnoy has no transfer")
+    func podkidnoy() {
+        let state = baseState(
+            players: ["A", "B", "C"],
+            hands: [
+                "A": [makeCard(.nine, .hearts)],
+                "B": [makeCard(.nine, .diamonds), makeCard(.seven, .clubs)],
+                "C": [makeCard(.ten, .hearts), makeCard(.eight, .clubs)],
+            ],
+            table: [TablePair(attack: makeCard(.nine, .clubs))],
+            rules: .default
+        )
+        #expect(legalTransfers(state, target: 0).isEmpty)
+    }
+}
+
+@Suite("Throw-in scope")
+struct ThrowInScopeTests {
+    @Test("neighbor scope limits throw-ins to the seats beside the defender")
+    func neighborsOnly() {
+        let state = baseState(
+            players: ["A", "B", "C", "D"],
+            hands: [
+                "A": [makeCard(.nine, .clubs)],
+                "B": [makeCard(.ten, .diamonds), makeCard(.eight, .hearts)],
+                "C": [makeCard(.nine, .diamonds)],
+                "D": [makeCard(.nine, .spades)],
+            ],
+            table: [TablePair(attack: makeCard(.nine, .hearts))],
+            rules: GameRules(variant: .podkidnoy, throwInScope: .neighbor)
+        )
+        #expect(legalAttacks(state, "A").contains { $0.id == "9-clubs" })
+        #expect(legalAttacks(state, "C").contains { $0.id == "9-diamonds" })
+        #expect(legalAttacks(state, "D").isEmpty)
+    }
+}
+
+@Suite("Draw-up and endgame")
+struct EndgameParityTests {
+    @Test("drawUpOrder lists the attacker first and the defender last")
+    func drawOrder() {
+        let state = baseState(
+            players: ["A", "B", "C"],
+            attackerId: "B",
+            defenderId: "C"
+        )
+        #expect(drawUpOrder(state) == ["B", "A", "C"])
+    }
+
+    @Test("both players emptying on the last defense is a draw")
+    func draw() throws {
+        var state = baseState(hands: [
+            "A": [makeCard(.nine, .hearts)],
+            "B": [makeCard(.ten, .hearts)],
+        ])
+        state = try applyMove(state, .attack(player: "A", card: makeCard(.nine, .hearts)))
+        state = try applyMove(state, .defend(player: "B", card: makeCard(.ten, .hearts), target: 0))
+        #expect(state.phase == .gameOver)
+        #expect(state.loserId == nil)
+    }
+
+    @Test("the player left holding cards is the durak")
+    func durak() throws {
+        var state = baseState(hands: [
+            "A": [makeCard(.nine, .hearts)],
+            "B": [makeCard(.seven, .hearts), makeCard(.eight, .clubs)],
+        ])
+        state = try applyMove(state, .attack(player: "A", card: makeCard(.nine, .hearts)))
+        state = try applyMove(state, .take(player: "B"))
+        #expect(state.phase == .gameOver)
+        #expect(state.loserId == "B")
+        #expect((state.hands["B"] ?? []).count > 0)
     }
 }

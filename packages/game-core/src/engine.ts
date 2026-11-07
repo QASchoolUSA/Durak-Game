@@ -422,9 +422,8 @@ function endRound(state: GameState, defenderTook: boolean): void {
   state.passed = [];
   state.takeInProgress = false;
 
-  // Cap rises to 6 only after the first successful beat (discard nonempty).
-  // Takes leave discard empty, so subsequent bouts stay at 5 until then.
-  if (!defenderTook && state.discard.length > 0 && state.maxAttacks < MAX_ATTACKS) {
+  // First bout only is capped at 5; after it ends (take or beat), raise to 6.
+  if (state.maxAttacks < MAX_ATTACKS) {
     state.maxAttacks = MAX_ATTACKS;
   }
 

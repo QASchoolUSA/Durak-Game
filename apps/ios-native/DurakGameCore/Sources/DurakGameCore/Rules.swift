@@ -121,6 +121,8 @@ public func legalAttacks(_ state: GameState, _ player: PlayerId) -> [Card] {
     // During an active perevodnoy transfer window, same-rank adds keep the chain
     // alive (transferChainActive only requires matching ranks + no defenses).
     if player == state.defenderId || !canThrowIn(state, player) { return [] }
+    // DONE sticks until another player throws (ATTACK clears `passed` for all).
+    if state.passed.contains(player) { return [] }
     if state.table.count >= state.maxAttacks { return [] }
 
     // Can't pile on more undefended attacks than the defender holds.
@@ -171,6 +173,9 @@ public func legalTransfers(_ state: GameState, target: Int) -> [Card] {
     guard state.table.count < state.maxAttacks else { return [] }
 
     let nextDef = seatAfter(state, state.defenderId, inPlayOnly: true)
+    // seatAfter walks back to the defender when every other seat is empty.
+    // A transfer needs a different player to receive the pile.
+    guard nextDef != state.defenderId else { return [] }
     let futureUndefended = undefendedCount(state) + 1
     guard handOf(state, nextDef).count >= futureUndefended else { return [] }
 

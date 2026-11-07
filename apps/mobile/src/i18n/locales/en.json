@@ -174,6 +174,9 @@
       "yourAttack": "Your turn — attack",
       "waitAttack": "Waiting for {{name}} to attack",
       "throwOrDone": "Throw in a matching card or press DONE",
+      "throwOnly": "Throw in a matching card",
+      "pressDone": "Press DONE",
+      "throwWhileDefend": "You can throw in a matching card",
       "defendedWait": "Defended — waiting for attackers",
       "waitThrow": "Waiting for attackers to throw in or pass"
     },
@@ -375,7 +378,7 @@
     "rankingTitle": "Card Ranking",
     "rankingBody": "Cards rank from lowest to highest: 6 · 7 · 8 · 9 · 10 · J · Q · K · A\n\nThe trump suit beats any non-trump card, regardless of rank. Within the same suit, higher rank wins.",
     "attackingTitle": "Attacking",
-    "attackingBody": "Open with any card. Other non-defenders may throw in cards matching any rank already on the table (attack or defense).\n\nCaps: at most 5 attacking cards until the first successful discard, then 6 — and never more than the defender held when the bout began.",
+    "attackingBody": "Open with any card. Other non-defenders may throw in cards matching any rank already on the table (attack or defense).\n\nCaps: at most 5 attacking cards on the first bout, then 6 — and never more than the defender held when the bout began.",
     "defendingTitle": "Defending",
     "defendingBody": "Cover each attack with a higher card of the same suit, or any trump vs a non-trump. A trump is beaten only by a higher trump.",
     "takingTitle": "Taking Cards",

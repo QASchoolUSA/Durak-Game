@@ -34,7 +34,7 @@ struct RulesView: View {
 
                         ruleSection(
                             title: "Attacking",
-                            body: String(localized: "Play any card to open. Others (except the defender) may throw in cards matching any rank already on the table — attack or defense.\n\nCaps: at most 5 attacking cards until the first successful discard, then 6. Never more attacking cards than the defender held when the bout began.")
+                            body: String(localized: "Play any card to open. Others (except the defender) may throw in cards matching any rank already on the table — attack or defense.\n\nCaps: at most 5 attacking cards on the first bout, then 6. Never more attacking cards than the defender held when the bout began.")
                         )
 
                         ruleSection(

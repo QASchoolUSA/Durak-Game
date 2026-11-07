@@ -399,6 +399,40 @@ describe("perevodnoy transfer", () => {
     expect(legalTransfers(state, 1)).toHaveLength(0);
   });
 
+  it("rejects a transfer when every other seat is empty", () => {
+    const state = baseState({
+      players: ["A", "B"],
+      hands: {
+        A: [],
+        B: [
+          makeCard(9, "diamonds"),
+          makeCard(7, "clubs"),
+          makeCard(8, "hearts"),
+        ],
+      },
+      discard: [makeCard(6, "hearts"), makeCard(7, "hearts")],
+      table: [{ attack: makeCard(9, "clubs") }],
+      attackerId: "A",
+      defenderId: "B",
+      rules: {
+        variant: "perevodnoy",
+        throwInScope: "all",
+        playStyle: "standard",
+        allowTransferOnFirstBout: false,
+      },
+    });
+    expect(canTransfer(state, "B")).toBe(false);
+    expect(legalTransfers(state, 0)).toHaveLength(0);
+    expect(() =>
+      applyMove(state, {
+        type: "TRANSFER",
+        player: "B",
+        card: makeCard(9, "diamonds"),
+        target: 0,
+      }),
+    ).toThrow(/Illegal transfer/);
+  });
+
   it("is unavailable in podkidnoy mode", () => {
     const state = baseState({
       rules: DEFAULT_RULES,

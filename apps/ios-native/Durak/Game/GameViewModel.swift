@@ -545,10 +545,10 @@ final class GameViewModel {
                 do {
                     let next = try applyMove(currentGame, move)
                     afterApply(next)
+                    return
                 } catch {
-                    // ignore
+                    print("Bot move rejected by the rules engine: \(error)")
                 }
-                return
             }
         }
     }
@@ -693,38 +693,23 @@ final class GameViewModel {
         returnSnapshot != nil && Date() < returnExpiresAt
     }
 
-    /// Set of card IDs that the human player can legally play right now.
+    /// Card IDs the human may play. Legality comes only from the rules engine,
+    /// so a take in progress cannot highlight a defense the engine will reject.
     func playableCardIds() -> Set<String> {
         guard let g = game, g.phase == .playing else { return [] }
-        let hand = handOf(g, humanId)
-        var playable = Set<String>()
-
         if g.defenderId == humanId {
-            // Defenses against undefended table pairs
-            for pair in g.table where pair.defense == nil {
-                for card in hand {
-                    if DurakGameCore.beats(card, pair.attack, trumpSuit: g.trumpSuit) {
-                        playable.insert(card.id)
-                    }
+            var ids = Set<String>()
+            for index in undefendedPairs(g) {
+                for card in legalDefenses(g, target: index) {
+                    ids.insert(card.id)
                 }
             }
-
-            // Transfers
-            if g.rules.variant == .perevodnoy && DurakGameCore.canTransfer(g, humanId) {
-                let transfers = DurakGameCore.legalTransfers(g, target: 0)
-                for card in transfers {
-                    playable.insert(card.id)
-                }
+            for card in legalTransfers(g, target: 0) {
+                ids.insert(card.id)
             }
-        } else {
-            // Attacks / Throw-ins
-            let attacks = DurakGameCore.legalAttacks(g, humanId)
-            for card in attacks {
-                playable.insert(card.id)
-            }
+            return ids
         }
-
-        return playable
+        return Set(legalAttacks(g, humanId).map(\.id))
     }
 
     func canTake() -> Bool {

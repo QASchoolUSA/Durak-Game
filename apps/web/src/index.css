@@ -311,6 +311,9 @@ body, html {
   font-weight: 650;
   color: var(--text-muted);
   max-width: min(520px, 92vw);
+  transition:
+    color 280ms ease-out,
+    border-color 280ms ease-out;
 }
 
 .turn-status-banner.my-turn,
@@ -335,6 +338,7 @@ body, html {
   border-radius: 50%;
   background: var(--text-muted);
   flex-shrink: 0;
+  transition: background-color 280ms ease-out, transform 280ms ease-out;
 }
 
 .turn-status-banner.my-turn .turn-status-dot,
@@ -346,11 +350,67 @@ body, html {
   background: orange;
 }
 
+.turn-status-text-stage {
+  position: relative;
+  display: inline-grid;
+  align-items: center;
+  line-height: 1.2;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.turn-status-text-stage > .turn-status-text {
+  grid-area: 1 / 1;
+}
+
 .turn-status-text {
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.turn-status-text-enter {
+  animation: turnStatusIn 280ms ease-out both;
+}
+
+.turn-status-text-exit {
+  animation: turnStatusOut 220ms ease-out both;
+  pointer-events: none;
+}
+
+@keyframes turnStatusIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes turnStatusOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn-status-banner,
+  .turn-status-dot {
+    transition: none;
+  }
+
+  .turn-status-text-enter,
+  .turn-status-text-exit {
+    animation: none;
+  }
 }
 
 .card-drag-ghost {

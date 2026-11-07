@@ -1,3 +1,8 @@
+import {
+  DEFAULT_TURN_SECONDS as ENGINE_DEFAULT_TURN_SECONDS,
+  normalizeTurnSeconds,
+  VALID_TURN_SECONDS,
+} from "@durak/game-core";
 import { type AppearanceId, isValidAppearanceId } from "../theme/appearanceThemes";
 
 export interface GameConfig {
@@ -21,9 +26,9 @@ const KEYS = {
   turnTimerSeconds: "@durak/turnTimerSeconds",
 };
 
-/** Turn-timer durations offered in Settings (seconds). Mirrors mobile TURN_SECONDS_OPTIONS. */
-export const TURN_SECONDS_OPTIONS = [8, 10, 12, 15, 20, 30] as const;
-export const DEFAULT_TURN_SECONDS = 12;
+/** Turn-timer durations offered in Settings. Same set the rules engine accepts. */
+export const TURN_SECONDS_OPTIONS = VALID_TURN_SECONDS;
+export const DEFAULT_TURN_SECONDS = ENGINE_DEFAULT_TURN_SECONDS;
 
 export const MAX_DISPLAY_NAME_LENGTH = 12;
 
@@ -182,7 +187,7 @@ export const storage = {
     try {
       const val = localStorage.getItem(KEYS.turnTimerSeconds);
       const n = val ? parseInt(val, 10) : DEFAULT_TURN_SECONDS;
-      return (TURN_SECONDS_OPTIONS as readonly number[]).includes(n) ? n : DEFAULT_TURN_SECONDS;
+      return normalizeTurnSeconds(Number.isNaN(n) ? null : n);
     } catch {
       return DEFAULT_TURN_SECONDS;
     }

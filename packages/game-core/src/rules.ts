@@ -119,6 +119,8 @@ export function legalAttacks(state: GameState, player: PlayerId): Card[] {
   // During an active perevodnoy transfer window, same-rank adds keep the chain
   // alive (transferChainActive only requires matching ranks + no defenses).
   if (player === state.defenderId || !canThrowIn(state, player)) return [];
+  // DONE sticks until another player throws (ATTACK clears `passed` for all).
+  if (state.passed.includes(player)) return [];
 
   if (state.table.length >= state.maxAttacks) return [];
 
@@ -178,6 +180,9 @@ export function legalTransfers(state: GameState, target: number): Card[] {
   if (state.table.length >= state.maxAttacks) return [];
 
   const nextDef = seatAfter(state, state.defenderId, true);
+  // seatAfter walks back to the defender when every other seat is empty.
+  // A transfer needs a different player to receive the pile.
+  if (nextDef === state.defenderId) return [];
   const futureUndefended = undefendedCount(state) + 1;
   if (handOf(state, nextDef).length < futureUndefended) return [];
 

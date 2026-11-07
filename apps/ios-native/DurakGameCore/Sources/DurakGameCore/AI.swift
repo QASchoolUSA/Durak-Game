@@ -176,7 +176,8 @@ private func generateDefenderCandidates(
     }
 
     // Easy give-up: only high-trump beats left with multiple uncovered attacks.
-    if difficulty == .easy && canTake(state, player) {
+    // Skip this once the deck is empty — taking a beatable card recirculates it.
+    if difficulty == .easy && canTake(state, player) && !state.deck.isEmpty {
         var anyBeater = false
         var allHighTrump = true
         for target in undef {
@@ -207,7 +208,10 @@ private func generateDefenderCandidates(
         }
     }
 
-    if canTake(state, player) {
+    let hasDefense = out.contains { if case .defend = $0.move { return true }; return false }
+    // With an empty deck, taking a card you can beat sends the same cards
+    // around the table forever. Beat when a beat exists so the endgame ends.
+    if canTake(state, player) && !(state.deck.isEmpty && hasDefense) {
         let cheapestCover = out
             .filter { if case .defend = $0.move { return true }; return false }
             .map(\.heuristic)

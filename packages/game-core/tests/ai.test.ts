@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyMove,
   cardId,
   createGame,
   DEFAULT_RULES,
   evaluatePosition,
+  isGameOver,
   pickMove,
   type Card,
   type GameState,
@@ -79,6 +81,26 @@ describe("pickMove difficulty profiles", () => {
     const state = gameWithSeed(7);
     const idle = state.players.find((p) => pickMove(state, p, "medium") === null);
     expect(idle).toBeDefined();
+  });
+
+  it("finishes a 3-player game at every difficulty", () => {
+    for (const difficulty of ["easy", "medium", "hard"] as const) {
+      let state = createGame(["A", "B", "C"], { seed: 99 });
+      let moves = 0;
+      while (!isGameOver(state) && moves < 500) {
+        let acted = false;
+        for (const player of state.players) {
+          const move = pickMove(state, player, difficulty);
+          if (!move) continue;
+          state = applyMove(state, move);
+          acted = true;
+          moves += 1;
+          break;
+        }
+        if (!acted) break;
+      }
+      expect(isGameOver(state), `${difficulty} ended in ${moves} moves`).toBe(true);
+    }
   });
 });
 

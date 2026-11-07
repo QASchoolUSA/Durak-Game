@@ -203,7 +203,8 @@ function generateDefenderCandidates(
   };
 
   // Easy give-up: only high-trump beats left with multiple uncovered attacks.
-  if (difficulty === "easy" && canTake(state, player)) {
+  // Skip this once the deck is empty — taking a beatable card recirculates it.
+  if (difficulty === "easy" && canTake(state, player) && state.deck.length > 0) {
     let anyBeater = false;
     let allHighTrump = true;
     for (const target of undef) {
@@ -238,7 +239,10 @@ function generateDefenderCandidates(
     }
   }
 
-  if (canTake(state, player)) {
+  const hasDefense = out.some((s) => s.move.type === "DEFEND");
+  // With an empty deck, taking a card you can beat sends the same cards
+  // around the table forever. Beat when a beat exists so the endgame ends.
+  if (canTake(state, player) && !(state.deck.length === 0 && hasDefense)) {
     // Prefer TAKE only when coverage looks expensive; search decides.
     const cheapestCover = out
       .filter((s) => s.move.type === "DEFEND")

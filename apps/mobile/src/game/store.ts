@@ -299,10 +299,10 @@ export const useGameStore = create<GameStore>((set, get) => {
             const next = applyMove(game, move);
             triggerMoveFeedback(move);
             afterApply(next);
-          } catch {
-            /* ignore */
+            return;
+          } catch (error) {
+            console.warn("Bot move rejected by the rules engine", error);
           }
-          return;
         }
       }
     }, aiMoveDelayMs(get().difficulty));

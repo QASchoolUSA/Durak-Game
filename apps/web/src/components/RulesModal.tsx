@@ -28,9 +28,8 @@ export const RulesModal: React.FC<RulesModalProps> = ({ visible, onClose }) => {
           <p>
             <strong>Attacking:</strong> Open with any card. Others (except the
             defender) may throw in ranks already on the table (attack or
-            defense). Cap: 5 attacking cards until the first successful discard,
-            then 6 — and never more than the defender held at the start of the
-            bout.
+            defense). Cap: 5 attacking cards on the first bout, then 6 — and
+            never more than the defender held at the start of the bout.
           </p>
           <p>
             <strong>Defending:</strong> Higher same suit, or any trump vs

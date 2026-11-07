@@ -172,9 +172,9 @@ interface GameStore {
   awardCreditsLocal: (amount: number) => void;
 }
 
-let aiTimer: any = null;
-let returnTimer: any = null;
-let resultTimer: any = null;
+let aiTimer: ReturnType<typeof setTimeout> | null = null;
+let returnTimer: ReturnType<typeof setTimeout> | null = null;
+let resultTimer: ReturnType<typeof setTimeout> | null = null;
 
 function cancelAi() {
   if (aiTimer) {
@@ -285,10 +285,10 @@ export const useGameStore = create<GameStore>((set, get) => {
             triggerHaptics("cardPlay");
             playAudioSound("cardPlay");
             afterApply(next);
-          } catch {
-            /* ignore */
+            return;
+          } catch (error) {
+            console.warn("Bot move rejected by the rules engine", error);
           }
-          return;
         }
       }
     }, aiMoveDelayMs(get().difficulty));

@@ -3,6 +3,7 @@ import {
   applyMove,
   beats,
   buildDeck,
+  canPass,
   cardId,
   createGame,
   DEFAULT_RULES,
@@ -169,6 +170,113 @@ describe("attack / throw-in limits", () => {
     expect(legalAttacks(s, "A")).toHaveLength(0);
   });
 
+  it("blocks throw-in after own PASS until another attacker throws", () => {
+    let s = baseState({
+      players: ["A", "B", "C"],
+      hands: {
+        A: [makeCard(9, "clubs")],
+        B: [makeCard(10, "hearts"), makeCard(7, "spades")],
+        C: [makeCard(9, "diamonds")],
+      },
+      attackerId: "A",
+      defenderId: "B",
+      table: [{ attack: makeCard(9, "hearts"), defense: makeCard(10, "clubs") }],
+    });
+    s = applyMove(s, { type: "PASS", player: "A" });
+    expect(s.passed).toContain("A");
+    expect(legalAttacks(s, "A")).toHaveLength(0);
+    expect(canPass(s, "A")).toBe(false);
+
+    // Co-attacker throw clears passed for everyone — A may throw again.
+    s = applyMove(s, { type: "ATTACK", player: "C", card: makeCard(9, "diamonds") });
+    expect(s.passed).toEqual([]);
+    expect(legalAttacks(s, "A").map((c) => c.id)).toContain(cardId(9, "clubs"));
+  });
+
+  it("allows mid-defense throw-in when defender has spare capacity and a matching rank", () => {
+    const s = baseState({
+      maxAttacks: 6,
+      hands: {
+        A: [makeCard(9, "clubs"), makeCard(7, "diamonds")],
+        B: [makeCard(10, "hearts"), makeCard(11, "hearts"), makeCard(12, "hearts")],
+      },
+      table: [{ attack: makeCard(9, "hearts") }],
+    });
+    // U=1, H=3 → spare slot; matching 9 is legal, non-matching 7 is not.
+    expect(legalAttacks(s, "A").map((c) => c.id)).toEqual([cardId(9, "clubs")]);
+  });
+
+  it("allows throw-in during take when defender has spare capacity", () => {
+    const s = baseState({
+      maxAttacks: 6,
+      takeInProgress: true,
+      hands: {
+        A: [makeCard(9, "clubs")],
+        B: [makeCard(8, "hearts"), makeCard(10, "hearts"), makeCard(11, "hearts")],
+      },
+      table: [{ attack: makeCard(9, "hearts") }],
+    });
+    // U=1, H=3 → may still pile on.
+    expect(legalAttacks(s, "A").map((c) => c.id)).toEqual([cardId(9, "clubs")]);
+  });
+
+  it("allows a 6th throw-in on later bouts after a take raised the cap", () => {
+    let s = baseState({
+      maxAttacks: 5,
+      discard: [],
+      hands: {
+        A: [makeCard(9, "hearts"), makeCard(10, "clubs")],
+        B: [makeCard(6, "clubs"), makeCard(7, "clubs")],
+      },
+      deck: [
+        makeCard(6, "spades"),
+        makeCard(7, "spades"),
+        makeCard(8, "spades"),
+        makeCard(9, "spades"),
+        makeCard(10, "spades"),
+        makeCard(11, "spades"),
+        makeCard(12, "spades"),
+        makeCard(13, "spades"),
+        makeCard(14, "spades"),
+        makeCard(6, "diamonds"),
+        makeCard(7, "diamonds"),
+        makeCard(8, "diamonds"),
+      ],
+    });
+    s = applyMove(s, { type: "ATTACK", player: "A", card: makeCard(9, "hearts") });
+    s = applyMove(s, { type: "TAKE", player: "B" });
+    s = applyMove(s, { type: "PASS", player: "A" });
+    expect(s.maxAttacks).toBe(6);
+
+    // Later bout: five matching attacks already out, defender holds 6 → 6th is legal.
+    s = {
+      ...s,
+      attackerId: "A",
+      defenderId: "B",
+      takeInProgress: false,
+      passed: [],
+      hands: {
+        A: [makeCard(10, "clubs")],
+        B: [
+          makeCard(11, "hearts"),
+          makeCard(12, "hearts"),
+          makeCard(13, "hearts"),
+          makeCard(14, "hearts"),
+          makeCard(6, "spades"),
+          makeCard(7, "spades"),
+        ],
+      },
+      table: [
+        { attack: makeCard(10, "hearts") },
+        { attack: makeCard(9, "hearts") },
+        { attack: makeCard(9, "diamonds") },
+        { attack: makeCard(9, "spades") },
+        { attack: makeCard(9, "clubs") },
+      ],
+    };
+    expect(legalAttacks(s, "A").map((c) => c.id)).toEqual([cardId(10, "clubs")]);
+  });
+
   it("caps throw-ins during take by defender hand size", () => {
     let s = baseState({
       hands: {
@@ -313,7 +421,7 @@ describe("round resolution", () => {
     expect(s.defenderId).toBe("A");
   });
 
-  it("keeps the 5-card attack cap after a take while discard is still empty", () => {
+  it("raises the attack cap to 6 after the first bout ends in a take", () => {
     let s = baseState({
       maxAttacks: 5,
       discard: [],
@@ -334,10 +442,10 @@ describe("round resolution", () => {
     s = applyMove(s, { type: "TAKE", player: "B" });
     s = applyMove(s, { type: "PASS", player: "A" });
     expect(s.discard).toHaveLength(0);
-    expect(s.maxAttacks).toBe(5);
+    expect(s.maxAttacks).toBe(6);
   });
 
-  it("raises the attack cap to 6 only after the first successful discard", () => {
+  it("raises the attack cap to 6 after the first bout ends in a successful defense", () => {
     let s = baseState({
       maxAttacks: 5,
       discard: [],

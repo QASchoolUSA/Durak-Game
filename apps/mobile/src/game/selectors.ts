@@ -4,7 +4,6 @@ import {
   type PlayerId,
   canPass,
   canTake,
-  canThrowIn,
   canTransfer,
   legalAttacks,
   legalDefenses,
@@ -98,11 +97,16 @@ export function getTurnStatus(
   const nameOf = (id: PlayerId) => names[id] ?? i18n.t("common.opponent");
   const isDefender = state.defenderId === human;
   const undef = undefendedCount(state);
+  const canThrow = legalAttacks(state, human).length > 0;
+  const canDone = canPass(state, human);
 
   if (state.takeInProgress) {
     if (isDefender) return { text: i18n.t("game.status.taking"), tone: "neutral" };
-    if (canThrowIn(state, human)) {
+    if (canThrow) {
       return { text: i18n.t("game.status.throwOrWait"), tone: "you-throw" };
+    }
+    if (canDone) {
+      return { text: i18n.t("game.status.pressDone"), tone: "you-throw" };
     }
     return {
       text: i18n.t("game.status.nameTaking", { name: nameOf(state.defenderId) }),
@@ -116,6 +120,9 @@ export function getTurnStatus(
         text: i18n.t("game.status.yourBeat", { count: undef }),
         tone: "you-defend",
       };
+    }
+    if (canThrow) {
+      return { text: i18n.t("game.status.throwWhileDefend"), tone: "you-throw" };
     }
     return {
       text: i18n.t("game.status.waitBeat", {
@@ -138,8 +145,14 @@ export function getTurnStatus(
   }
 
   // Everything beaten — throw-in window before the bout ends.
-  if (canThrowIn(state, human)) {
+  if (canThrow && canDone) {
     return { text: i18n.t("game.status.throwOrDone"), tone: "you-throw" };
+  }
+  if (canThrow) {
+    return { text: i18n.t("game.status.throwOnly"), tone: "you-throw" };
+  }
+  if (canDone) {
+    return { text: i18n.t("game.status.pressDone"), tone: "you-throw" };
   }
   if (isDefender) {
     return { text: i18n.t("game.status.defendedWait"), tone: "neutral" };

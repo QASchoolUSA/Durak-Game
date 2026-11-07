@@ -412,8 +412,8 @@ private func endRound(_ state: inout GameState, defenderTook: Bool) {
     state.passed = []
     state.takeInProgress = false
 
-    // Cap rises to 6 only after the first successful beat (discard nonempty).
-    if !defenderTook && !state.discard.isEmpty && state.maxAttacks < maxAttacksConst {
+    // First bout only is capped at 5; after it ends (take or beat), raise to 6.
+    if state.maxAttacks < maxAttacksConst {
         state.maxAttacks = maxAttacksConst
     }
 

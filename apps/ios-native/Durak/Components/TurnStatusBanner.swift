@@ -35,6 +35,8 @@ struct TurnStatusBanner: View {
 
         let isDefender = game.defenderId == humanId
         let undef = undefendedCount(game)
+        let canThrow = !legalAttacks(game, humanId).isEmpty
+        let canDone = canPass(game, humanId)
         let nameOf: (PlayerId) -> String = { id in
             names[id] ?? String(localized: "Opponent")
         }
@@ -43,8 +45,11 @@ struct TurnStatusBanner: View {
             if isDefender {
                 return String(localized: "Taking cards...")
             }
-            if canThrowIn(game, humanId) {
+            if canThrow {
                 return String(localized: "Throw in more cards or wait")
+            }
+            if canDone {
+                return String(localized: "Press Done")
             }
             return String(localized: "\(nameOf(game.defenderId)) is taking cards")
         }
@@ -55,6 +60,9 @@ struct TurnStatusBanner: View {
                     return String(localized: "Your turn to defend — beat 1 card or take")
                 }
                 return String(localized: "Your turn to defend — beat \(undef) cards or take")
+            }
+            if canThrow {
+                return String(localized: "You can throw in a matching card")
             }
             let defenderName = nameOf(game.defenderId)
             if undef == 1 {
@@ -73,8 +81,14 @@ struct TurnStatusBanner: View {
         }
 
         // Everything beaten — throw-in window before the bout ends.
-        if canThrowIn(game, humanId) {
+        if canThrow && canDone {
             return String(localized: "Throw in a matching card or press Done")
+        }
+        if canThrow {
+            return String(localized: "Throw in a matching card")
+        }
+        if canDone {
+            return String(localized: "Press Done")
         }
         if isDefender {
             return String(localized: "Defended — waiting on throw-ins")
@@ -92,26 +106,42 @@ struct TurnStatusBanner: View {
 
     private var isConfirming: Bool { isSubmittingOnlineMove }
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var tickerAnimation: Animation? {
+        reduceMotion ? nil : .easeInOut(duration: 0.28)
+    }
+
+    private var dotColor: Color {
+        if isConfirming { return Color.orange }
+        return isMyTurn ? theme.ui.accent : DesignTokens.Colors.textMuted
+    }
+
+    private var textColor: Color {
+        if isConfirming || isMyTurn { return DesignTokens.Colors.textLight }
+        return DesignTokens.Colors.textMuted
+    }
+
+    private var strokeColor: Color {
+        if isConfirming { return Color.orange.opacity(0.7) }
+        return isMyTurn ? theme.ui.accent.opacity(0.6) : Color.white.opacity(0.1)
+    }
+
     var body: some View {
         HStack(spacing: DesignTokens.Spacing.xs) {
             Circle()
-                .fill(
-                    isConfirming
-                        ? Color.orange
-                        : (isMyTurn ? theme.ui.accent : DesignTokens.Colors.textMuted)
-                )
+                .fill(dotColor)
                 .frame(width: 8, height: 8)
+                .scaleEffect(isMyTurn && !isConfirming ? 1.08 : 1)
 
             Text(statusText)
                 .font(DesignTokens.Typography.caption)
                 .fontWeight(.semibold)
-                .foregroundStyle(
-                    isConfirming || isMyTurn
-                        ? DesignTokens.Colors.textLight
-                        : DesignTokens.Colors.textMuted
-                )
+                .foregroundStyle(textColor)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
+                .contentTransition(.opacity)
+                .animation(tickerAnimation, value: statusText)
         }
         .padding(.horizontal, DesignTokens.Spacing.sm)
         .padding(.vertical, DesignTokens.Spacing.xs)
@@ -120,14 +150,11 @@ struct TurnStatusBanner: View {
                 .fill(theme.ui.surfaceGlass)
                 .overlay(
                     Capsule()
-                        .stroke(
-                            isConfirming
-                                ? Color.orange.opacity(0.7)
-                                : (isMyTurn ? theme.ui.accent.opacity(0.6) : Color.white.opacity(0.1)),
-                            lineWidth: 1
-                        )
+                        .stroke(strokeColor, lineWidth: isMyTurn || isConfirming ? 1.2 : 1)
                 )
         )
-        .animation(.easeInOut(duration: 0.25), value: statusText)
+        .animation(tickerAnimation, value: statusText)
+        .animation(tickerAnimation, value: isMyTurn)
+        .animation(tickerAnimation, value: isConfirming)
     }
 }

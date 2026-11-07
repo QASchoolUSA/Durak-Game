@@ -368,7 +368,41 @@ describe("getTurnStatus", () => {
     });
   });
 
-  it("invites an eligible attacker to throw in once everything is beaten", () => {
+  it("invites a mid-defense throw-in when a matching card is legal", () => {
+    const state = baseState({
+      attackerId: "you",
+      defenderId: "bot2",
+      hands: {
+        bot1: [],
+        you: [c(9, "hearts")],
+        bot2: [c(11, "clubs"), c(12, "clubs")],
+      },
+      table: [{ attack: c(9, "clubs") }],
+    });
+    expect(getTurnStatus(state, "you", NAMES)).toEqual({
+      text: "You can throw in a matching card",
+      tone: "you-throw",
+    });
+  });
+
+  it("invites throw or DONE when both are legal after a successful defense", () => {
+    const state = baseState({
+      attackerId: "you",
+      defenderId: "bot1",
+      hands: {
+        bot1: [c(7, "spades")],
+        you: [c(9, "hearts")],
+        bot2: [],
+      },
+      table: [{ attack: c(9, "clubs"), defense: c(10, "clubs") }],
+    });
+    expect(getTurnStatus(state, "you", NAMES)).toEqual({
+      text: "Throw in a matching card or press DONE",
+      tone: "you-throw",
+    });
+  });
+
+  it("prompts DONE only when throw-in is blocked by defender capacity", () => {
     const state = baseState({
       attackerId: "you",
       defenderId: "bot1",
@@ -376,8 +410,43 @@ describe("getTurnStatus", () => {
       table: [{ attack: c(9, "clubs"), defense: c(10, "clubs") }],
     });
     expect(getTurnStatus(state, "you", NAMES)).toEqual({
-      text: "Throw in a matching card or press DONE",
+      text: "Press DONE",
       tone: "you-throw",
+    });
+  });
+
+  it("prompts DONE only when the hand has no matching ranks", () => {
+    const state = baseState({
+      attackerId: "you",
+      defenderId: "bot1",
+      hands: {
+        bot1: [c(7, "spades")],
+        you: [c(8, "hearts")],
+        bot2: [],
+      },
+      table: [{ attack: c(9, "clubs"), defense: c(10, "clubs") }],
+    });
+    expect(getTurnStatus(state, "you", NAMES)).toEqual({
+      text: "Press DONE",
+      tone: "you-throw",
+    });
+  });
+
+  it("waits after own PASS even with a matching throw-in in hand", () => {
+    const state = baseState({
+      attackerId: "you",
+      defenderId: "bot1",
+      passed: ["you"],
+      hands: {
+        bot1: [c(7, "spades")],
+        you: [c(9, "hearts")],
+        bot2: [c(9, "diamonds")],
+      },
+      table: [{ attack: c(9, "clubs"), defense: c(10, "clubs") }],
+    });
+    expect(getTurnStatus(state, "you", NAMES)).toEqual({
+      text: "Waiting for attackers to throw in or pass",
+      tone: "waiting",
     });
   });
 
@@ -415,6 +484,24 @@ describe("getTurnStatus", () => {
     expect(getTurnStatus(other, "you", NAMES)).toEqual({
       text: "Bo is taking the cards",
       tone: "waiting",
+    });
+  });
+
+  it("prompts DONE only during take when no legal throw-ins remain", () => {
+    const state = baseState({
+      attackerId: "you",
+      defenderId: "bot2",
+      takeInProgress: true,
+      hands: {
+        bot1: [],
+        you: [c(8, "hearts")],
+        bot2: [c(11, "clubs"), c(12, "clubs")],
+      },
+      table: [{ attack: c(9, "clubs") }],
+    });
+    expect(getTurnStatus(state, "you", NAMES)).toEqual({
+      text: "Press DONE",
+      tone: "you-throw",
     });
   });
 });
